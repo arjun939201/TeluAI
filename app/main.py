@@ -24,6 +24,11 @@ from app.vocab import (
     add_grammar_rule,
     add_phrase,
     find_standard_melimi_alternatives,
+    VOCABULARY,
+)
+
+from app.morphology import (
+    analyze_text,
 )
 
 from app.prompts import (
@@ -56,7 +61,7 @@ app.add_middleware(
 
 
 # ============================================================
-# STATIC FILES
+# STATIC
 # ============================================================
 
 STATIC_DIR = os.path.join(
@@ -101,7 +106,9 @@ def serve_index():
 def health():
 
     return {
-        "status": "ok"
+        "status": "ok",
+        "service": "TeluAI",
+        "language": "Melimi Telugu",
     }
 
 
@@ -121,30 +128,32 @@ async def chat(
     # VOCABULARY
     # --------------------------------------------------------
 
-    vocab_matches = (
-        retrieve_vocab(
-            req.message
-        )
+    vocab_matches = retrieve_vocab(
+        req.message
     )
+
+
+    # --------------------------------------------------------
+    # MORPHOLOGICAL UNDERSTANDING
+    # --------------------------------------------------------
+
+    morphology_context = []
+
+    if req.mode == "melimi":
+
+        morphology_context = analyze_text(
+            req.message,
+            VOCABULARY,
+        )
 
 
     # --------------------------------------------------------
     # MELIMI RESOURCES
     # --------------------------------------------------------
 
-    examples = (
-        get_examples()
-        if req.mode == "melimi"
-        else []
-    )
+    examples = []
 
-
-    phrases = (
-        get_phrases()
-        if req.mode == "melimi"
-        else []
-    )
-
+    phrases = []
 
     grammar_matches = {
         "suffixes": [],
@@ -157,6 +166,10 @@ async def chat(
 
 
     if req.mode == "melimi":
+
+        examples = get_examples()
+
+        phrases = get_phrases()
 
         grammar_matches = (
             retrieve_grammar(
@@ -176,11 +189,12 @@ async def chat(
     # --------------------------------------------------------
 
     system_prompt = build_system_prompt(
-        req.mode,
-        vocab_matches,
-        examples,
-        grammar_matches,
-        phrases,
+        mode=req.mode,
+        vocab_matches=vocab_matches,
+        examples=examples,
+        grammar_matches=grammar_matches,
+        phrases=phrases,
+        morphology_context=morphology_context,
     )
 
 
@@ -195,7 +209,7 @@ async def chat(
 
 
     # --------------------------------------------------------
-    # FIRST GENERATION
+    # GENERATE
     # --------------------------------------------------------
 
     try:
@@ -215,7 +229,7 @@ async def chat(
 
 
     # --------------------------------------------------------
-    # MELIMI RESPONSE CHECK
+    # RESPONSE CHECK
     # --------------------------------------------------------
 
     if (
@@ -242,29 +256,25 @@ async def chat(
 
             try:
 
-                corrected_reply = (
-                    await call_groq(
-                        correction_prompt,
-                        [],
-                        reply,
-                    )
+                corrected = await call_groq(
+                    correction_prompt,
+                    [],
+                    reply,
                 )
 
 
                 if (
-                    corrected_reply
-                    and corrected_reply.strip()
+                    corrected
+                    and corrected.strip()
                 ):
 
                     reply = (
-                        corrected_reply.strip()
+                        corrected.strip()
                     )
 
 
             except RuntimeError:
 
-                # If the second Groq call fails,
-                # keep the already-generated answer.
                 pass
 
 
@@ -315,7 +325,7 @@ async def chat(
 
 
 # ============================================================
-# LEARN VOCABULARY
+# LEARN VOCAB
 # ============================================================
 
 @app.post(
@@ -333,22 +343,14 @@ def learn_vocab(
     )
 
 
-    if added:
-
-        message = (
-            "Added to vocabulary.json"
-        )
-
-    else:
-
-        message = (
-            "Already exists in vocabulary.json"
-        )
-
-
     return LearnResponse(
         added=added,
-        message=message,
+        message=(
+            "Added to vocabulary.json"
+            if added
+            else
+            "Already exists in vocabulary.json"
+        ),
     )
 
 
@@ -373,24 +375,14 @@ def learn_grammar(
     )
 
 
-    if added:
-
-        message = (
-            f"Added to grammar.json "
-            f"({req.kind})"
-        )
-
-    else:
-
-        message = (
-            f"Already exists in grammar.json "
-            f"({req.kind})"
-        )
-
-
     return LearnResponse(
         added=added,
-        message=message,
+        message=(
+            "Added to grammar.json"
+            if added
+            else
+            "Already exists in grammar.json"
+        ),
     )
 
 
@@ -412,20 +404,12 @@ def learn_phrase(
     )
 
 
-    if added:
-
-        message = (
-            "Added to phrases.json"
-        )
-
-    else:
-
-        message = (
-            "Already exists in phrases.json"
-        )
-
-
     return LearnResponse(
         added=added,
-        message=message,
+        message=(
+            "Added to phrases.json"
+            if added
+            else
+            "Already exists in phrases.json"
+        ),
     )
