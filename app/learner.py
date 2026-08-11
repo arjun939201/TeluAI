@@ -2,21 +2,14 @@ import json
 import os
 import re
 from collections import Counter
-from typing import Dict, List
+from typing import Any, Dict, List
 
-
-# ============================================================
-# PATH
-# ============================================================
 
 BASE_DIR = os.path.dirname(
-    os.path.dirname(__file__)
+    os.path.dirname(os.path.abspath(__file__))
 )
 
-DATA_DIR = os.path.join(
-    BASE_DIR,
-    "data",
-)
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
 LEARNED_FILE = os.path.join(
     DATA_DIR,
@@ -24,25 +17,13 @@ LEARNED_FILE = os.path.join(
 )
 
 
-# ============================================================
-# TELUGU
-# ============================================================
-
 TELUGU_WORD_RE = re.compile(
     r"[\u0C00-\u0C7F]+",
     re.UNICODE,
 )
 
 
-def tokenize(text: str) -> List[str]:
-
-    return TELUGU_WORD_RE.findall(
-        text or ""
-    )
-
-
-def normalize(text: str) -> str:
-
+def normalize_text(text: str) -> str:
     return re.sub(
         r"\s+",
         " ",
@@ -50,20 +31,23 @@ def normalize(text: str) -> str:
     )
 
 
-# ============================================================
-# DATABASE
-# ============================================================
-
-DEFAULT_DATA = {
-    "words": {},
-    "phrases": {},
-    "variations": {},
-    "sentences": [],
-    "documents": [],
-}
+def tokenize(text: str) -> List[str]:
+    return TELUGU_WORD_RE.findall(
+        text or ""
+    )
 
 
-def load_learned() -> Dict:
+def empty_database() -> Dict[str, Any]:
+    return {
+        "words": {},
+        "phrases": {},
+        "sentences": [],
+        "documents": {},
+        "variations": {},
+    }
+
+
+def load_database() -> Dict[str, Any]:
 
     os.makedirs(
         DATA_DIR,
@@ -73,19 +57,9 @@ def load_learned() -> Dict:
     if not os.path.exists(
         LEARNED_FILE
     ):
-
-        save_learned(
-            DEFAULT_DATA.copy()
-        )
-
-        return {
-            "words": {},
-            "phrases": {},
-            "variations": {},
-            "sentences": [],
-            "documents": [],
-        }
-
+        data = empty_database()
+        save_database(data)
+        return data
 
     try:
 
@@ -93,41 +67,27 @@ def load_learned() -> Dict:
             LEARNED_FILE,
             "r",
             encoding="utf-8",
-        ) as f:
+        ) as file:
 
-            data = json.load(f)
-
-
-        for key, default in DEFAULT_DATA.items():
-
-            if key not in data:
-
-                data[key] = (
-                    default.copy()
-                    if isinstance(
-                        default,
-                        dict,
-                    )
-                    else list(default)
-                )
-
-
-        return data
-
+            data = json.load(file)
 
     except Exception:
 
-        return {
-            "words": {},
-            "phrases": {},
-            "variations": {},
-            "sentences": [],
-            "documents": [],
-        }
+        data = empty_database()
+
+    defaults = empty_database()
+
+    for key, value in defaults.items():
+
+        if key not in data:
+
+            data[key] = value
+
+    return data
 
 
-def save_learned(
-    data: Dict,
+def save_database(
+    data: Dict[str, Any]
 ) -> None:
 
     os.makedirs(
@@ -135,105 +95,222 @@ def save_learned(
         exist_ok=True,
     )
 
-    temporary = (
-        LEARNED_FILE
-        + ".tmp"
-    )
-
+    temp_file = LEARNED_FILE + ".tmp"
 
     with open(
-        temporary,
+        temp_file,
         "w",
         encoding="utf-8",
-    ) as f:
+    ) as file:
 
         json.dump(
             data,
-            f,
+            file,
             ensure_ascii=False,
             indent=2,
         )
 
-
     os.replace(
-        temporary,
+        temp_file,
         LEARNED_FILE,
     )
 
 
-# ============================================================
-# WORD LEARNING
-# ============================================================
-
 def learn_word(
+    data: Dict[str, Any],
     word: str,
     document_id: str,
+    sentence: str,
 ) -> None:
-
-    word = normalize(
-        word
-    )
 
     if not word:
         return
 
-
-    data = load_learned()
-
     words = data["words"]
-
 
     if word not in words:
 
         words[word] = {
             "count": 0,
-            "documents": [],
+            "documents": {},
             "examples": [],
         }
 
+    entry = words[word]
 
-    words[word]["count"] += 1
+    entry["count"] += 1
 
+    documents = entry["documents"]
 
-    if (
-        document_id
-        not in words[word]["documents"]
-    ):
-
-        words[word]["documents"].append(
-            document_id
+    documents[document_id] = (
+        documents.get(
+            document_id,
+            0,
         )
-
-
-# ============================================================
-# SENTENCE LEARNING
-# ============================================================
-
-def learn_sentences(
-    text: str,
-    document_id: str,
-) -> int:
-
-    data = load_learned()
-
-    sentences = re.split(
-        r"[.!?。\n]+",
-        text,
+        + 1
     )
 
+    if (
+        sentence
+        and sentence not in entry["examples"]
+        and len(entry["examples"]) < 5
+    ):
 
-    count = 0
-
-
-    for sentence in sentences:
-
-        sentence = normalize(
+        entry["examples"].append(
             sentence
         )
 
-        if len(sentence) < 3:
-            continue
 
+def learn_phrase(
+    data: Dict[str, Any],
+    phrase: str,
+    document_id: str,
+    sentence: str,
+) -> None:
+
+    if not phrase:
+        return
+
+    phrases = data["phrases"]
+
+    if phrase not in phrases:
+
+        phrases[phrase] = {
+            "count": 0,
+            "documents": {},
+            "examples": [],
+        }
+
+    entry = phrases[phrase]
+
+    entry["count"] += 1
+
+    documents = entry["documents"]
+
+    documents[document_id] = (
+        documents.get(
+            document_id,
+            0,
+        )
+        + 1
+    )
+
+    if (
+        sentence
+        and sentence not in entry["examples"]
+        and len(entry["examples"]) < 5
+    ):
+
+        entry["examples"].append(
+            sentence
+        )
+
+
+def split_sentences(
+    text: str,
+) -> List[str]:
+
+    pieces = re.split(
+        r"[.!?。！？\n]+",
+        text,
+    )
+
+    return [
+        normalize_text(piece)
+        for piece in pieces
+        if normalize_text(piece)
+    ]
+
+
+def learn_text(
+    text: str,
+    document_id: str = "user_text",
+) -> Dict[str, Any]:
+
+    text = normalize_text(text)
+
+    if not text:
+
+        return {
+            "learned": False,
+            "reason": "empty text",
+        }
+
+    data = load_database()
+
+    data["documents"].setdefault(
+        document_id,
+        {
+            "count": 0,
+            "characters": 0,
+        },
+    )
+
+    data["documents"][document_id][
+        "count"
+    ] += 1
+
+    data["documents"][document_id][
+        "characters"
+    ] += len(text)
+
+    sentences = split_sentences(
+        text
+    )
+
+    unique_words = set()
+
+    phrase_count = 0
+
+    for sentence in sentences:
+
+        words = tokenize(
+            sentence
+        )
+
+        unique_words.update(
+            words
+        )
+
+        for word in words:
+
+            learn_word(
+                data,
+                word,
+                document_id,
+                sentence,
+            )
+
+        # Learn actual corpus phrases.
+        #
+        # 2-word and 3-word sequences.
+        #
+        # We don't claim these are grammatical
+        # units. They are simply observed usage.
+
+        for size in (2, 3):
+
+            if len(words) < size:
+                continue
+
+            for index in range(
+                len(words) - size + 1
+            ):
+
+                phrase = " ".join(
+                    words[
+                        index:index + size
+                    ]
+                )
+
+                learn_phrase(
+                    data,
+                    phrase,
+                    document_id,
+                    sentence,
+                )
+
+                phrase_count += 1
 
         if sentence not in data[
             "sentences"
@@ -241,416 +318,101 @@ def learn_sentences(
 
             data[
                 "sentences"
-            ].append(
-                sentence
-            )
+            ].append(sentence)
 
-            count += 1
-
-
-    return count
-
-
-# ============================================================
-# PHRASE LEARNING
-# ============================================================
-
-def learn_phrases(
-    text: str,
-    document_id: str,
-) -> None:
-
-    data = load_learned()
-
-    words = tokenize(
-        text
-    )
-
-
-    # Learn 2-word and 3-word
-    # sequences from actual corpus usage.
-
-    for size in (
-        2,
-        3,
-    ):
-
-        for i in range(
-            len(words) - size + 1
-        ):
-
-            phrase = " ".join(
-                words[
-                    i:i + size
-                ]
-            )
-
-
-            if phrase not in data[
-                "phrases"
-            ]:
-
-                data[
-                    "phrases"
-                ][phrase] = {
-                    "count": 0,
-                    "documents": [],
-                    "examples": [],
-                }
-
-
-            item = data[
-                "phrases"
-            ][phrase]
-
-
-            item["count"] += 1
-
-
-            if (
-                document_id
-                not in item[
-                    "documents"
-                ]
-            ):
-
-                item[
-                    "documents"
-                ].append(
-                    document_id
-                )
-
-
-            if (
-                text not in item[
-                    "examples"
-                ]
-                and len(
-                    item["examples"]
-                ) < 5
-            ):
-
-                item[
-                    "examples"
-                ].append(
-                    text
-                )
-
-
-# ============================================================
-# VARIATION LEARNING
-# ============================================================
-
-COMMON_VARIATION_ENDINGS = [
-    "లను",
-    "లతో",
-    "లకు",
-    "లలో",
-    "లపై",
-    "లని",
-    "లు",
-    "ాన్ని",
-    "ాన్ని",
-    "ానికి",
-    "ానికి",
-    "ంలో",
-    "లో",
-    "తో",
-    "ను",
-    "ని",
-    "కు",
-    "కి",
-    "పై",
-]
-
-
-def possible_bases(
-    word: str,
-) -> List[str]:
-
-    results = []
-
-
-    for ending in sorted(
-        COMMON_VARIATION_ENDINGS,
-        key=len,
-        reverse=True,
-    ):
-
-        if (
-            word.endswith(
-                ending
-            )
-            and len(word)
-            > len(ending) + 1
-        ):
-
-            base = word[
-                : -len(ending)
-            ]
-
-            if base:
-
-                results.append(
-                    base
-                )
-
-
-    results.append(
-        word
-    )
-
-
-    return list(
-        dict.fromkeys(
-            results
-        )
-    )
-
-
-def learn_variations(
-    text: str,
-    document_id: str,
-) -> None:
-
-    data = load_learned()
-
-    words = tokenize(
-        text
-    )
-
-
-    for word in words:
-
-        bases = possible_bases(
-            word
-        )
-
-
-        if len(bases) <= 1:
-            continue
-
-
-        base = bases[0]
-
-
-        if base == word:
-            continue
-
-
-        if base not in data[
-            "variations"
-        ]:
-
-            data[
-                "variations"
-            ][base] = {
-                "forms": {},
-                "documents": [],
-            }
-
-
-        item = data[
-            "variations"
-        ][base]
-
-
-        item[
-            "forms"
-        ][word] = (
-            item[
-                "forms"
-            ].get(
-                word,
-                0,
-            )
-            + 1
-        )
-
-
-        if (
-            document_id
-            not in item[
-                "documents"
-            ]
-        ):
-
-            item[
-                "documents"
-            ].append(
-                document_id
-            )
-
-
-# ============================================================
-# DOCUMENT LEARNING
-# ============================================================
-
-def learn_text(
-    text: str,
-    document_id: str = "unknown",
-) -> Dict:
-
-    text = normalize(
-        text
-    )
-
-
-    if not text:
-
-        return {
-            "learned": False,
-            "words": 0,
-            "phrases": 0,
-            "variations": 0,
-        }
-
-
-    data = load_learned()
-
-
-    # --------------------------------------------------------
-    # DOCUMENT
-    # --------------------------------------------------------
-
-    if document_id not in data[
-        "documents"
-    ]:
-
-        data[
-            "documents"
-        ].append(
-            document_id
-        )
-
-
-    # --------------------------------------------------------
-    # WORDS
-    # --------------------------------------------------------
-
-    words = tokenize(
-        text
-    )
-
-
-    for word in words:
-
-        learn_word(
-            word,
-            document_id,
-        )
-
-
-    # --------------------------------------------------------
-    # PHRASES
-    # --------------------------------------------------------
-
-    learn_phrases(
-        text,
-        document_id,
-    )
-
-
-    # --------------------------------------------------------
-    # VARIATIONS
-    # --------------------------------------------------------
-
-    before = len(
-        data[
-            "variations"
-        ]
-    )
-
-
-    learn_variations(
-        text,
-        document_id,
-    )
-
-
-    # --------------------------------------------------------
-    # SENTENCES
-    # --------------------------------------------------------
-
-    learn_sentences(
-        text,
-        document_id,
-    )
-
-
-    # --------------------------------------------------------
-    # SAVE
-    # --------------------------------------------------------
-
-    data = load_learned()
-
-    save_learned(
+    save_database(
         data
     )
 
-
     return {
         "learned": True,
-        "document": document_id,
-        "words": len(words),
+        "document_id": document_id,
+        "sentences_added": len(
+            sentences
+        ),
+        "word_occurrences": sum(
+            len(tokenize(sentence))
+            for sentence in sentences
+        ),
         "unique_words": len(
-            set(words)
+            unique_words
         ),
-        "phrases": len(
+        "phrases_observed": phrase_count,
+        "total_words_known": len(
+            data["words"]
+        ),
+        "total_phrases_known": len(
             data["phrases"]
-        ),
-        "variations": (
-            len(
-                data[
-                    "variations"
-                ]
-            )
-        ),
-        "sentences": len(
-            data[
-                "sentences"
-            ]
         ),
     }
 
 
-# ============================================================
-# SEARCH LEARNED CORPUS
-# ============================================================
+def _score_word_match(
+    query_words: set,
+    word: str,
+    info: Dict[str, Any],
+) -> float:
+
+    if word in query_words:
+        return 1000 + info.get(
+            "count",
+            0,
+        )
+
+    return 0
+
 
 def search_learned(
     message: str,
-    limit: int = 10,
-) -> Dict:
+    limit: int = 8,
+) -> Dict[str, Any]:
 
-    data = load_learned()
+    data = load_database()
 
-    message_words = set(
-        tokenize(
-            message
-        )
+    query_words = set(
+        tokenize(message)
     )
 
-
-    matched_words = {}
+    scored_words = []
 
     for word, info in data[
         "words"
     ].items():
 
-        if word in message_words:
+        score = _score_word_match(
+            query_words,
+            word,
+            info,
+        )
 
-            matched_words[
-                word
-            ] = info
+        if score > 0:
 
+            scored_words.append(
+                (
+                    score,
+                    word,
+                    info,
+                )
+            )
 
-    matched_phrases = {}
+    scored_words.sort(
+        reverse=True,
+        key=lambda item: item[0],
+    )
 
-    normalized_message = normalize(
+    matched_words = {}
+
+    for _, word, info in scored_words[
+        :limit
+    ]:
+
+        matched_words[word] = info
+
+    normalized_message = normalize_text(
         message
     )
 
+    scored_phrases = []
 
     for phrase, info in data[
         "phrases"
@@ -658,117 +420,141 @@ def search_learned(
 
         if phrase in normalized_message:
 
-            matched_phrases[
-                phrase
-            ] = info
+            score = (
+                1000
+                + info.get(
+                    "count",
+                    0,
+                )
+                + len(phrase)
+            )
 
+            scored_phrases.append(
+                (
+                    score,
+                    phrase,
+                    info,
+                )
+            )
 
-    matched_variations = {}
+    scored_phrases.sort(
+        reverse=True,
+        key=lambda item: item[0],
+    )
 
+    matched_phrases = {}
 
-    for base, info in data[
-        "variations"
-    ].items():
+    for _, phrase, info in scored_phrases[
+        :limit
+    ]:
 
-        forms = info.get(
-            "forms",
-            {},
-        )
-
-
-        for form in forms:
-
-            if form in message:
-
-                matched_variations[
-                    base
-                ] = info
-
-                break
-
+        matched_phrases[
+            phrase
+        ] = info
 
     return {
-        "words": dict(
-            list(
-                matched_words.items()
-            )[:limit]
-        ),
-
-        "phrases": dict(
-            list(
-                matched_phrases.items()
-            )[:limit]
-        ),
-
-        "variations": dict(
-            list(
-                matched_variations.items()
-            )[:limit]
-        ),
+        "words": matched_words,
+        "phrases": matched_phrases,
     }
 
 
-# ============================================================
-# PROMPT CONTEXT
-# ============================================================
-
 def build_learned_context(
     message: str,
-    limit: int = 10,
+    limit: int = 8,
+    max_chars: int = 5000,
 ) -> str:
 
     result = search_learned(
         message,
-        limit,
+        limit=limit,
     )
 
+    parts = []
 
-    lines = []
+    words = result["words"]
 
+    if words:
 
-    for word, info in result[
-        "words"
-    ].items():
-
-        lines.append(
-            f"- learned word: {word} "
-            f"(seen {info.get('count', 0)} times)"
+        parts.append(
+            "OBSERVED MELIMI WORD USAGE:"
         )
 
+        for word, info in words.items():
 
-    for phrase, info in result[
-        "phrases"
-    ].items():
+            examples = info.get(
+                "examples",
+                [],
+            )
 
-        lines.append(
-            f"- learned phrase: {phrase} "
-            f"(seen {info.get('count', 0)} times)"
+            line = (
+                f"{word} "
+                f"(observed {info.get('count', 0)} times)"
+            )
+
+            if examples:
+
+                line += (
+                    f" | example: {examples[0]}"
+                )
+
+            parts.append(line)
+
+    phrases = result["phrases"]
+
+    if phrases:
+
+        parts.append(
+            "\nOBSERVED MELIMI PHRASES:"
         )
 
+        for phrase, info in phrases.items():
 
-    for base, info in result[
-        "variations"
-    ].items():
+            examples = info.get(
+                "examples",
+                [],
+            )
 
-        forms = ", ".join(
-            info.get(
-                "forms",
-                {},
-            ).keys()
-        )
+            line = (
+                f"{phrase} "
+                f"(observed {info.get('count', 0)} times)"
+            )
 
+            if examples:
 
-        lines.append(
-            f"- learned variation: "
-            f"{base} → {forms}"
-        )
+                line += (
+                    f" | example: {examples[0]}"
+                )
 
+            parts.append(line)
 
-    if not lines:
-
-        return ""
-
-
-    return "\n".join(
-        lines
+    context = "\n".join(
+        parts
     )
+
+    if len(context) > max_chars:
+
+        context = context[
+            :max_chars
+        ]
+
+    return context
+
+
+def get_learning_stats() -> Dict[str, int]:
+
+    data = load_database()
+
+    return {
+        "words": len(
+            data["words"]
+        ),
+        "phrases": len(
+            data["phrases"]
+        ),
+        "sentences": len(
+            data["sentences"]
+        ),
+        "documents": len(
+            data["documents"]
+        ),
+    }
