@@ -9,7 +9,7 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User's message in Telugu")
-    mode: Literal["standard", "melimi"] = "standard"
+    mode: Literal["standard", "melimi"] = "melimi"
     history: List[ChatTurn] = Field(default_factory=list, description="Prior turns, oldest first")
 
 

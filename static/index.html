@@ -195,10 +195,10 @@
   <header>
     <h1><span class="telugu">మెలిమి</span> Telugu Chatbot</h1>
     <p class="subtitle">Test console — talk in standard or Melimi Telugu</p>
-    <div class="toggle" id="toggle">
+    <div class="toggle melimi" id="toggle">
       <div class="thumb"></div>
-      <button id="btn-standard" class="active">ప్రామాణిక</button>
-      <button id="btn-melimi">మెలిమి</button>
+      <button id="btn-standard">ప్రామాణిక</button>
+      <button id="btn-melimi" class="active">మెలిమి</button>
     </div>
   </header>
 
@@ -218,7 +218,7 @@
   const input = document.getElementById('input');
   const sendBtn = document.getElementById('sendBtn');
 
-  let mode = 'standard';
+  let mode = 'melimi';
   let history = [];
 
   function setMode(newMode) {
