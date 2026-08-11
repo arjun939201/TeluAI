@@ -5,7 +5,7 @@ load_dotenv()
 
 
 class Settings:
-    GROQ_TOKEN: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_TOKEN: str = os.getenv("GROQ_TOKEN", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
     GROQ_URL: str = "https://api.groq.com/openai/v1/chat/completions"
     MAX_VOCAB_MATCHES: int = int(os.getenv("MAX_VOCAB_MATCHES", "8"))
