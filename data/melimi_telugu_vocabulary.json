@@ -1,0 +1,7582 @@
+[
+  {
+    "standard": "నమస్కారం",
+    "melimi": "టేంకణములు",
+    "note": ""
+  },
+  {
+    "standard": "సహాయం",
+    "melimi": "బాసట",
+    "note": ""
+  },
+  {
+    "standard": "best",
+    "melimi": "మేలిమి",
+    "note": ""
+  },
+  {
+    "standard": "danger / problem",
+    "melimi": "ముప్పు",
+    "note": ""
+  },
+  {
+    "standard": "dangerous",
+    "melimi": "ముప్పుకాను",
+    "note": ""
+  },
+  {
+    "standard": "dangerousness",
+    "melimi": "ముప్పుగారం",
+    "note": ""
+  },
+  {
+    "standard": "ఆసక్తికరం, ఆసక్తికరమైన",
+    "melimi": "హాళికాను",
+    "note": ""
+  },
+  {
+    "standard": "effect / impact / influence",
+    "melimi": "హత్తరం",
+    "note": ""
+  },
+  {
+    "standard": "effective",
+    "melimi": "హత్తరకాను",
+    "note": ""
+  },
+  {
+    "standard": "influential",
+    "melimi": "హత్తరమారి",
+    "note": ""
+  },
+  {
+    "standard": "problem",
+    "melimi": "చిక్కు",
+    "note": ""
+  },
+  {
+    "standard": "problematic",
+    "melimi": "చిక్కీవు",
+    "note": ""
+  },
+  {
+    "standard": "wealth / possession",
+    "melimi": "కలిమి",
+    "note": ""
+  },
+  {
+    "standard": "lack / absence",
+    "melimi": "అకలిమి",
+    "note": ""
+  },
+  {
+    "standard": "hatred",
+    "melimi": "కంటు",
+    "note": ""
+  },
+  {
+    "standard": "non-hatred",
+    "melimi": "అకంటు",
+    "note": ""
+  },
+  {
+    "standard": "hateful",
+    "melimi": "కంటుపాదు",
+    "note": ""
+  },
+  {
+    "standard": "non-hateful",
+    "melimi": "అకంటుపాదు",
+    "note": ""
+  },
+  {
+    "standard": "system",
+    "melimi": "అమరం",
+    "note": ""
+  },
+  {
+    "standard": "concept / thought",
+    "melimi": "మెదలం",
+    "note": ""
+  },
+  {
+    "standard": "systematic / orderly",
+    "melimi": "నిరుసటి",
+    "note": ""
+  },
+  {
+    "standard": "technology",
+    "melimi": "బిసెర్మి",
+    "note": ""
+  },
+  {
+    "standard": "relation / connection",
+    "melimi": "తైలం",
+    "note": ""
+  },
+  {
+    "standard": "related",
+    "melimi": "తౌలమైన",
+    "note": ""
+  },
+  {
+    "standard": "field",
+    "melimi": "చేబైలు",
+    "note": ""
+  },
+  {
+    "standard": "stabilize / settle",
+    "melimi": "కుదురుకొను",
+    "note": ""
+  },
+  {
+    "standard": "extensive / broad",
+    "melimi": "విరివి",
+    "note": ""
+  },
+  {
+    "standard": "complete",
+    "melimi": "ఐనిండు",
+    "note": ""
+  },
+  {
+    "standard": "strength",
+    "melimi": "పోతరం",
+    "note": ""
+  },
+  {
+    "standard": "strength",
+    "melimi": "బలిమి",
+    "note": ""
+  },
+  {
+    "standard": "comprehensive",
+    "melimi": "ఎల్తరం",
+    "note": ""
+  },
+  {
+    "standard": "clear / clarity",
+    "melimi": "తేట",
+    "note": ""
+  },
+  {
+    "standard": "natural",
+    "melimi": "తనకం",
+    "note": ""
+  },
+  {
+    "standard": "especially / mainly",
+    "melimi": "వంచంగా",
+    "note": ""
+  },
+  {
+    "standard": "time / period",
+    "melimi": "కారు",
+    "note": ""
+  },
+  {
+    "standard": "time / period",
+    "melimi": "తరి",
+    "note": ""
+  },
+  {
+    "standard": "having / possessing",
+    "melimi": "వాను",
+    "note": ""
+  },
+  {
+    "standard": "doer / agent",
+    "melimi": "కాను",
+    "note": ""
+  },
+  {
+    "standard": "singer",
+    "melimi": "పాటకాను",
+    "note": ""
+  },
+  {
+    "standard": "developer",
+    "melimi": "పెంపుకాను",
+    "note": ""
+  },
+  {
+    "standard": "hardworking",
+    "melimi": "పాటుకాను",
+    "note": ""
+  },
+  {
+    "standard": "grateful",
+    "melimi": "నెనరువాను",
+    "note": ""
+  },
+  {
+    "standard": "fortunate",
+    "melimi": "ప్రాయివాను",
+    "note": ""
+  },
+  {
+    "standard": "physical",
+    "melimi": "మైవాను",
+    "note": ""
+  },
+  {
+    "standard": "winner",
+    "melimi": "గెలువాను",
+    "note": ""
+  },
+  {
+    "standard": "galaxy",
+    "melimi": "మిన్వాఁక",
+    "note": ""
+  },
+  {
+    "standard": "star cluster",
+    "melimi": "మిణుగుత్తి",
+    "note": ""
+  },
+  {
+    "standard": "meteor",
+    "melimi": "సిరిక",
+    "note": ""
+  },
+  {
+    "standard": "comet",
+    "melimi": "తోకజుక్క",
+    "note": ""
+  },
+  {
+    "standard": "asteroid",
+    "melimi": "విన్నరవ",
+    "note": ""
+  },
+  {
+    "standard": "Milky Way",
+    "melimi": "పాలపుంత",
+    "note": ""
+  },
+  {
+    "standard": "Milky Way",
+    "melimi": "పాలవెల్లి",
+    "note": ""
+  },
+  {
+    "standard": "solar system",
+    "melimi": "నెసరమరం",
+    "note": ""
+  },
+  {
+    "standard": "Sun",
+    "melimi": "నెసరు",
+    "note": ""
+  },
+  {
+    "standard": "Moon",
+    "melimi": "జాబిలి",
+    "note": ""
+  },
+  {
+    "standard": "Mercury",
+    "melimi": "నెలాత",
+    "note": ""
+  },
+  {
+    "standard": "Venus",
+    "melimi": "వేగుపలి",
+    "note": ""
+  },
+  {
+    "standard": "Mars",
+    "melimi": "కెంబలి",
+    "note": ""
+  },
+  {
+    "standard": "Earth",
+    "melimi": "నేలతల్లి",
+    "note": ""
+  },
+  {
+    "standard": "Earth",
+    "melimi": "పారిగుండ్రం",
+    "note": ""
+  },
+  {
+    "standard": "Jupiter",
+    "melimi": "కాంచువు",
+    "note": ""
+  },
+  {
+    "standard": "Saturn",
+    "melimi": "గాడ్పలి",
+    "note": ""
+  },
+  {
+    "standard": "Rahu",
+    "melimi": "మాతి",
+    "note": ""
+  },
+  {
+    "standard": "Ketu",
+    "melimi": "సీదరం",
+    "note": ""
+  },
+  {
+    "standard": "human / person",
+    "melimi": "రెంచ",
+    "note": ""
+  },
+  {
+    "standard": "perceive",
+    "melimi": "తాఁజూచు",
+    "note": ""
+  },
+  {
+    "standard": "perceivable",
+    "melimi": "తాఁజూడలవి",
+    "note": ""
+  },
+  {
+    "standard": "electricity",
+    "melimi": "మెఱుం",
+    "note": ""
+  },
+  {
+    "standard": "magnet",
+    "melimi": "సూదంటు",
+    "note": ""
+  },
+  {
+    "standard": "radiation",
+    "melimi": "చెదిరిక",
+    "note": ""
+  },
+  {
+    "standard": "electromagnetic radiation",
+    "melimi": "మెఱుం-సూదంటు చెదిరిక",
+    "note": ""
+  },
+  {
+    "standard": "universe",
+    "melimi": "ఎలారము",
+    "note": ""
+  },
+  {
+    "standard": "planet",
+    "melimi": "విన్నరము",
+    "note": ""
+  },
+  {
+    "standard": "light",
+    "melimi": "వెలుఁగు",
+    "note": ""
+  },
+  {
+    "standard": "light source",
+    "melimi": "వెలుగు-వనరు",
+    "note": ""
+  },
+  {
+    "standard": "primary light source",
+    "melimi": "వంచ వెలుగు వనరు",
+    "note": ""
+  },
+  {
+    "standard": "later period / subsequent time",
+    "melimi": "తరుకారు",
+    "note": ""
+  },
+  {
+    "standard": "early humans",
+    "melimi": "తొలిరెంచలు",
+    "note": ""
+  },
+  {
+    "standard": "artificial light-producing technology",
+    "melimi": "ఏలివెలుగు పుట్టుక బిసెర్మి",
+    "note": ""
+  },
+  {
+    "standard": "service",
+    "melimi": "వరవ",
+    "note": ""
+  },
+  {
+    "standard": "basic need",
+    "melimi": "తొల్తాప అక్కఱ",
+    "note": ""
+  },
+  {
+    "standard": "శుభాకాంక్షలు",
+    "melimi": "మేలెంపులు",
+    "note": ""
+  },
+  {
+    "standard": "దీపావళి",
+    "melimi": "వెలుగోలి",
+    "note": ""
+  },
+  {
+    "standard": "ప్రచారం, campaign",
+    "melimi": "వ్రాపరపం",
+    "note": ""
+  },
+  {
+    "standard": "n. అన్యాయం/injustice",
+    "melimi": "అకపాటి",
+    "note": ""
+  },
+  {
+    "standard": "n. ప్రభావం/influence",
+    "melimi": "అచ్చుపాటు",
+    "note": ""
+  },
+  {
+    "standard": "n. saying",
+    "melimi": "అనడం",
+    "note": ""
+  },
+  {
+    "standard": "v. say",
+    "melimi": "అను",
+    "note": ""
+  },
+  {
+    "standard": "n. opinion",
+    "melimi": "అనుకోలు",
+    "note": ""
+  },
+  {
+    "standard": "n. అభిప్రాయం/opinion",
+    "melimi": "అనుకోలు",
+    "note": ""
+  },
+  {
+    "standard": "n. hypocrisy",
+    "melimi": "అనిమానకం",
+    "note": ""
+  },
+  {
+    "standard": "n. Hypocrite",
+    "melimi": "అనిమానువు",
+    "note": ""
+  },
+  {
+    "standard": "n. sale",
+    "melimi": "అమ్మకము",
+    "note": ""
+  },
+  {
+    "standard": "n. selling",
+    "melimi": "అమ్మడం",
+    "note": ""
+  },
+  {
+    "standard": "v. sell",
+    "melimi": "అమ్ము",
+    "note": ""
+  },
+  {
+    "standard": "n. business",
+    "melimi": "అమ్ముకోలు",
+    "note": ""
+  },
+  {
+    "standard": "n. పరిస్థితి/situation",
+    "melimi": "అయినిల్క",
+    "note": ""
+  },
+  {
+    "standard": "v. ఆక్రమించు/occupy",
+    "melimi": "అరుము",
+    "note": ""
+  },
+  {
+    "standard": "n. అవగాహన/understanding",
+    "melimi": "ఆకళింపు",
+    "note": ""
+  },
+  {
+    "standard": "adj. అతీతం/transcendent",
+    "melimi": "ఆతలి",
+    "note": ""
+  },
+  {
+    "standard": "v. సృష్టించు/create",
+    "melimi": "ఆమతించు",
+    "note": ""
+  },
+  {
+    "standard": "n. సంకుచితులు/narrow-minded people",
+    "melimi": "ఇరుకువులు",
+    "note": ""
+  },
+  {
+    "standard": "adv. ఈ విషయమై/on this matter",
+    "melimi": "ఈ ఎడాటమై",
+    "note": ""
+  },
+  {
+    "standard": "adv. మానసికంగా/mentally",
+    "melimi": "ఉల్లాపగా",
+    "note": ""
+  },
+  {
+    "standard": "n. mind/మనసు",
+    "melimi": "ఉల్లం",
+    "note": ""
+  },
+  {
+    "standard": "n. విషయాన్ని/topic",
+    "melimi": "ఎడాటం",
+    "note": ""
+  },
+  {
+    "standard": "adj. ప్రతిచర్యాత్మక/reactionary",
+    "melimi": "ఎదుర్చెయిదిటి",
+    "note": ""
+  },
+  {
+    "standard": "adj. వ్యతిరేకం/opposite",
+    "melimi": "ఎదురేఁక",
+    "note": ""
+  },
+  {
+    "standard": "adv. అంతర్జాతీయంగా/internationally",
+    "melimi": "ఎలసీమటిగా",
+    "note": ""
+  },
+  {
+    "standard": "n. all persons, all men",
+    "melimi": "ఎల్లరు",
+    "note": ""
+  },
+  {
+    "standard": "n. every man, everyone",
+    "melimi": "ఎల్లవాడు",
+    "note": ""
+  },
+  {
+    "standard": "adj. all, whole",
+    "melimi": "ఎల్ల",
+    "note": ""
+  },
+  {
+    "standard": "v. నిర్మించు/build",
+    "melimi": "ఎసకట్టు",
+    "note": ""
+  },
+  {
+    "standard": "n. పరిణామం/evolution",
+    "melimi": "ఎసమారిక",
+    "note": ""
+  },
+  {
+    "standard": "n. పార్టీలు/parties",
+    "melimi": "ఏటాలు",
+    "note": ""
+  },
+  {
+    "standard": "adj. కృత్రిమం/artificial",
+    "melimi": "ఏలి",
+    "note": ""
+  },
+  {
+    "standard": "adv. ప్రాంతాల వారీ/region-wise",
+    "melimi": "ఏఱువ-సరి",
+    "note": ""
+  },
+  {
+    "standard": "n. విలన్లు/villains",
+    "melimi": "ఓగులు",
+    "note": ""
+  },
+  {
+    "standard": "n. సూత్రం/principle",
+    "melimi": "కటిమి",
+    "note": ""
+  },
+  {
+    "standard": "n. బలవంతం/force",
+    "melimi": "కడ్డాయం",
+    "note": ""
+  },
+  {
+    "standard": "n. కారణం/reason",
+    "melimi": "కతం",
+    "note": ""
+  },
+  {
+    "standard": "n. దృక్కోణం/perspective",
+    "melimi": "కనురోక",
+    "note": ""
+  },
+  {
+    "standard": "n. కోస్తా కులం/Coastal caste",
+    "melimi": "కరసీమ త్రెవ",
+    "note": ""
+  },
+  {
+    "standard": "n. కోస్తా/Coastal region",
+    "melimi": "కరసీమ",
+    "note": ""
+  },
+  {
+    "standard": "n. వాతావరణం/environment",
+    "melimi": "కరోలి",
+    "note": ""
+  },
+  {
+    "standard": "n. ఆధారాలు/evidence",
+    "melimi": "కరివందాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. సాక్ష్యాధారాలు/evidence",
+    "melimi": "కరివందాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. తత్త్వశాస్త్రం/philosophy",
+    "melimi": "కాకడ",
+    "note": ""
+  },
+  {
+    "standard": "v. ద్వేషించు/hate",
+    "melimi": "కంటగించు",
+    "note": ""
+  },
+  {
+    "standard": "n. ద్వేషం/hatred",
+    "melimi": "కంటు",
+    "note": ""
+  },
+  {
+    "standard": "n. మూలం/origin",
+    "melimi": "కుదురం",
+    "note": ""
+  },
+  {
+    "standard": "n. కాలం/time",
+    "melimi": "కారు",
+    "note": ""
+  },
+  {
+    "standard": "n. కార్యకర్త/activist",
+    "melimi": "కెలసరి",
+    "note": ""
+  },
+  {
+    "standard": "n. మతం/religion",
+    "melimi": "కొల్వలి",
+    "note": ""
+  },
+  {
+    "standard": "n. పద్ధతులు/methods",
+    "melimi": "కైవళ్ళు",
+    "note": ""
+  },
+  {
+    "standard": "n. ప్రేమ/love",
+    "melimi": "కూఱిమీ",
+    "note": ""
+  },
+  {
+    "standard": "n. కాంగ్రెస్ పార్టీ/Congress party",
+    "melimi": "కాంగ్రెస్ ఏటం",
+    "note": ""
+  },
+  {
+    "standard": "adv. కొంతకాలం/for some time",
+    "melimi": "కొంతకారు",
+    "note": ""
+  },
+  {
+    "standard": "adv. జయప్రదంగా/successfully",
+    "melimi": "గెలుకానుగా",
+    "note": ""
+  },
+  {
+    "standard": "adj. బలై పోయినది/sacrificed",
+    "melimi": "గావై పోయినది",
+    "note": ""
+  },
+  {
+    "standard": "adv. హృదయపూర్వకంగా/wholeheartedly",
+    "melimi": "గుండెనిండుగా",
+    "note": ""
+  },
+  {
+    "standard": "n. reading",
+    "melimi": "చదవడం",
+    "note": ""
+  },
+  {
+    "standard": "n. student/reader",
+    "melimi": "చదువరి",
+    "note": ""
+  },
+  {
+    "standard": "n. education",
+    "melimi": "చదువు",
+    "note": ""
+  },
+  {
+    "standard": "n. విద్యావ్యవస్థ/education system",
+    "melimi": "చదువుల అమరం",
+    "note": ""
+  },
+  {
+    "standard": "v. read/study",
+    "melimi": "చదువు",
+    "note": ""
+  },
+  {
+    "standard": "v. అనుమతించు/allow",
+    "melimi": "చేనీవించు",
+    "note": ""
+  },
+  {
+    "standard": "n. జోక్యం/interference",
+    "melimi": "చొఱకం",
+    "note": ""
+  },
+  {
+    "standard": "v. అమలు చెయ్యడం/implement",
+    "melimi": "జరిపిడి చెయ్యడం",
+    "note": ""
+  },
+  {
+    "standard": "v. అమలు/implementation",
+    "melimi": "జరిపిడి",
+    "note": ""
+  },
+  {
+    "standard": "n. చరిత్ర/history",
+    "melimi": "జరిమి",
+    "note": ""
+  },
+  {
+    "standard": "n. చరిత్ర/history",
+    "melimi": "జర్మి",
+    "note": ""
+  },
+  {
+    "standard": "n. చిర పరిచితులు/acquaintances",
+    "melimi": "తడకారు నెళవర్లు",
+    "note": ""
+  },
+  {
+    "standard": "adv. సహజం/natural",
+    "melimi": "తనకం",
+    "note": ""
+  },
+  {
+    "standard": "n. ఆత్మగౌరవ ఉద్యమం/self-respect movement",
+    "melimi": "తన్పేఱిమి-మేగలి",
+    "note": ""
+  },
+  {
+    "standard": "n. అసంతృప్తి/dissatisfaction",
+    "melimi": "తనివిమాలిక",
+    "note": ""
+  },
+  {
+    "standard": "n. పర్యవసానం/consequence",
+    "melimi": "తరుకౌట",
+    "note": ""
+  },
+  {
+    "standard": "n. reverse propaganda",
+    "melimi": "తలక్రిందుల వాపఱపం",
+    "note": ""
+  },
+  {
+    "standard": "n. సంకల్పం/resolution",
+    "melimi": "తలపెటకం",
+    "note": ""
+  },
+  {
+    "standard": "adv. సమయం",
+    "melimi": "తఱి",
+    "note": ""
+  },
+  {
+    "standard": "adj. సాధారణం/normal",
+    "melimi": "తందరుసు",
+    "note": ""
+  },
+  {
+    "standard": "n. eating",
+    "melimi": "తినడం",
+    "note": ""
+  },
+  {
+    "standard": "v. eat",
+    "melimi": "తిను",
+    "note": ""
+  },
+  {
+    "standard": "n. subsistence",
+    "melimi": "తినుబాటు",
+    "note": ""
+  },
+  {
+    "standard": "n. దక్షిణ భారతీయులు/South Indians",
+    "melimi": "తెన్-ప్రంగాణీలు",
+    "note": ""
+  },
+  {
+    "standard": "n. drinking",
+    "melimi": "త్రాగడం",
+    "note": ""
+  },
+  {
+    "standard": "v. drink",
+    "melimi": "త్రాగు",
+    "note": ""
+  },
+  {
+    "standard": "n. drinking water",
+    "melimi": "త్రాగునీరు",
+    "note": ""
+  },
+  {
+    "standard": "n. drunkard",
+    "melimi": "త్రాగుబోతు",
+    "note": ""
+  },
+  {
+    "standard": "n. కులభేదాలు/caste differences",
+    "melimi": "త్రెవ-తేడాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. జాతిద్రోహి/traitor",
+    "melimi": "త్రేసుగౌర",
+    "note": ""
+  },
+  {
+    "standard": "n. జాతి/caste",
+    "melimi": "త్రేసు",
+    "note": ""
+  },
+  {
+    "standard": "adv. బహిరంగంగా/openly",
+    "melimi": "తెఱపగా",
+    "note": ""
+  },
+  {
+    "standard": "n. బహిరంగ సభ/public meeting",
+    "melimi": "తెఱపోలగం",
+    "note": ""
+  },
+  {
+    "standard": "n. సినిమా/cinema",
+    "melimi": "తెఱాట",
+    "note": ""
+  },
+  {
+    "standard": "n. food",
+    "melimi": "తిండి",
+    "note": ""
+  },
+  {
+    "standard": "n. సౌభ్రాత్రం/brotherhood",
+    "melimi": "తోఁబుట్టుకం",
+    "note": ""
+  },
+  {
+    "standard": "n. మద్దతుదారు/supporter",
+    "melimi": "దన్నుకాను",
+    "note": ""
+  },
+  {
+    "standard": "n. walking",
+    "melimi": "నడక",
+    "note": ""
+  },
+  {
+    "standard": "n. behaviour",
+    "melimi": "నడవడి",
+    "note": ""
+  },
+  {
+    "standard": "v. walk",
+    "melimi": "నడుచు",
+    "note": ""
+  },
+  {
+    "standard": "n. operator",
+    "melimi": "నడిపెన",
+    "note": ""
+  },
+  {
+    "standard": "n. జీవితం/life",
+    "melimi": "నిక బ్రదిమానం",
+    "note": ""
+  },
+  {
+    "standard": "adj. విషపూరితం/poisonous",
+    "melimi": "నంజ-కలగం",
+    "note": ""
+  },
+  {
+    "standard": "n. హాస్యగాఁడు/comedian",
+    "melimi": "నౌటాలరి",
+    "note": ""
+  },
+  {
+    "standard": "n. grammar",
+    "melimi": "నుడికట్టు",
+    "note": ""
+  },
+  {
+    "standard": "n. భాషారూపం",
+    "melimi": "నుడికానువు",
+    "note": ""
+  },
+  {
+    "standard": "n. భాషాభిమానులు",
+    "melimi": "నుడియాదటులు",
+    "note": ""
+  },
+  {
+    "standard": "n. భాషాభిమానం/language pride",
+    "melimi": "నుడియాదట",
+    "note": ""
+  },
+  {
+    "standard": "n. భాష/language",
+    "melimi": "నుడి",
+    "note": ""
+  },
+  {
+    "standard": "n. Language/భాష",
+    "melimi": "నుడి",
+    "note": ""
+  },
+  {
+    "standard": "n. భక్తి/devotion",
+    "melimi": "నెరిమ",
+    "note": ""
+  },
+  {
+    "standard": "n. స్నేహ బాంధవ్యాలు/friendships",
+    "melimi": "నేస్త-చుట్టఱికాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. పాఠాలు/lessons",
+    "melimi": "నేఱికలు",
+    "note": ""
+  },
+  {
+    "standard": "n. bed",
+    "melimi": "పడక",
+    "note": ""
+  },
+  {
+    "standard": "n. falling",
+    "melimi": "పడడం",
+    "note": ""
+  },
+  {
+    "standard": "v. fall/lie",
+    "melimi": "పడు",
+    "note": ""
+  },
+  {
+    "standard": "adv. దశాబ్దాల పాటు/for decades",
+    "melimi": "పదిగాల పాటు",
+    "note": ""
+  },
+  {
+    "standard": "n. పరపతి/reputation",
+    "melimi": "పరపటి",
+    "note": ""
+  },
+  {
+    "standard": "n. నాయకులు/leaders",
+    "melimi": "పరికానులు",
+    "note": ""
+  },
+  {
+    "standard": "n. సమ్రాట్టులు/emperors",
+    "melimi": "పరిపారివాన్లు",
+    "note": ""
+  },
+  {
+    "standard": "n. జనాభా/population",
+    "melimi": "పరియం",
+    "note": ""
+  },
+  {
+    "standard": "n. song",
+    "melimi": "పాట",
+    "note": ""
+  },
+  {
+    "standard": "n. singer",
+    "melimi": "పాటకాను",
+    "note": ""
+  },
+  {
+    "standard": "n. ఫలితం/result",
+    "melimi": "పంటకం",
+    "note": ""
+  },
+  {
+    "standard": "n. కృత్రిమ మార్పు",
+    "melimi": "పెట్టుడు మార్పు",
+    "note": ""
+  },
+  {
+    "standard": "n. singing",
+    "melimi": "పాడడం",
+    "note": ""
+  },
+  {
+    "standard": "adv. indirectly",
+    "melimi": "పెడసూటిగా",
+    "note": ""
+  },
+  {
+    "standard": "v. sing",
+    "melimi": "పాడు",
+    "note": ""
+  },
+  {
+    "standard": "n. అంతర్జాలం/internet",
+    "melimi": "పెన్వల",
+    "note": ""
+  },
+  {
+    "standard": "n. అభిప్రాయ భేదాలు/differences of opinion",
+    "melimi": "పొరపొచ్చాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. గమనిక/note",
+    "melimi": "పారఁజూడ్కి",
+    "note": ""
+  },
+  {
+    "standard": "n. పేరుప్రతిష్ఠలు/fame and prestige",
+    "melimi": "పేరు-పెరిమలు",
+    "note": ""
+  },
+  {
+    "standard": "n. గౌరవం/respect",
+    "melimi": "పేఱిమీ",
+    "note": ""
+  },
+  {
+    "standard": "n. అనుమానం/doubt",
+    "melimi": "బిమ్మిటి",
+    "note": ""
+  },
+  {
+    "standard": "n. స్థాయి/level",
+    "melimi": "మట్టం",
+    "note": ""
+  },
+  {
+    "standard": "n. రాజ్యాలు/kingdoms",
+    "melimi": "మన్యాలు",
+    "note": ""
+  },
+  {
+    "standard": "v. పునరుద్ధరించు/restore",
+    "melimi": "మరుదేర్చు",
+    "note": ""
+  },
+  {
+    "standard": "n. question",
+    "melimi": "మల్క",
+    "note": ""
+  },
+  {
+    "standard": "adv. And vice versa",
+    "melimi": "మఱియు ఉల్లటం",
+    "note": ""
+  },
+  {
+    "standard": "n. ఉద్యమం/movement",
+    "melimi": "మేగలి",
+    "note": ""
+  },
+  {
+    "standard": "n. ఉద్యమం/movement",
+    "melimi": "మేగలి",
+    "note": ""
+  },
+  {
+    "standard": "adj. అమాయకులైన/innocent",
+    "melimi": "మేదకులైన",
+    "note": ""
+  },
+  {
+    "standard": "n. జన మనస్సులు/people’s minds",
+    "melimi": "మంది ఉల్లాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. హిందువులు/Hindus",
+    "melimi": "మునువైతులు",
+    "note": ""
+  },
+  {
+    "standard": "adv. మూఢంగా/foolishly",
+    "melimi": "మొప్పెంగా",
+    "note": ""
+  },
+  {
+    "standard": "n. పునరావృత్తం/repetition",
+    "melimi": "మామఱిదం",
+    "note": ""
+  },
+  {
+    "standard": "n. శత్రుత్వం/hostility",
+    "melimi": "మార్తం",
+    "note": ""
+  },
+  {
+    "standard": "n. పటం/map",
+    "melimi": "మేరం",
+    "note": ""
+  },
+  {
+    "standard": "n. పూర్వీకులు/ancestors",
+    "melimi": "ముందటులు",
+    "note": ""
+  },
+  {
+    "standard": "n. రాజవంశం/royal dynasty",
+    "melimi": "రా-కందోలి",
+    "note": ""
+  },
+  {
+    "standard": "n. రాజభాష/royal language",
+    "melimi": "రా-నుడి",
+    "note": ""
+  },
+  {
+    "standard": "p. in",
+    "melimi": "లో",
+    "note": ""
+  },
+  {
+    "standard": "n. మర్మం, మతలబు/secret, hidden meaning",
+    "melimi": "లోగుట్టు",
+    "note": ""
+  },
+  {
+    "standard": "n. inside",
+    "melimi": "లోపల",
+    "note": ""
+  },
+  {
+    "standard": "n. input",
+    "melimi": "లోపేటు",
+    "note": ""
+  },
+  {
+    "standard": "n. లక్ష్యాలు/goals",
+    "melimi": "లెప్పాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. అంతర్గత ప్రేరణలు/internal motivations",
+    "melimi": "లోలోపలి పురికొల్పులు",
+    "note": ""
+  },
+  {
+    "standard": "adv. విదేశీయులు/foreigners",
+    "melimi": "లాసీమరులు",
+    "note": ""
+  },
+  {
+    "standard": "n. రాష్ట్రం/state",
+    "melimi": "లోసీమ",
+    "note": ""
+  },
+  {
+    "standard": "n. కథ/story",
+    "melimi": "వాకువ",
+    "note": ""
+  },
+  {
+    "standard": "n. స్వాతంత్ర్యం/independence",
+    "melimi": "విచ్చుకం",
+    "note": ""
+  },
+  {
+    "standard": "n. put",
+    "melimi": "వేటు",
+    "note": ""
+  },
+  {
+    "standard": "n. వ్యావహారిక భాషావాదులు",
+    "melimi": "వాడుకనుడివాటులు",
+    "note": ""
+  },
+  {
+    "standard": "n. putting",
+    "melimi": "వేయడం",
+    "note": ""
+  },
+  {
+    "standard": "v. put/place",
+    "melimi": "వేయు",
+    "note": ""
+  },
+  {
+    "standard": "n. సంఖ్య/number",
+    "melimi": "వెరసు",
+    "note": ""
+  },
+  {
+    "standard": "n. composition",
+    "melimi": "వ్రాత",
+    "note": ""
+  },
+  {
+    "standard": "n. writer",
+    "melimi": "వ్రాతరి",
+    "note": ""
+  },
+  {
+    "standard": "n. writing",
+    "melimi": "వ్రాయడం",
+    "note": ""
+  },
+  {
+    "standard": "v. write",
+    "melimi": "వ్రాయు",
+    "note": ""
+  },
+  {
+    "standard": "n. విగ్రహం/idol",
+    "melimi": "వేరం",
+    "note": ""
+  },
+  {
+    "standard": "n. భయం/fear",
+    "melimi": "వెఱపు",
+    "note": ""
+  },
+  {
+    "standard": "n. దురభిమానం/fanaticism",
+    "melimi": "వెఱ్ఱి ఆదట",
+    "note": ""
+  },
+  {
+    "standard": "v. ప్రోత్సహించు/encourage",
+    "melimi": "వేందట్టు",
+    "note": ""
+  },
+  {
+    "standard": "n. పాత్ర/role",
+    "melimi": "సాతం",
+    "note": ""
+  },
+  {
+    "standard": "n. బాధలు/sufferings",
+    "melimi": "స్రుక్కులు",
+    "note": ""
+  },
+  {
+    "standard": "n. దుష్ప్రచారాల విజృంభణ/spread of propaganda",
+    "melimi": "సీ-పఱపాల చెలరేఁగుడు",
+    "note": ""
+  },
+  {
+    "standard": "n. ప్రభావం/influence",
+    "melimi": "హత్తరం",
+    "note": ""
+  },
+  {
+    "standard": "n. పరిశ్రమలు/industries",
+    "melimi": "హొంతాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. శాంతిసౌఖ్యాలు/peace and prosperity",
+    "melimi": "హా-నెమ్మనాలు",
+    "note": ""
+  },
+  {
+    "standard": "n. రాజులు/kings",
+    "melimi": "ఱేళ్ళు",
+    "note": ""
+  },
+  {
+    "standard": "n. wrong/దోషం",
+    "melimi": "తప్పు",
+    "note": ""
+  },
+  {
+    "standard": "n. Big sister",
+    "melimi": "అక, అక్క",
+    "note": ""
+  },
+  {
+    "standard": "n. Wonder",
+    "melimi": "అక్కజం",
+    "note": ""
+  },
+  {
+    "standard": "adverb. There",
+    "melimi": "అక్కడ",
+    "note": ""
+  },
+  {
+    "standard": "n. Neccesity",
+    "melimi": "అక్కఱ",
+    "note": ""
+  },
+  {
+    "standard": "interjection. look!",
+    "melimi": "అగ<-అదిగో",
+    "note": ""
+  },
+  {
+    "standard": "fail",
+    "melimi": "ఓడు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "succeed",
+    "melimi": "నెగ్గు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "failure",
+    "melimi": "ఓటమి",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "success",
+    "melimi": "నెగ్గు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "false",
+    "melimi": "తప్పు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "true",
+    "melimi": "ఒప్పు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "far",
+    "melimi": "ఎడ",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "near",
+    "melimi": "దగ్గర",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "fast",
+    "melimi": "తొందర",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "slow",
+    "melimi": "మెల్లగా",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "fat",
+    "melimi": "కొవ్వు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "slim",
+    "melimi": "సన్న",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "fear",
+    "melimi": "బెదురు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "courage",
+    "melimi": "ఉక్కు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "female",
+    "melimi": "ఆడ",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "male",
+    "melimi": "మగ",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "few",
+    "melimi": "కొన్ని",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "many",
+    "melimi": "చాలా",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "final",
+    "melimi": "కడ, తుద",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "first",
+    "melimi": "తొలి",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "find",
+    "melimi": "వెతుకు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "lose",
+    "melimi": "పోగొట్టు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "finish",
+    "melimi": "ముగి",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "begin",
+    "melimi": "మొదలు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "finish",
+    "melimi": "ముగించు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "start",
+    "melimi": "మొదలుబెట్టు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "fix",
+    "melimi": "సరిచేయు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "break",
+    "melimi": "పగలగొట్టు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "flat",
+    "melimi": "చదును",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "hilly",
+    "melimi": "గుట్టల",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "floor",
+    "melimi": "నేల",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "ceiling",
+    "melimi": "కొయ్య, మేడ",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "follow",
+    "melimi": "తొడరు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "lead",
+    "melimi": "దావరించు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "forbid",
+    "melimi": "ఆపు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "allow",
+    "melimi": "కాని",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "for",
+    "melimi": "కోసం",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "against",
+    "melimi": "ఎదురేకం",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "foreground",
+    "melimi": "ముందుబైలు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "background",
+    "melimi": "వెనకబైలు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "foreign",
+    "melimi": "లాతి",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "domestic",
+    "melimi": "నాటు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "foreigner",
+    "melimi": "లాతివాను",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "native",
+    "melimi": "నాటు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "forget",
+    "melimi": "మరచు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "remember",
+    "melimi": "గుర్తుపట్టు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "form",
+    "melimi": "ఏర్పరచు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "destroy",
+    "melimi": "కడతేర్చు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "fortune",
+    "melimi": "ప్రాయి",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "bad luck",
+    "melimi": "కోవేటు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "forward",
+    "melimi": "ముందుకు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "backward",
+    "melimi": "వెనుకకు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "free",
+    "melimi": "విడుదల",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "arrest",
+    "melimi": "పట్టివేత",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "freeze",
+    "melimi": "గడ్డకట్టు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "melt",
+    "melimi": "కరుగుట",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "frequently",
+    "melimi": "తరచుగా",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "occasionally",
+    "melimi": "అప్పుడప్పుడు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "fresh",
+    "melimi": "కొత్త",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "old/stale",
+    "melimi": "పాత",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "friend",
+    "melimi": "నేస్తం",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "enemy",
+    "melimi": "పగఱ",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "front",
+    "melimi": "ముందు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "rear",
+    "melimi": "వెనుక",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "in front of",
+    "melimi": "ముందు",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "back",
+    "melimi": "వెనుక",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "full",
+    "melimi": "నిండిన",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "empty",
+    "melimi": "వట్టి",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "funny",
+    "melimi": "నవ్వులాటం",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "serious",
+    "melimi": "రేఁకం",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "future",
+    "melimi": "తరువాయి",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "past",
+    "melimi": "పోయినది",
+    "note": "opposite-pair"
+  },
+  {
+    "standard": "అసలు",
+    "melimi": "నికాప, నిజమైన :",
+    "note": "original"
+  },
+  {
+    "standard": "నకిలీ",
+    "melimi": "= బవంతం",
+    "note": "fake; బవంత డబ్బు;"
+  },
+  {
+    "standard": "అసలు",
+    "melimi": "= బొత్తిగా",
+    "note": "ఏమాత్రం; బొత్తిగా నామాట వినడు"
+  },
+  {
+    "standard": "సందేశం",
+    "melimi": "వేగు",
+    "note": "Message"
+  },
+  {
+    "standard": "కబుర్లు",
+    "melimi": "ఊసులు",
+    "note": "Chatter/gossips; ఊసులాడు"
+  },
+  {
+    "standard": "సమాచారం",
+    "melimi": "తెలిమానం.",
+    "note": "information"
+  },
+  {
+    "standard": "జాగ (place)",
+    "melimi": "చోటు, ఇక్కు, పట్టు, చేరుగడ",
+    "note": ""
+  },
+  {
+    "standard": "జవాబు(answer)- పలుకు",
+    "melimi": "అడిగినదానికి పలుకు/మారుపలుకు.",
+    "note": ""
+  },
+  {
+    "standard": "సమయం/కాలం",
+    "melimi": "పొద్దు, కారు",
+    "note": "time; పొద్దుపోలే, ఎంతపొద్దు కావాలి నీకు, ఈ పొద్దంతా దండగా."
+  },
+  {
+    "standard": "నమస్కారం",
+    "melimi": "దండం/టేంకణం",
+    "note": ""
+  },
+  {
+    "standard": "దుకాణం(shop)",
+    "melimi": "అంగడి",
+    "note": ""
+  },
+  {
+    "standard": "ఖర్చు (Cost)",
+    "melimi": "ఖర్చు చేయద్దు : చిందువందు చేయద్దు.",
+    "note": ""
+  },
+  {
+    "standard": "Request/appeal",
+    "melimi": "మనవి.",
+    "note": ""
+  },
+  {
+    "standard": "Location",
+    "melimi": "నెలకువ.",
+    "note": ""
+  },
+  {
+    "standard": "Storage/stock",
+    "melimi": "నిలవ.",
+    "note": ""
+  },
+  {
+    "standard": "రుణం - అరువు, అప్పు, వారకం",
+    "melimi": "బండి / ఇంటివారకం (వాహన/home loan).",
+    "note": ""
+  },
+  {
+    "standard": "శుభ్రం చేయి",
+    "melimi": "ఉసుము.",
+    "note": ""
+  },
+  {
+    "standard": "నాశనం చేయి - ఉండకుండా చేయి",
+    "melimi": "వాడనుకుంటే ఏముండకుండా చేస్తాడు (సర్వనాశనం)",
+    "note": ""
+  },
+  {
+    "standard": "misfortune/దురదృష్టం",
+    "melimi": "చేటు.",
+    "note": ""
+  },
+  {
+    "standard": "ధ్వంసం/destruction చేయి",
+    "melimi": "డప్పిచే",
+    "note": ""
+  },
+  {
+    "standard": "Face",
+    "melimi": "మొకము, మొహము, మోము",
+    "note": ""
+  },
+  {
+    "standard": "Pimple",
+    "melimi": "మొటిమ, చెమటకాయ",
+    "note": ""
+  },
+  {
+    "standard": "Eye",
+    "melimi": "కన్ను",
+    "note": ""
+  },
+  {
+    "standard": "Eyelid",
+    "melimi": "ఱెప్ప",
+    "note": ""
+  },
+  {
+    "standard": "Eyebrow",
+    "melimi": "కనుబొమ్మ",
+    "note": ""
+  },
+  {
+    "standard": "Eyelash",
+    "melimi": "ఱెప్పవెంట్రుక",
+    "note": ""
+  },
+  {
+    "standard": "Retina",
+    "melimi": "కంటితెర, కంటిపొర",
+    "note": ""
+  },
+  {
+    "standard": "Pupil",
+    "melimi": "కంటిపాప",
+    "note": ""
+  },
+  {
+    "standard": "Eyeball",
+    "melimi": "కంటిగుడ్డు",
+    "note": ""
+  },
+  {
+    "standard": "Forehead",
+    "melimi": "నుదురు",
+    "note": ""
+  },
+  {
+    "standard": "Nose",
+    "melimi": "ముక్కు",
+    "note": ""
+  },
+  {
+    "standard": "Nostril",
+    "melimi": "ముక్కుకోవి, ముక్కుగోడి, ముంజెరమ",
+    "note": ""
+  },
+  {
+    "standard": "Snout, beak",
+    "melimi": "ముట్టె",
+    "note": ""
+  },
+  {
+    "standard": "Mouth",
+    "melimi": "మూతి, నోరు, వాయి",
+    "note": ""
+  },
+  {
+    "standard": "Corner of mouth",
+    "melimi": "చెలవి",
+    "note": ""
+  },
+  {
+    "standard": "Lip",
+    "melimi": "పెదవి",
+    "note": ""
+  },
+  {
+    "standard": "Under lip",
+    "melimi": "ఔడు, అవుడు",
+    "note": ""
+  },
+  {
+    "standard": "Chin",
+    "melimi": "గద్దువ",
+    "note": ""
+  },
+  {
+    "standard": "Mustache",
+    "melimi": "మీసము",
+    "note": ""
+  },
+  {
+    "standard": "Beard",
+    "melimi": "గడ్డము",
+    "note": ""
+  },
+  {
+    "standard": "Cheek",
+    "melimi": "బుగ్గ, చెక్కిలి",
+    "note": ""
+  },
+  {
+    "standard": "Inside of cheek",
+    "melimi": "పుక్కిలి",
+    "note": ""
+  },
+  {
+    "standard": "Inside or hollow of mouth",
+    "melimi": "బుక్క",
+    "note": ""
+  },
+  {
+    "standard": "Tooth",
+    "melimi": "పన్ను",
+    "note": ""
+  },
+  {
+    "standard": "Tongue",
+    "melimi": "నాలుక, నాలిక",
+    "note": ""
+  },
+  {
+    "standard": "Tonsil",
+    "melimi": "గళగుటిక",
+    "note": ""
+  },
+  {
+    "standard": "Trachea",
+    "melimi": "పీకె",
+    "note": ""
+  },
+  {
+    "standard": "Throat",
+    "melimi": "గొంతు",
+    "note": ""
+  },
+  {
+    "standard": "Neck",
+    "melimi": "మెడ",
+    "note": ""
+  },
+  {
+    "standard": "Head",
+    "melimi": "తల, నెత్తి, బుఱ్ఱ",
+    "note": ""
+  },
+  {
+    "standard": "Back of head",
+    "melimi": "పెడతల",
+    "note": ""
+  },
+  {
+    "standard": "Face turned away",
+    "melimi": "పడము",
+    "note": ""
+  },
+  {
+    "standard": "Skull",
+    "melimi": "పుఱ్ఱె",
+    "note": ""
+  },
+  {
+    "standard": "Eustachian tube",
+    "melimi": "చెవిగొట్టము",
+    "note": ""
+  },
+  {
+    "standard": "Body",
+    "melimi": "ఒడలు, ఒళ్లు, మై, మే, మేను, మెయి",
+    "note": ""
+  },
+  {
+    "standard": "Bone",
+    "melimi": "ఎముక, దుమ్ము, బోకె, బొమిక",
+    "note": ""
+  },
+  {
+    "standard": "Joint",
+    "melimi": "కణుపు, కీలు",
+    "note": ""
+  },
+  {
+    "standard": "Skeleton",
+    "melimi": "డొక్క, ఎముకలగూడు(lit. “bone cage”)",
+    "note": ""
+  },
+  {
+    "standard": "Skin",
+    "melimi": "తోలు, తొక్క, తాట",
+    "note": ""
+  },
+  {
+    "standard": "Hair",
+    "melimi": "జుట్టు(on head), వెంట్రుక(లు)",
+    "note": ""
+  },
+  {
+    "standard": "Muscle",
+    "melimi": "కండ",
+    "note": ""
+  },
+  {
+    "standard": "Nerve, vein, artery",
+    "melimi": "నరం",
+    "note": ""
+  },
+  {
+    "standard": "Brain",
+    "melimi": "మెదడు",
+    "note": ""
+  },
+  {
+    "standard": "Heart",
+    "melimi": "గుండె, ఎడ్జ, గుండెకాయ",
+    "note": ""
+  },
+  {
+    "standard": "Liver",
+    "melimi": "కార్జం",
+    "note": ""
+  },
+  {
+    "standard": "Stomach, womb",
+    "melimi": "కడుపు",
+    "note": ""
+  },
+  {
+    "standard": "Lung",
+    "melimi": "ఊపిరితిత్తి",
+    "note": ""
+  },
+  {
+    "standard": "Intestine, gut, bowel",
+    "melimi": "ప్రేగు",
+    "note": ""
+  },
+  {
+    "standard": "Belly, paunch",
+    "melimi": "బొజ్జ, పొట్ట",
+    "note": ""
+  },
+  {
+    "standard": "Navel",
+    "melimi": "బొడ్డు",
+    "note": ""
+  },
+  {
+    "standard": "Gallbladder",
+    "melimi": "చేదుకట్టు",
+    "note": ""
+  },
+  {
+    "standard": "Penis",
+    "melimi": "మగగుఱి, చుల్లి",
+    "note": ""
+  },
+  {
+    "standard": "Testicle",
+    "melimi": "విత్తు, బుడ్డ",
+    "note": ""
+  },
+  {
+    "standard": "Vagina",
+    "melimi": "ఆడుగుఱి, దుబ్బ, కుయ్య",
+    "note": ""
+  },
+  {
+    "standard": "Clitoris",
+    "melimi": "గొల్లి(కాయ)",
+    "note": ""
+  },
+  {
+    "standard": "Kidney",
+    "melimi": "ఉలవకాయ, పక్కెరగుండె",
+    "note": ""
+  },
+  {
+    "standard": "Bladder",
+    "melimi": "ఉచ్చబుడ్జ, నీరుతిత్తి",
+    "note": ""
+  },
+  {
+    "standard": "Mind",
+    "melimi": "ఉల్లము, లోను, డెందము",
+    "note": ""
+  },
+  {
+    "standard": "Vital part of body, private parts",
+    "melimi": "ఆయము",
+    "note": ""
+  },
+  {
+    "standard": "Torso",
+    "melimi": "మొండెము",
+    "note": ""
+  },
+  {
+    "standard": "Back",
+    "melimi": "వెన్ను, వీపు",
+    "note": ""
+  },
+  {
+    "standard": "Spine",
+    "melimi": "వెన్నెముక",
+    "note": ""
+  },
+  {
+    "standard": "Spinal cord",
+    "melimi": "వెన్నుపాము",
+    "note": ""
+  },
+  {
+    "standard": "Vertebra",
+    "melimi": "వెన్నుపూస",
+    "note": ""
+  },
+  {
+    "standard": "Lower spine",
+    "melimi": "ముచ్చ",
+    "note": ""
+  },
+  {
+    "standard": "Shoulder, upper part of back",
+    "melimi": "మూఁపు",
+    "note": ""
+  },
+  {
+    "standard": "Armpit",
+    "melimi": "చంక, సంక",
+    "note": ""
+  },
+  {
+    "standard": "Behind, Buttock",
+    "melimi": "పిఱ్ఱ, పిరుదు",
+    "note": ""
+  },
+  {
+    "standard": "Anus",
+    "melimi": "ముడ్డి, కుట్టె",
+    "note": ""
+  },
+  {
+    "standard": "Rib",
+    "melimi": "పక్కటెముక",
+    "note": ""
+  },
+  {
+    "standard": "Chest, bosom, breast",
+    "melimi": "అక్కు, బోర",
+    "note": ""
+  },
+  {
+    "standard": "Breast, teat",
+    "melimi": "చన్ను, గుబ్బ",
+    "note": ""
+  },
+  {
+    "standard": "Nipple",
+    "melimi": "చనుమొన, చన్మొన",
+    "note": ""
+  },
+  {
+    "standard": "Leg",
+    "melimi": "కాలు",
+    "note": ""
+  },
+  {
+    "standard": "Knee",
+    "melimi": "మోకాలు, కాలిముడుకు",
+    "note": ""
+  },
+  {
+    "standard": "Foot",
+    "melimi": "అడుగు",
+    "note": ""
+  },
+  {
+    "standard": "Ankle",
+    "melimi": "చీలమండ",
+    "note": ""
+  },
+  {
+    "standard": "Hip",
+    "melimi": "తొంటి",
+    "note": ""
+  },
+  {
+    "standard": "Lap",
+    "melimi": "ఒడి",
+    "note": ""
+  },
+  {
+    "standard": "Thigh",
+    "melimi": "తొడ",
+    "note": ""
+  },
+  {
+    "standard": "Waist",
+    "melimi": "కౌను, నడుము, మొల",
+    "note": ""
+  },
+  {
+    "standard": "Calf of leg",
+    "melimi": "పిక్క",
+    "note": ""
+  },
+  {
+    "standard": "Hand",
+    "melimi": "చేయి, చెయ్యి, కై, కేలు",
+    "note": ""
+  },
+  {
+    "standard": "Arm",
+    "melimi": "చేయి, చెయ్యి",
+    "note": ""
+  },
+  {
+    "standard": "Wrist",
+    "melimi": "మణికట్టు",
+    "note": ""
+  },
+  {
+    "standard": "Forearm",
+    "melimi": "ముంజేయి",
+    "note": ""
+  },
+  {
+    "standard": "Upper arm",
+    "melimi": "దండచేయి, సందిలి",
+    "note": ""
+  },
+  {
+    "standard": "Elbow",
+    "melimi": "మోచేయి, మోచెయ్యి, చేతిముడుకు",
+    "note": ""
+  },
+  {
+    "standard": "Wing",
+    "melimi": "రెక్క",
+    "note": ""
+  },
+  {
+    "standard": "Palm",
+    "melimi": "చేర, అఱచేయి",
+    "note": ""
+  },
+  {
+    "standard": "Finger",
+    "melimi": "వ్రేలు",
+    "note": ""
+  },
+  {
+    "standard": "Knuckle",
+    "melimi": "మెటిక, నెటిక, వ్రేలికణుపు",
+    "note": ""
+  },
+  {
+    "standard": "Nail, claw, talon",
+    "melimi": "గోరు",
+    "note": ""
+  },
+  {
+    "standard": "Tusk, Horn",
+    "melimi": "కొమ్ము",
+    "note": ""
+  },
+  {
+    "standard": "Fang, tusk",
+    "melimi": "కోర",
+    "note": ""
+  },
+  {
+    "standard": "Toe",
+    "melimi": "కాలివ్రేలు",
+    "note": ""
+  },
+  {
+    "standard": "Toenail",
+    "melimi": "క్రీగోరు, కాలిగోరు",
+    "note": ""
+  },
+  {
+    "standard": "Sole",
+    "melimi": "అఱకాలు",
+    "note": ""
+  },
+  {
+    "standard": "Tail",
+    "melimi": "తోక",
+    "note": ""
+  },
+  {
+    "standard": "Fur, wool",
+    "melimi": "బొచ్చు",
+    "note": ""
+  },
+  {
+    "standard": "Scale(eg. on a fish)",
+    "melimi": "పొలుసు",
+    "note": ""
+  },
+  {
+    "standard": "Tuft or knot in hair",
+    "melimi": "పిలక",
+    "note": ""
+  },
+  {
+    "standard": "Feather",
+    "melimi": "ఈక",
+    "note": ""
+  },
+  {
+    "standard": "Stinger(especially that of a scorpion)",
+    "melimi": "కొండి",
+    "note": ""
+  },
+  {
+    "standard": "Blood",
+    "melimi": "నెత్తురు, నెత్రు",
+    "note": ""
+  },
+  {
+    "standard": "Marrow",
+    "melimi": "మూలగ, నెనడు",
+    "note": ""
+  },
+  {
+    "standard": "Bile, bilious vomiting",
+    "melimi": "పసరు",
+    "note": ""
+  },
+  {
+    "standard": "Fat, grease",
+    "melimi": "క్రొవ్వు",
+    "note": ""
+  },
+  {
+    "standard": "Urine",
+    "melimi": "ఉచ్చ",
+    "note": ""
+  },
+  {
+    "standard": "Stool",
+    "melimi": "ఏరుగు",
+    "note": ""
+  },
+  {
+    "standard": "Dung of humans, carnivores",
+    "melimi": "పీయి, పియ్యి",
+    "note": ""
+  },
+  {
+    "standard": "Dung of cattle",
+    "melimi": "పేడ",
+    "note": ""
+  },
+  {
+    "standard": "Dung of sheep, goats, hares, deer, or rats",
+    "melimi": "పెంటిక",
+    "note": ""
+  },
+  {
+    "standard": "Dung of horses, asses, elephants, or camels",
+    "melimi": "లద్ది",
+    "note": ""
+  },
+  {
+    "standard": "Dung of birds and fish/shrimp",
+    "melimi": "రెట్ట",
+    "note": ""
+  },
+  {
+    "standard": "Drool",
+    "melimi": "జొల్లు, సొల్లు",
+    "note": ""
+  },
+  {
+    "standard": "Spit",
+    "melimi": "ఉమ్ము",
+    "note": ""
+  },
+  {
+    "standard": "Snot",
+    "melimi": "చీమిడి",
+    "note": ""
+  },
+  {
+    "standard": "Menses",
+    "melimi": "ముట్టు",
+    "note": ""
+  },
+  {
+    "standard": "Male or female ejaculate",
+    "melimi": "సాడు",
+    "note": ""
+  },
+  {
+    "standard": "Tears",
+    "melimi": "కన్నీళ్లు, కన్నీరు, కన్నీటి చుక్కలు/బొట్టులు",
+    "note": ""
+  },
+  {
+    "standard": "Earwax",
+    "melimi": "గుబిలి, గులిమి",
+    "note": ""
+  },
+  {
+    "standard": "Vomit",
+    "melimi": "కక్కు",
+    "note": ""
+  },
+  {
+    "standard": "Sweat",
+    "melimi": "చెమట",
+    "note": ""
+  },
+  {
+    "standard": "Pus",
+    "melimi": "చీము",
+    "note": ""
+  },
+  {
+    "standard": "Breast milk",
+    "melimi": "చనుబాలు",
+    "note": ""
+  },
+  {
+    "standard": "Sight, vision",
+    "melimi": "కనుకలి, చూపు, పారువ, కంటిచూపు",
+    "note": ""
+  },
+  {
+    "standard": "Hearing",
+    "melimi": "వినుకలి, వినికిడి",
+    "note": ""
+  },
+  {
+    "standard": "Sense of smell",
+    "melimi": "మూచూపు, మూర్కోలు",
+    "note": ""
+  },
+  {
+    "standard": "Sense of taste",
+    "melimi": "చవిచూపు, చవిగోలు",
+    "note": ""
+  },
+  {
+    "standard": "Sense of touch, contact",
+    "melimi": "ముట్టుకోలు, తగులుడు",
+    "note": ""
+  },
+  {
+    "standard": "Breath",
+    "melimi": "ఊర్పు, ఊపిరి",
+    "note": ""
+  },
+  {
+    "standard": "Sigh",
+    "melimi": "ఇంకువ, నిట్టూర్పు",
+    "note": ""
+  },
+  {
+    "standard": "Snoring",
+    "melimi": "గుఱక",
+    "note": ""
+  },
+  {
+    "standard": "Heartbeat",
+    "melimi": "గుండెచప్పుడు",
+    "note": ""
+  },
+  {
+    "standard": "Yawn",
+    "melimi": "ఆవులింత",
+    "note": ""
+  },
+  {
+    "standard": "Sneeze",
+    "melimi": "తుమ్ము",
+    "note": ""
+  },
+  {
+    "standard": "Hiccup",
+    "melimi": "ఎక్కిలి",
+    "note": ""
+  },
+  {
+    "standard": "Cough",
+    "melimi": "దగ్గు",
+    "note": ""
+  },
+  {
+    "standard": "Eating",
+    "melimi": "తింట, కుడుపు",
+    "note": ""
+  },
+  {
+    "standard": "Drinking",
+    "melimi": "త్రాగుడు, కుడుపు",
+    "note": ""
+  },
+  {
+    "standard": "Flatulence",
+    "melimi": "పిత్త",
+    "note": ""
+  },
+  {
+    "standard": "Gulp, swallow",
+    "melimi": "గుటక",
+    "note": ""
+  },
+  {
+    "standard": "Blink",
+    "melimi": "ఱెప్పపాటు",
+    "note": ""
+  },
+  {
+    "standard": "Movement",
+    "melimi": "కదలిక",
+    "note": ""
+  },
+  {
+    "standard": "Walking",
+    "melimi": "నడక",
+    "note": ""
+  },
+  {
+    "standard": "Clearing throat",
+    "melimi": "కాండ్రింత",
+    "note": ""
+  },
+  {
+    "standard": "Hawking when spitting",
+    "melimi": "కేకరింత",
+    "note": ""
+  },
+  {
+    "standard": "Pregnancy",
+    "melimi": "చూలు, వ్రేకటి",
+    "note": ""
+  },
+  {
+    "standard": "Delivery",
+    "melimi": "కానుపు, కాన్పు",
+    "note": ""
+  },
+  {
+    "standard": "మైమొత్తం",
+    "melimi": "Full body",
+    "note": ""
+  },
+  {
+    "standard": "తల",
+    "melimi": "head",
+    "note": ""
+  },
+  {
+    "standard": "తల",
+    "melimi": "head",
+    "note": ""
+  },
+  {
+    "standard": "మెడ",
+    "melimi": "neck",
+    "note": ""
+  },
+  {
+    "standard": "రొమ్ము",
+    "melimi": "Breast",
+    "note": ""
+  },
+  {
+    "standard": "సంక",
+    "melimi": "armpit",
+    "note": ""
+  },
+  {
+    "standard": "బొజ్జ",
+    "melimi": "belly",
+    "note": ""
+  },
+  {
+    "standard": "కాళ్లు",
+    "melimi": "legs",
+    "note": ""
+  },
+  {
+    "standard": "చేతులు",
+    "melimi": "hands",
+    "note": ""
+  },
+  {
+    "standard": "Ailment, affliction",
+    "melimi": "జబ్బు, నలుకువ",
+    "note": ""
+  },
+  {
+    "standard": "Sickness, disease",
+    "melimi": "నలత, జబ్బు, తెవులు/తెగులు, నొవ్వు",
+    "note": ""
+  },
+  {
+    "standard": "Pain, ache",
+    "melimi": "నొప్పి, పోటు(stabbing pain), మంట(burning)",
+    "note": ""
+  },
+  {
+    "standard": "Agony",
+    "melimi": "తీపు",
+    "note": ""
+  },
+  {
+    "standard": "Fatigue, Exhaustion",
+    "melimi": "అలసట/అలకువ/ఆలయిక, బడలిక",
+    "note": ""
+  },
+  {
+    "standard": "Numbness, paralysis, palsy",
+    "melimi": "తిమురు, తిమ్మిరి",
+    "note": ""
+  },
+  {
+    "standard": "Nausea",
+    "melimi": "వెక్కసము",
+    "note": ""
+  },
+  {
+    "standard": "Vomiting",
+    "melimi": "కక్కుడు",
+    "note": ""
+  },
+  {
+    "standard": "Intoxication",
+    "melimi": "మైకము",
+    "note": ""
+  },
+  {
+    "standard": "Fainting",
+    "melimi": "సోలింత",
+    "note": ""
+  },
+  {
+    "standard": "Drowsiness",
+    "melimi": "జడ్జు",
+    "note": ""
+  },
+  {
+    "standard": "Itchiness",
+    "melimi": "దురద, జిల, దూల, తీంట్రము",
+    "note": ""
+  },
+  {
+    "standard": "Murrain",
+    "melimi": "చీడ",
+    "note": ""
+  },
+  {
+    "standard": "Hunger",
+    "melimi": "ఆకొన్నతనము, ఆకలి, గొద",
+    "note": ""
+  },
+  {
+    "standard": "Thirst",
+    "melimi": "దప్పి, దప్పిక",
+    "note": ""
+  },
+  {
+    "standard": "A cut, wound",
+    "melimi": "గంటు, నర్కు",
+    "note": ""
+  },
+  {
+    "standard": "Sting",
+    "melimi": "కొండి, కుట్టు, చురుకు",
+    "note": ""
+  },
+  {
+    "standard": "Bite",
+    "melimi": "కాటు",
+    "note": ""
+  },
+  {
+    "standard": "A blow, injury",
+    "melimi": "దెబ్బ",
+    "note": ""
+  },
+  {
+    "standard": "Blindness",
+    "melimi": "గ్రుడ్డి, గ్రుడ్డితనము, గుడ్డితనము, చీకు, చీకురు",
+    "note": ""
+  },
+  {
+    "standard": "Deafness",
+    "melimi": "చెవుడు",
+    "note": ""
+  },
+  {
+    "standard": "Limping",
+    "melimi": "కుంటినడక",
+    "note": ""
+  },
+  {
+    "standard": "Lameness",
+    "melimi": "కుంటితనము",
+    "note": ""
+  },
+  {
+    "standard": "Greyness, greying of hair",
+    "melimi": "నర, నరపు",
+    "note": ""
+  },
+  {
+    "standard": "Cold, catarrh, influenza",
+    "melimi": "జలుబు, రొంప, పడిసెము",
+    "note": ""
+  },
+  {
+    "standard": "Fever",
+    "melimi": "వేకి",
+    "note": ""
+  },
+  {
+    "standard": "Leucoderma",
+    "melimi": "బొల్లి, ప్రుంగుడు",
+    "note": ""
+  },
+  {
+    "standard": "Heart attack",
+    "melimi": "గుండెపోటు",
+    "note": ""
+  },
+  {
+    "standard": "Heart Palpitations",
+    "melimi": "గుండెయదురు, నెగ్గురు",
+    "note": ""
+  },
+  {
+    "standard": "Headache",
+    "melimi": "తలయేరు, నెట్టినొప్పి, తలనొప్పి",
+    "note": ""
+  },
+  {
+    "standard": "Scabies",
+    "melimi": "చిడుము",
+    "note": ""
+  },
+  {
+    "standard": "Measles",
+    "melimi": "తడపర",
+    "note": ""
+  },
+  {
+    "standard": "Rabies",
+    "melimi": "కుక్కవెఱ్ఱి",
+    "note": ""
+  },
+  {
+    "standard": "Asthma",
+    "melimi": "ఉబ్బసము",
+    "note": ""
+  },
+  {
+    "standard": "Swelling",
+    "melimi": "వాపు, ఉబ్బరము",
+    "note": ""
+  },
+  {
+    "standard": "Elephantiasis",
+    "melimi": "బోదకాలు",
+    "note": ""
+  },
+  {
+    "standard": "Sprain",
+    "melimi": "బెణుకు",
+    "note": ""
+  },
+  {
+    "standard": "Ischuria",
+    "melimi": "నీరుకట్టు",
+    "note": ""
+  },
+  {
+    "standard": "Cholera",
+    "melimi": "మరిడి",
+    "note": ""
+  },
+  {
+    "standard": "Dermatophytosis",
+    "melimi": "చిరుగుడు",
+    "note": ""
+  },
+  {
+    "standard": "Sore eye, ophthalmia",
+    "melimi": "కంటికలక",
+    "note": ""
+  },
+  {
+    "standard": "tool",
+    "melimi": "మూటు",
+    "note": ""
+  },
+  {
+    "standard": "device",
+    "melimi": "మరమూటు",
+    "note": ""
+  },
+  {
+    "standard": "computer",
+    "melimi": "ఎంచుమర",
+    "note": ""
+  },
+  {
+    "standard": "engineering",
+    "melimi": "మరగారం",
+    "note": ""
+  },
+  {
+    "standard": "software engineering",
+    "melimi": "నెంతాది మరగారం",
+    "note": ""
+  },
+  {
+    "standard": "hardware engineering",
+    "melimi": "ఉర్వాది మరగారం",
+    "note": ""
+  },
+  {
+    "standard": "mechanical engineering",
+    "melimi": "మరవైని మరగారం",
+    "note": ""
+  },
+  {
+    "standard": "electrical engineering",
+    "melimi": "మెఱుం మరగారం",
+    "note": ""
+  },
+  {
+    "standard": "cellphone, mobile/hand phone",
+    "melimi": "చేవీనం",
+    "note": ""
+  },
+  {
+    "standard": "Mobile camera",
+    "melimi": "చేవీనపు మేవరం",
+    "note": ""
+  },
+  {
+    "standard": "Mobile screen",
+    "melimi": "చేవీనపు తెఱ",
+    "note": ""
+  },
+  {
+    "standard": "Mobile accessory",
+    "melimi": "చేవీనపు పనిముట్టు",
+    "note": ""
+  },
+  {
+    "standard": "Mobile storage",
+    "melimi": "చేవీనపు నిలవ",
+    "note": ""
+  },
+  {
+    "standard": "Mobile notification",
+    "melimi": "చేవీనపు వ్రాజాటన",
+    "note": ""
+  },
+  {
+    "standard": "mobile security",
+    "melimi": "చేవీనపు పైలం",
+    "note": ""
+  },
+  {
+    "standard": "services",
+    "melimi": "చేవీనపు వరవలు",
+    "note": ""
+  },
+  {
+    "standard": "Mobile call service",
+    "melimi": "చేవీనపు పల్కు వరవ",
+    "note": ""
+  },
+  {
+    "standard": "Mobile MSG service",
+    "melimi": "చేవీనపు వేగు వరవ",
+    "note": ""
+  },
+  {
+    "standard": "Mobile data service",
+    "melimi": "చేవీనపు తెల్వందం వరవ",
+    "note": ""
+  },
+  {
+    "standard": "Mobile network.",
+    "melimi": "చేవీనపు వలకట్టు",
+    "note": ""
+  },
+  {
+    "standard": "Mobile data.",
+    "melimi": "చేవీనపు తెల్వందం",
+    "note": ""
+  },
+  {
+    "standard": "Mobile payment.",
+    "melimi": "చేవీనపు చెల్లింపు",
+    "note": ""
+  },
+  {
+    "standard": "accessories",
+    "melimi": "చేవీనపు పనిముట్టులు",
+    "note": ""
+  },
+  {
+    "standard": "Mobile charger.",
+    "melimi": "చేవీనపు బ్రోంకాను",
+    "note": ""
+  },
+  {
+    "standard": "Mobile backcover.",
+    "melimi": "చేవీనపు వెన్కప్పు",
+    "note": ""
+  },
+  {
+    "standard": "Mobile headphone.",
+    "melimi": "చేవీనపు తలవీనం",
+    "note": ""
+  },
+  {
+    "standard": "Mobile power bank.",
+    "melimi": "చేవీనపు బ్రోమాది",
+    "note": ""
+  },
+  {
+    "standard": "Mobile screen protector.",
+    "melimi": "చేవీనపు తెఱఁగాఁపి",
+    "note": ""
+  },
+  {
+    "standard": "software",
+    "melimi": "చేవీనపు నెంతాది",
+    "note": ""
+  },
+  {
+    "standard": "Mobile application.",
+    "melimi": "చేవీనపు ఠవణం",
+    "note": ""
+  },
+  {
+    "standard": "Mobile operating system.",
+    "melimi": "చేవీనపు పనిమారపు అమరం",
+    "note": ""
+  },
+  {
+    "standard": "Mobile software update.",
+    "melimi": "చేవీనపు నెంతాది క్రోచీదం",
+    "note": ""
+  },
+  {
+    "standard": "Mobile browser.",
+    "melimi": "చేవీనపు వయ్యాలికాను",
+    "note": ""
+  },
+  {
+    "standard": "hardware parts",
+    "melimi": "కొరముట్టు పాయలు",
+    "note": ""
+  },
+  {
+    "standard": "Keyboard.",
+    "melimi": "మీటపలక",
+    "note": ""
+  },
+  {
+    "standard": "screen/TV.",
+    "melimi": "ఎడచూపు",
+    "note": ""
+  },
+  {
+    "standard": "memory card.",
+    "melimi": "గుర్తీవియ",
+    "note": ""
+  },
+  {
+    "standard": "battery.",
+    "melimi": "పక్కణి",
+    "note": ""
+  },
+  {
+    "standard": "Mobile storage",
+    "melimi": "చేవీనపు నిలవ",
+    "note": ""
+  },
+  {
+    "standard": "artificial intelligence",
+    "melimi": "ఏలితెలివి",
+    "note": ""
+  },
+  {
+    "standard": "artificial rain",
+    "melimi": "ఏలివాన",
+    "note": ""
+  },
+  {
+    "standard": "artificial skin",
+    "melimi": "ఏలితోలు",
+    "note": ""
+  },
+  {
+    "standard": "artificial heart",
+    "melimi": "ఏలిగుండె",
+    "note": ""
+  },
+  {
+    "standard": "Artificial laugh",
+    "melimi": "ఏలినవ్వు",
+    "note": ""
+  },
+  {
+    "standard": "artificial life",
+    "melimi": "ఏలిబ్రతుకు",
+    "note": ""
+  },
+  {
+    "standard": "artificial vision",
+    "melimi": "ఏలిచూపు",
+    "note": ""
+  },
+  {
+    "standard": "artificial plant",
+    "melimi": "ఏలిమొక్క",
+    "note": ""
+  },
+  {
+    "standard": "artificial flower",
+    "melimi": "ఏలిపువ్వు",
+    "note": ""
+  },
+  {
+    "standard": "artificial hair",
+    "melimi": "ఏలివెంట్రుక",
+    "note": ""
+  },
+  {
+    "standard": "artificial nail",
+    "melimi": "ఏలిగోరు",
+    "note": ""
+  },
+  {
+    "standard": "artificial teeth",
+    "melimi": "ఏలిపళ్ళు",
+    "note": ""
+  },
+  {
+    "standard": "artificial eye",
+    "melimi": "ఏలికన్ను",
+    "note": ""
+  },
+  {
+    "standard": "artificial hand",
+    "melimi": "ఏలిచేయి",
+    "note": ""
+  },
+  {
+    "standard": "artificial leg",
+    "melimi": "ఏలికాలు",
+    "note": ""
+  },
+  {
+    "standard": "వారం, week",
+    "melimi": "వంతు, ఏడం",
+    "note": ""
+  },
+  {
+    "standard": "రవి వారము, Sunday",
+    "melimi": "ప్రొద్దువంతు",
+    "note": ""
+  },
+  {
+    "standard": "సోమవారము, Monday",
+    "melimi": "నెలవంతు",
+    "note": ""
+  },
+  {
+    "standard": "మంగళవారము, Tuesday",
+    "melimi": "పారిపట్టివంతు",
+    "note": ""
+  },
+  {
+    "standard": "బుధవారము, Wednesday",
+    "melimi": "పెద్దవంతు",
+    "note": ""
+  },
+  {
+    "standard": "గురువారము, Thursday",
+    "melimi": "బేస్తవంతు",
+    "note": ""
+  },
+  {
+    "standard": "శుక్రవారము, Friday",
+    "melimi": "చుక్కవంతు",
+    "note": ""
+  },
+  {
+    "standard": "శనివారము, Saturday",
+    "melimi": "సనివంతు",
+    "note": ""
+  },
+  {
+    "standard": "months",
+    "melimi": "నెల",
+    "note": ""
+  },
+  {
+    "standard": "చైత్రమాసము, March",
+    "melimi": "ముత్తెపురిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "వైశాఖమాసము, April",
+    "melimi": "చేతరిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "జ్యేష్ఠమాసము, May",
+    "melimi": "తాటిరిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "ఆషాఢమాసము, june",
+    "melimi": "నీటిరిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "శ్రావణమాసము, july",
+    "melimi": "తూఁపురిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "భాద్రపదమాసము, august",
+    "melimi": "ముక్కంటిరిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "ఆశ్వయుజమాసము, September",
+    "melimi": "తొలురిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "కార్తికమాసము, October",
+    "melimi": "కత్తెరనెల",
+    "note": ""
+  },
+  {
+    "standard": "మార్గశిరమాసము, November",
+    "melimi": "పొంగటినెల",
+    "note": ""
+  },
+  {
+    "standard": "పుష్యమాసము, December",
+    "melimi": "పొట్లరూపురిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "మాఘమాసము, January",
+    "melimi": "జన్నపురిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "ఫాల్గునమాసము, February",
+    "melimi": "ప్రొద్దురిక్కనెల",
+    "note": ""
+  },
+  {
+    "standard": "Aswani",
+    "melimi": "తొలు / తొల్లు",
+    "note": ""
+  },
+  {
+    "standard": "Bharani",
+    "melimi": "మావి",
+    "note": ""
+  },
+  {
+    "standard": "Krutthika",
+    "melimi": "కత్తి / మంగలికత్తి",
+    "note": ""
+  },
+  {
+    "standard": "Rohini",
+    "melimi": "బండి",
+    "note": ""
+  },
+  {
+    "standard": "Mrugasira",
+    "melimi": "జాబిలి",
+    "note": ""
+  },
+  {
+    "standard": "Aardra/Aarudra",
+    "melimi": "కెంప",
+    "note": ""
+  },
+  {
+    "standard": "Pushyami",
+    "melimi": "అంప",
+    "note": ""
+  },
+  {
+    "standard": "Aaslesha",
+    "melimi": "అసిలేఱు",
+    "note": ""
+  },
+  {
+    "standard": "Magha",
+    "melimi": "అందలకోల",
+    "note": ""
+  },
+  {
+    "standard": "Poorva-phalguni",
+    "melimi": "సాముకంటి",
+    "note": ""
+  },
+  {
+    "standard": "Utthara-phalguni",
+    "melimi": "ప్రొద్దు",
+    "note": ""
+  },
+  {
+    "standard": "Hastha",
+    "melimi": "కైసాటి",
+    "note": ""
+  },
+  {
+    "standard": "Chitra",
+    "melimi": "ముత్యపు సవతు",
+    "note": ""
+  },
+  {
+    "standard": "Visakha",
+    "melimi": "చేట",
+    "note": ""
+  },
+  {
+    "standard": "Anuradha",
+    "melimi": "చెల్మి",
+    "note": ""
+  },
+  {
+    "standard": "Jyeshta",
+    "melimi": "తాటి",
+    "note": ""
+  },
+  {
+    "standard": "Moola",
+    "melimi": "సోకు",
+    "note": ""
+  },
+  {
+    "standard": "Poorva-aashaada",
+    "melimi": "నీటి",
+    "note": ""
+  },
+  {
+    "standard": "Sravana",
+    "melimi": "సెవ్వాపి",
+    "note": ""
+  },
+  {
+    "standard": "Uttharaabhaadra",
+    "melimi": "ముక్కంటి",
+    "note": ""
+  },
+  {
+    "standard": "Revathi",
+    "melimi": "కడచుక్క",
+    "note": ""
+  },
+  {
+    "standard": "Abhijith",
+    "melimi": "బొమ్మక / బొమ్మ",
+    "note": ""
+  },
+  {
+    "standard": "spring",
+    "melimi": "ఆమని",
+    "note": ""
+  },
+  {
+    "standard": "summer",
+    "melimi": "వేసవి",
+    "note": ""
+  },
+  {
+    "standard": "premonsoon",
+    "melimi": "వలి",
+    "note": ""
+  },
+  {
+    "standard": "monsoon",
+    "melimi": "వానకారు",
+    "note": ""
+  },
+  {
+    "standard": "autumn",
+    "melimi": "వెలిమి",
+    "note": ""
+  },
+  {
+    "standard": "winter",
+    "melimi": "చలి",
+    "note": ""
+  },
+  {
+    "standard": "పంచభూతాలు, five elements",
+    "melimi": "ఐదుసురులు",
+    "note": ""
+  },
+  {
+    "standard": "భూమి, earth",
+    "melimi": "నేల",
+    "note": ""
+  },
+  {
+    "standard": "జలం, water",
+    "melimi": "నీరు",
+    "note": ""
+  },
+  {
+    "standard": "వాయువు, air",
+    "melimi": "గాలి",
+    "note": ""
+  },
+  {
+    "standard": "అగ్ని, fire",
+    "melimi": "నిప్పు",
+    "note": ""
+  },
+  {
+    "standard": "ఆకాశం, sky",
+    "melimi": "మిన్ను",
+    "note": ""
+  },
+  {
+    "standard": "గ్రహం, planet",
+    "melimi": "విన్నరం",
+    "note": ""
+  },
+  {
+    "standard": "సూర్యుఁడు, sun",
+    "melimi": "నెసరు",
+    "note": ""
+  },
+  {
+    "standard": "చంద్రుఁడు, moon",
+    "melimi": "జాబిలి",
+    "note": ""
+  },
+  {
+    "standard": "కుజుఁడు, Mars",
+    "melimi": "కెంబలి",
+    "note": ""
+  },
+  {
+    "standard": "బుధుఁడు, Mercury",
+    "melimi": "నెలాత",
+    "note": ""
+  },
+  {
+    "standard": "బృహస్పతి, Jupiter",
+    "melimi": "కాంచువు",
+    "note": ""
+  },
+  {
+    "standard": "శుక్రుఁడు, Venus",
+    "melimi": "వేగుపలి",
+    "note": ""
+  },
+  {
+    "standard": "శని, Saturn",
+    "melimi": "గాడ్పలి",
+    "note": ""
+  },
+  {
+    "standard": "భావాలు, feelings",
+    "melimi": "మెదలాలు",
+    "note": ""
+  },
+  {
+    "standard": "శృంగారః",
+    "melimi": "ఏల",
+    "note": ""
+  },
+  {
+    "standard": "హాస్యః",
+    "melimi": "నవ్వు",
+    "note": ""
+  },
+  {
+    "standard": "కారుణ్యః",
+    "melimi": "జాలి",
+    "note": ""
+  },
+  {
+    "standard": "రౌద్రః",
+    "melimi": "కినుకు",
+    "note": ""
+  },
+  {
+    "standard": "వీరః",
+    "melimi": "చేవ",
+    "note": ""
+  },
+  {
+    "standard": "భయానకః",
+    "melimi": "దడపు",
+    "note": ""
+  },
+  {
+    "standard": "బీభత్సః",
+    "melimi": "ఱోత",
+    "note": ""
+  },
+  {
+    "standard": "అద్భుతః",
+    "melimi": "ఱిచ్చకం",
+    "note": ""
+  },
+  {
+    "standard": "శాంతః",
+    "melimi": "మట్టసం",
+    "note": ""
+  },
+  {
+    "standard": "East",
+    "melimi": "తూర్పు",
+    "note": "పూర్వ"
+  },
+  {
+    "standard": "West",
+    "melimi": "పడమర",
+    "note": "పశ్చిమ"
+  },
+  {
+    "standard": "North",
+    "melimi": "డాకడ/ఎడకడ",
+    "note": "ఉత్తర"
+  },
+  {
+    "standard": "South",
+    "melimi": "వలకడ/కుడికడ",
+    "note": "దక్షిణ"
+  },
+  {
+    "standard": "North East",
+    "melimi": "కడకడ",
+    "note": "ఈశాన్యం"
+  },
+  {
+    "standard": "South East",
+    "melimi": "చిరిమూల",
+    "note": "ఆగ్నేయం"
+  },
+  {
+    "standard": "North West",
+    "melimi": "ఈదాటి",
+    "note": "వాయువ్యం"
+  },
+  {
+    "standard": "South West",
+    "melimi": "సోఁకుమూల",
+    "note": "నైరుతి"
+  },
+  {
+    "standard": "Always",
+    "melimi": "ఎప్పుడూ",
+    "note": ""
+  },
+  {
+    "standard": "Usually",
+    "melimi": "అలవాటుగా",
+    "note": ""
+  },
+  {
+    "standard": "Normally",
+    "melimi": "ఎక్కువగా",
+    "note": ""
+  },
+  {
+    "standard": "Often",
+    "melimi": "తరచుగా",
+    "note": ""
+  },
+  {
+    "standard": "Sometimes",
+    "melimi": "కొన్నిసార్లు",
+    "note": ""
+  },
+  {
+    "standard": "Occasionally",
+    "melimi": "అప్పుడప్పుడు",
+    "note": ""
+  },
+  {
+    "standard": "Seldom",
+    "melimi": "అరుదుగా",
+    "note": ""
+  },
+  {
+    "standard": "Rarely",
+    "melimi": "చాలా అరుదుగా",
+    "note": ""
+  },
+  {
+    "standard": "Hardly ever",
+    "melimi": "ఎప్పుడో",
+    "note": ""
+  },
+  {
+    "standard": "Never",
+    "melimi": "ఎప్పుడూ కాదు/లేదు",
+    "note": ""
+  },
+  {
+    "standard": "Horizontal",
+    "melimi": "అడ్డ",
+    "note": ""
+  },
+  {
+    "standard": "vertical",
+    "melimi": "నిలువు",
+    "note": ""
+  },
+  {
+    "standard": "Diagonal",
+    "melimi": "ఐమూల",
+    "note": ""
+  },
+  {
+    "standard": "Dashed",
+    "melimi": "తెగీటు",
+    "note": ""
+  },
+  {
+    "standard": "dotted",
+    "melimi": "చుక్కల",
+    "note": ""
+  },
+  {
+    "standard": "zig zag",
+    "melimi": "టింకర",
+    "note": ""
+  },
+  {
+    "standard": "curved",
+    "melimi": "వంకర",
+    "note": ""
+  },
+  {
+    "standard": "wavy",
+    "melimi": "కెఱటాప",
+    "note": ""
+  },
+  {
+    "standard": "loop",
+    "melimi": "చుట్లం",
+    "note": ""
+  },
+  {
+    "standard": "spiral",
+    "melimi": "సుడి",
+    "note": ""
+  },
+  {
+    "standard": "parallel",
+    "melimi": "తోడ్తోడి",
+    "note": ""
+  },
+  {
+    "standard": "perpendicular",
+    "melimi": "నిట్టనిలువు",
+    "note": ""
+  },
+  {
+    "standard": "scribbled",
+    "melimi": "గజిబిజి",
+    "note": ""
+  },
+  {
+    "standard": "Thick",
+    "melimi": "చిక్కని",
+    "note": ""
+  },
+  {
+    "standard": "Thin",
+    "melimi": "చిక్కిన",
+    "note": ""
+  },
+  {
+    "standard": "scallop",
+    "melimi": "నెఱిటింకర",
+    "note": ""
+  },
+  {
+    "standard": "n. Post",
+    "melimi": "అనుప",
+    "note": ""
+  },
+  {
+    "standard": "n. repost",
+    "melimi": "తిరిగనుప",
+    "note": ""
+  },
+  {
+    "standard": "n. promotion",
+    "melimi": "హెచ్చింపు",
+    "note": ""
+  },
+  {
+    "standard": "n. popularity/trend",
+    "melimi": "పరియాదట",
+    "note": ""
+  },
+  {
+    "standard": "n. Like",
+    "melimi": "మెప్పు",
+    "note": ""
+  },
+  {
+    "standard": "v./n. comment, to comment",
+    "melimi": "మీఁదువల్కు",
+    "note": ""
+  },
+  {
+    "standard": "v. to share",
+    "melimi": "పంచుకొను",
+    "note": ""
+  },
+  {
+    "standard": "n. share",
+    "melimi": "పంచుకోలు",
+    "note": ""
+  },
+  {
+    "standard": "v. to follow",
+    "melimi": "తొడరు",
+    "note": ""
+  },
+  {
+    "standard": "n. following",
+    "melimi": "తొడరిక",
+    "note": ""
+  },
+  {
+    "standard": "n. follower",
+    "melimi": "తొడరుకాను",
+    "note": ""
+  },
+  {
+    "standard": "n. viewer",
+    "melimi": "పరిగానరి",
+    "note": ""
+  },
+  {
+    "standard": "n. view",
+    "melimi": "పరిగానకం",
+    "note": ""
+  },
+  {
+    "standard": "v. to view/watch",
+    "melimi": "పరిగానుచు/చూడు",
+    "note": ""
+  },
+  {
+    "standard": "n. bio/introduction",
+    "melimi": "తెలిపి",
+    "note": ""
+  },
+  {
+    "standard": "n. profile",
+    "melimi": "పొడకాను",
+    "note": ""
+  },
+  {
+    "standard": "n. message",
+    "melimi": "వేగు",
+    "note": ""
+  },
+  {
+    "standard": "v. to message/send a message",
+    "melimi": "వేగు పంపు",
+    "note": ""
+  },
+  {
+    "standard": "n. notification",
+    "melimi": "వ్రాజాటన",
+    "note": ""
+  },
+  {
+    "standard": "n. group",
+    "melimi": "గుంపు",
+    "note": ""
+  },
+  {
+    "standard": "n. admin/moderator",
+    "melimi": "నెఱపరి",
+    "note": ""
+  },
+  {
+    "standard": "ఆయుర్వేదం",
+    "melimi": "మన్కిమిన్కు",
+    "note": ""
+  },
+  {
+    "standard": "వేదం",
+    "melimi": "తొల్బల్కు",
+    "note": ";"
+  },
+  {
+    "standard": "స్మృతి",
+    "melimi": "తలఁపు",
+    "note": ";"
+  },
+  {
+    "standard": "పురాణం",
+    "melimi": "ప్రాతముచ్చట",
+    "note": ";"
+  },
+  {
+    "standard": "వైద్యుడు",
+    "melimi": "మందరి",
+    "note": ";"
+  },
+  {
+    "standard": "ఆలోచించు",
+    "melimi": "తలపోయు",
+    "note": ";"
+  },
+  {
+    "standard": "విత్తము",
+    "melimi": "కలిమి",
+    "note": ";"
+  },
+  {
+    "standard": "స్వభావం",
+    "melimi": "ఓజ",
+    "note": ";"
+  },
+  {
+    "standard": "సృజింపబడును",
+    "melimi": "ఏర్పర్చఁబడును",
+    "note": ";"
+  },
+  {
+    "standard": "ఆకస్మాత్తుగా",
+    "melimi": "అబ్బాటుగా",
+    "note": ""
+  },
+  {
+    "standard": "క్రోధము",
+    "melimi": "అలుక",
+    "note": ""
+  },
+  {
+    "standard": "ద్రాక్ష",
+    "melimi": "అంగూరు",
+    "note": ""
+  },
+  {
+    "standard": "ఆయురేఖ",
+    "melimi": "ఉసురుగీత",
+    "note": ""
+  },
+  {
+    "standard": "ప్రాణి)",
+    "melimi": "ఉసురుతాల్పు (భూతం",
+    "note": ""
+  },
+  {
+    "standard": "ఆయుర్వేదం",
+    "melimi": "ఉసురుమిన్కు",
+    "note": ""
+  },
+  {
+    "standard": "ప్రాణం అస్థిరం",
+    "melimi": "ఉసురు నిల్కడలేనిది",
+    "note": ""
+  },
+  {
+    "standard": "విషయాల",
+    "melimi": "ఎల్లబలుపుల",
+    "note": ""
+  },
+  {
+    "standard": "శుష్కమాంసం",
+    "melimi": "ఎండిననంజుడు",
+    "note": ""
+  },
+  {
+    "standard": "రక్షక",
+    "melimi": "ఏడుగడ",
+    "note": ""
+  },
+  {
+    "standard": "సప్తధాతువులు",
+    "melimi": "ఏడుదినుసులు",
+    "note": ""
+  },
+  {
+    "standard": "పంచేంద్రియాలు",
+    "melimi": "ఐదుమైదినుసులు",
+    "note": ""
+  },
+  {
+    "standard": "ధనము",
+    "melimi": "ఒడమి",
+    "note": ""
+  },
+  {
+    "standard": "శ్మశానధూమం",
+    "melimi": "ఒలికిపొగ",
+    "note": ""
+  },
+  {
+    "standard": "గుణములు",
+    "melimi": "ఓజలు",
+    "note": ""
+  },
+  {
+    "standard": "బలం",
+    "melimi": "ఓపిక",
+    "note": ""
+  },
+  {
+    "standard": "ఓ జీవుల్లారా",
+    "melimi": "ఓ ఉసురులారా!",
+    "note": ""
+  },
+  {
+    "standard": "శాస్త్రం",
+    "melimi": "కట్టుపాటు",
+    "note": ""
+  },
+  {
+    "standard": "సాగరములు",
+    "melimi": "కడళ్ళు",
+    "note": ""
+  },
+  {
+    "standard": "ఐశ్వర్యం",
+    "melimi": "కలిమి",
+    "note": ""
+  },
+  {
+    "standard": "బుద్ధి - మనసు)",
+    "melimi": "కఱద (చిత్తం",
+    "note": ""
+  },
+  {
+    "standard": "కరతాపనము",
+    "melimi": "కాచుకొనుట",
+    "note": ""
+  },
+  {
+    "standard": "యౌవనం",
+    "melimi": "కోడెయీడు",
+    "note": ""
+  },
+  {
+    "standard": "పతివ్రత",
+    "melimi": "క్రొత్తడి ఇల్లాలు",
+    "note": ""
+  },
+  {
+    "standard": "అడవి",
+    "melimi": "కారు",
+    "note": ""
+  },
+  {
+    "standard": "పాతకములు",
+    "melimi": "క్రిందులు",
+    "note": ""
+  },
+  {
+    "standard": "రజము",
+    "melimi": "కాళ్ళదుమ్ము",
+    "note": ""
+  },
+  {
+    "standard": "దేహాంతరం",
+    "melimi": "కొండుమేనులఁ",
+    "note": ""
+  },
+  {
+    "standard": "రోగి",
+    "melimi": "గొంటు",
+    "note": ""
+  },
+  {
+    "standard": "విద్వాంసుడు",
+    "melimi": "చదువరి",
+    "note": ""
+  },
+  {
+    "standard": "మాంసం",
+    "melimi": "చియ",
+    "note": ""
+  },
+  {
+    "standard": "సంగం",
+    "melimi": "చేరిక",
+    "note": ""
+  },
+  {
+    "standard": "పిండమధ్యమున",
+    "melimi": "చూలునడుమ",
+    "note": ""
+  },
+  {
+    "standard": "బలము",
+    "melimi": "చేవ",
+    "note": ""
+  },
+  {
+    "standard": "పీడ",
+    "melimi": "చీఁదఱ",
+    "note": ""
+  },
+  {
+    "standard": "అప్రతిష్ఠ",
+    "melimi": "డారు",
+    "note": ""
+  },
+  {
+    "standard": "మనస్సు",
+    "melimi": "డెందము",
+    "note": ""
+  },
+  {
+    "standard": "స్వకర్మ",
+    "melimi": "తనపని",
+    "note": ""
+  },
+  {
+    "standard": "కాలము",
+    "melimi": "తఱి",
+    "note": ""
+  },
+  {
+    "standard": "జాతి",
+    "melimi": "తెగ",
+    "note": ""
+  },
+  {
+    "standard": "వ్యాధి",
+    "melimi": "తెగులు",
+    "note": ""
+  },
+  {
+    "standard": "రధము",
+    "melimi": "తేరు",
+    "note": ""
+  },
+  {
+    "standard": "విషం",
+    "melimi": "తిండిచిలుము",
+    "note": ""
+  },
+  {
+    "standard": "ధీమస్వరం",
+    "melimi": "దిగులుగొంతు",
+    "note": ""
+  },
+  {
+    "standard": "ప్రేతత్వం",
+    "melimi": "దెత్తితనం",
+    "note": ""
+  },
+  {
+    "standard": "రాజ్యం",
+    "melimi": "దొరతనం",
+    "note": ""
+  },
+  {
+    "standard": "రాజయక్ష్మ",
+    "melimi": "దొరయఱతెవులు",
+    "note": ""
+  },
+  {
+    "standard": "శీలం",
+    "melimi": "నడత",
+    "note": ""
+  },
+  {
+    "standard": "బ్రహ్మాండం",
+    "melimi": "నలువగ్రుడ్డు",
+    "note": ""
+  },
+  {
+    "standard": "నరసింహ",
+    "melimi": "నిట్టపుట్టువు",
+    "note": ""
+  },
+  {
+    "standard": "శోణితం",
+    "melimi": "నెత్తురు",
+    "note": ""
+  },
+  {
+    "standard": "దుఃఖం",
+    "melimi": "నొప్పి",
+    "note": ""
+  },
+  {
+    "standard": "స్వస్థం",
+    "melimi": "నెమ్మది",
+    "note": ""
+  },
+  {
+    "standard": "పంచభూతత్వం",
+    "melimi": "నేలలయోజ",
+    "note": ""
+  },
+  {
+    "standard": "ద్వీపములు",
+    "melimi": "నేలంకలు",
+    "note": ""
+  },
+  {
+    "standard": "లోకాలు",
+    "melimi": "నింగినేలదినుసులు",
+    "note": ""
+  },
+  {
+    "standard": "జగము",
+    "melimi": "నింగినేల",
+    "note": ""
+  },
+  {
+    "standard": "ఆకాశం",
+    "melimi": "నింగి",
+    "note": ""
+  },
+  {
+    "standard": "వైరి",
+    "melimi": "పగఱు",
+    "note": ""
+  },
+  {
+    "standard": "ద్వేషం",
+    "melimi": "పగ",
+    "note": ""
+  },
+  {
+    "standard": "కన్య",
+    "melimi": "పడుచు",
+    "note": ""
+  },
+  {
+    "standard": "అహంకారం",
+    "melimi": "పొగరు",
+    "note": ""
+  },
+  {
+    "standard": "జన్మవంతులు",
+    "melimi": "పుట్టుకగలవారు",
+    "note": ""
+  },
+  {
+    "standard": "పాపిస్తులు",
+    "melimi": "పాడెగట్లు",
+    "note": ""
+  },
+  {
+    "standard": "స్వధర్మముచేత",
+    "melimi": "పాడిగా",
+    "note": ""
+  },
+  {
+    "standard": "ధర్మం",
+    "melimi": "పాడి",
+    "note": ""
+  },
+  {
+    "standard": "ఆదిత్యాది నవగ్రహములు",
+    "melimi": "పొద్దు దొట్టి తొమ్మిది మింటిమినుకులు",
+    "note": ""
+  },
+  {
+    "standard": "ధన్వంతరి",
+    "melimi": "పెరుమాళ్లు",
+    "note": ""
+  },
+  {
+    "standard": "క్షీరభోజనం",
+    "melimi": "పాలబువ్వ",
+    "note": ""
+  },
+  {
+    "standard": "క్షీరసముద్ర మధనకాలమున",
+    "melimi": "పోసనము కడలి చిలుకుతఱి",
+    "note": ""
+  },
+  {
+    "standard": "బ్రాహ్మణులు",
+    "melimi": "పాఱులు",
+    "note": ""
+  },
+  {
+    "standard": "క్షత్రియులు",
+    "melimi": "దొరలు",
+    "note": ""
+  },
+  {
+    "standard": "వైశ్యులు",
+    "melimi": "కోమటులు",
+    "note": ""
+  },
+  {
+    "standard": "శూద్రులు",
+    "melimi": "కాపులు",
+    "note": ""
+  },
+  {
+    "standard": "స్వ్పర్గనరకములు",
+    "melimi": "వేల్చునగరుచెస్తలు",
+    "note": ""
+  },
+  {
+    "standard": "మోక్షం",
+    "melimi": "పెంద్రోవ",
+    "note": ""
+  },
+  {
+    "standard": "రాగం",
+    "melimi": "మక్కువ",
+    "note": ""
+  },
+  {
+    "standard": "ముఖభంగం",
+    "melimi": "మూతిమారుపు",
+    "note": ""
+  },
+  {
+    "standard": "ధాతువు",
+    "melimi": "మైదినుసు",
+    "note": ""
+  },
+  {
+    "standard": "జీవి",
+    "melimi": "మేనితాల్పు",
+    "note": ""
+  },
+  {
+    "standard": "కామము",
+    "melimi": "మేనిలోఁగోర్కి",
+    "note": ""
+  },
+  {
+    "standard": "రాత్రి",
+    "melimi": "మాపు",
+    "note": ""
+  },
+  {
+    "standard": "వేల్పుల ఇల్లు",
+    "melimi": "మేరువు",
+    "note": ""
+  },
+  {
+    "standard": "పుణ్యపాపములు",
+    "melimi": "మేల్కీడులు",
+    "note": ""
+  },
+  {
+    "standard": "ఇంద్రియం",
+    "melimi": "మైవంతు",
+    "note": ""
+  },
+  {
+    "standard": "వృద్ధులు",
+    "melimi": "ముసలులు",
+    "note": ""
+  },
+  {
+    "standard": "పునర్జన్మ",
+    "melimi": "మాఱuపుట్టువు",
+    "note": ""
+  },
+  {
+    "standard": "విద్యుత్",
+    "melimi": "మెఱపు",
+    "note": ""
+  },
+  {
+    "standard": "నిష్ఫలం",
+    "melimi": "వట్టిది",
+    "note": ""
+  },
+  {
+    "standard": "వ్యర్థం",
+    "melimi": "వమ్ము",
+    "note": ""
+  },
+  {
+    "standard": "శుక్రము",
+    "melimi": "విత్తనము",
+    "note": ""
+  },
+  {
+    "standard": "చెవి",
+    "melimi": "వీను",
+    "note": ""
+  },
+  {
+    "standard": "యజ్ఞం",
+    "melimi": "వేల్మి",
+    "note": ""
+  },
+  {
+    "standard": "ప్రేతము",
+    "melimi": "సోఁకు",
+    "note": ""
+  },
+  {
+    "standard": "విశ్వం",
+    "melimi": "ఎలారం",
+    "note": ""
+  },
+  {
+    "standard": "ప్రసాదించాడు",
+    "melimi": "ఒసంగాడు",
+    "note": ""
+  },
+  {
+    "standard": "endless",
+    "melimi": "కడమాలిన",
+    "note": ""
+  },
+  {
+    "standard": "లోకేశ్వరుడు",
+    "melimi": "కానసంకుడు",
+    "note": ""
+  },
+  {
+    "standard": "లోక",
+    "melimi": "కానస",
+    "note": ""
+  },
+  {
+    "standard": "హింసిస్తూ",
+    "melimi": "కాఱిస్తూ",
+    "note": ""
+  },
+  {
+    "standard": "పవిత్ర భూమి",
+    "melimi": "గంగినేల",
+    "note": ""
+  },
+  {
+    "standard": "పవిత్రం",
+    "melimi": "గంగి",
+    "note": ""
+  },
+  {
+    "standard": "pure",
+    "melimi": "చొక్క",
+    "note": ""
+  },
+  {
+    "standard": "గర్భ సాగరం",
+    "melimi": "చూలికడలి",
+    "note": ""
+  },
+  {
+    "standard": "పరితాపం",
+    "melimi": "తరుకుందు",
+    "note": ""
+  },
+  {
+    "standard": "సాధారణ",
+    "melimi": "తందరసు",
+    "note": ""
+  },
+  {
+    "standard": "స్వార్థం",
+    "melimi": "తామట్టు",
+    "note": ""
+  },
+  {
+    "standard": "ఉపశమనం",
+    "melimi": "తెఱిపి",
+    "note": ""
+  },
+  {
+    "standard": "బ్రహ్మ",
+    "melimi": "నలువ",
+    "note": ""
+  },
+  {
+    "standard": "అనువాదం",
+    "melimi": "నుడింపు",
+    "note": ""
+  },
+  {
+    "standard": "శాంతంగా",
+    "melimi": "నిమ్మళంగా",
+    "note": ""
+  },
+  {
+    "standard": "అనేక",
+    "melimi": "పెక్కు",
+    "note": ""
+  },
+  {
+    "standard": "భూమండలం",
+    "melimi": "పారిగుండ్రం",
+    "note": ""
+  },
+  {
+    "standard": "భయంకర",
+    "melimi": "బకుర",
+    "note": ""
+  },
+  {
+    "standard": "పుష్కలం",
+    "melimi": "మిక్కుటమైన",
+    "note": ""
+  },
+  {
+    "standard": "శ్రీ",
+    "melimi": "మిహి",
+    "note": ""
+  },
+  {
+    "standard": "పరంధాముడు",
+    "melimi": "మిఱుఇలంకుడు",
+    "note": ""
+  },
+  {
+    "standard": "అనుచిత సమయం",
+    "melimi": "రక్కిసపూట",
+    "note": ""
+  },
+  {
+    "standard": "మనిషి",
+    "melimi": "రెంచ",
+    "note": ""
+  },
+  {
+    "standard": "కథ",
+    "melimi": "వాకువ",
+    "note": ""
+  },
+  {
+    "standard": "ముఖ్య వనరులు",
+    "melimi": "వంచ వనరులు",
+    "note": ""
+  },
+  {
+    "standard": "విశాలమైన",
+    "melimi": "వెడఁద",
+    "note": ""
+  },
+  {
+    "standard": "దేవుడు",
+    "melimi": "వేల్పు",
+    "note": ""
+  },
+  {
+    "standard": "సుఖసంతోషం",
+    "melimi": "హాయి అలరు",
+    "note": ""
+  },
+  {
+    "standard": "విషయ / subject/matter",
+    "melimi": "ఎడాటం",
+    "note": ""
+  },
+  {
+    "standard": "అంశం / topic",
+    "melimi": "పరియ",
+    "note": ""
+  },
+  {
+    "standard": "సారాంశం",
+    "melimi": "ఎగ్గుర్తు",
+    "note": ""
+  },
+  {
+    "standard": "పరిజ్ఞానం / Knowledge",
+    "melimi": "తెలిమి",
+    "note": ""
+  },
+  {
+    "standard": "విషయవస్తు / Content",
+    "melimi": "నిఱం",
+    "note": ""
+  },
+  {
+    "standard": "logic",
+    "melimi": "కతన",
+    "note": ""
+  },
+  {
+    "standard": "Explanation",
+    "melimi": "విడఁబర్పు",
+    "note": ""
+  },
+  {
+    "standard": "understanding",
+    "melimi": "ఆకళింపు",
+    "note": ""
+  },
+  {
+    "standard": "వివరాలు / Details",
+    "melimi": "లోరువులు",
+    "note": ""
+  },
+  {
+    "standard": "detailed",
+    "melimi": "లోరువాటి",
+    "note": ""
+  },
+  {
+    "standard": "premise/primary statement",
+    "melimi": "మునుచెప్పిదం",
+    "note": ""
+  },
+  {
+    "standard": "చింతన / thought",
+    "melimi": "తలపోత",
+    "note": ""
+  },
+  {
+    "standard": "విచారణ / inquiry",
+    "melimi": "కనుగోలింపు",
+    "note": ""
+  },
+  {
+    "standard": "నిర్ణయం / decisions",
+    "melimi": "నేటు",
+    "note": ""
+  },
+  {
+    "standard": "గ్రహించు / to comprehend",
+    "melimi": "పసించు",
+    "note": ""
+  },
+  {
+    "standard": "అనువాదం / Translation, Interpretation",
+    "melimi": "నుడింపు",
+    "note": ""
+  },
+  {
+    "standard": "వ్యాఖ్యానం / Commentary, Annotation",
+    "melimi": "మీఁదువల్కు/మీఁదువల్కరం",
+    "note": ""
+  },
+  {
+    "standard": "విశ్లేషణ / Analysis",
+    "melimi": "విరలింపు",
+    "note": ""
+  },
+  {
+    "standard": "విశ్లేషణాత్మక వివరణ",
+    "melimi": "విరలాది",
+    "note": ""
+  },
+  {
+    "standard": "వివేకం / Discernment",
+    "melimi": "తెఱకువ",
+    "note": ""
+  },
+  {
+    "standard": "స్పష్టత / Clarity",
+    "melimi": "తేఁటదనం",
+    "note": ""
+  },
+  {
+    "standard": "వివరణాత్మకం / Explanatory",
+    "melimi": "విఁడబర్చుడు",
+    "note": ""
+  },
+  {
+    "standard": "భావన / imagination/notion",
+    "melimi": "మెదలం",
+    "note": ""
+  },
+  {
+    "standard": "అభిప్రాయం / Opinion",
+    "melimi": "అనుకోలు",
+    "note": ""
+  },
+  {
+    "standard": "ఉద్దేశం / Intention",
+    "melimi": "గుఱికోలు",
+    "note": ""
+  },
+  {
+    "standard": "అవధానం /attention",
+    "melimi": "ఆలకం",
+    "note": ""
+  },
+  {
+    "standard": "సందేహ నివృత్తి / Doubt clarification",
+    "melimi": "అరగలి తీరింపు",
+    "note": ""
+  },
+  {
+    "standard": "ప్రకటన/declaration",
+    "melimi": "చాటన",
+    "note": ""
+  },
+  {
+    "standard": "వర్ణన / వర్ణించు",
+    "melimi": "వాగీటు",
+    "note": ""
+  },
+  {
+    "standard": "presentation",
+    "melimi": "చూపకం",
+    "note": ""
+  },
+  {
+    "standard": "observation",
+    "melimi": "తేఱిచూడ్కి",
+    "note": ""
+  },
+  {
+    "standard": "వివరణ గణన / Descriptive statistics",
+    "melimi": "వాగీటువ గుమిలెక్కరం",
+    "note": ""
+  },
+  {
+    "standard": "criticism",
+    "melimi": "మెండీట",
+    "note": ""
+  },
+  {
+    "standard": "doubtful",
+    "melimi": "బిమ్మిటిపాదు",
+    "note": ""
+  },
+  {
+    "standard": "self rule",
+    "melimi": "తన్పాటికం",
+    "note": ""
+  },
+  {
+    "standard": "freedom",
+    "melimi": "విచ్చుకం",
+    "note": ""
+  },
+  {
+    "standard": "emancipation",
+    "melimi": "విడుమర",
+    "note": ""
+  },
+  {
+    "standard": "autonomy",
+    "melimi": "తావిచ్చుకం",
+    "note": ""
+  },
+  {
+    "standard": "release",
+    "melimi": "విడుదల",
+    "note": ""
+  },
+  {
+    "standard": "పునాది",
+    "melimi": "పలవకట్టు, పాసు, మట్టుగల్లు;",
+    "note": ""
+  },
+  {
+    "standard": "అమలు",
+    "melimi": "జరిపిడి;",
+    "note": ""
+  },
+  {
+    "standard": "కబుర్లు",
+    "melimi": "ఊసులు;",
+    "note": ""
+  },
+  {
+    "standard": "జేబు",
+    "melimi": "పొదెం, పొదియం;",
+    "note": ""
+  },
+  {
+    "standard": "తర్జుమా/అనువదించు",
+    "melimi": "నుడించు;",
+    "note": ""
+  },
+  {
+    "standard": "దరఖాస్తు",
+    "melimi": "వాసరాంకు;",
+    "note": ""
+  },
+  {
+    "standard": "దర్జా",
+    "melimi": "ఠీవి;",
+    "note": ""
+  },
+  {
+    "standard": "మజా",
+    "melimi": "సోలి;",
+    "note": ""
+  },
+  {
+    "standard": "ముస్తాబ్",
+    "melimi": "తీర్కోలు;",
+    "note": ""
+  },
+  {
+    "standard": "హక్కు",
+    "melimi": "తార్మి;",
+    "note": ""
+  },
+  {
+    "standard": "హద్దు",
+    "melimi": "మేర, ఎల్ల, బరి;",
+    "note": ""
+  },
+  {
+    "standard": "తరహా",
+    "melimi": "తెఱంగు;",
+    "note": ""
+  },
+  {
+    "standard": "దుప్పటి",
+    "melimi": "లేపు;",
+    "note": ""
+  },
+  {
+    "standard": "మాములు",
+    "melimi": "తరుచు;",
+    "note": ""
+  },
+  {
+    "standard": "మాజీ",
+    "melimi": "తలిక",
+    "note": ""
+  },
+  {
+    "standard": "జవాబు",
+    "melimi": "పలుకు, మార్పల్కు",
+    "note": ""
+  },
+  {
+    "standard": "ఆఖరి",
+    "melimi": "చివరి, కడపటి",
+    "note": ""
+  },
+  {
+    "standard": "బదిలీ",
+    "melimi": "మారాణం",
+    "note": ""
+  },
+  {
+    "standard": "బదులు",
+    "melimi": "మారు",
+    "note": ""
+  },
+  {
+    "standard": "బకాయి",
+    "melimi": "పరచి",
+    "note": ""
+  },
+  {
+    "standard": "అసలు",
+    "melimi": "నికాప, నిజమైన",
+    "note": ""
+  },
+  {
+    "standard": "తరపు",
+    "melimi": "ఏటము (నువు ఎవరేటము)",
+    "note": ""
+  },
+  {
+    "standard": "సలహా",
+    "melimi": "చేంబల్కు;",
+    "note": ""
+  },
+  {
+    "standard": "సామాన్లు",
+    "melimi": "ఉరువాది/ఉరాది;",
+    "note": ""
+  },
+  {
+    "standard": "రోజు",
+    "melimi": "నాడు, ప్రొద్దు, పూట;",
+    "note": ""
+  },
+  {
+    "standard": "హుండీ",
+    "melimi": "తాఱపం, ఉండిగ;",
+    "note": ""
+  },
+  {
+    "standard": "చిరునామా",
+    "melimi": "ఉను వలతి/ఉన్వలతి;",
+    "note": ""
+  },
+  {
+    "standard": "రాజీనామా",
+    "melimi": "కేడన;",
+    "note": ""
+  },
+  {
+    "standard": "జోడి",
+    "melimi": "జత;",
+    "note": ""
+  },
+  {
+    "standard": "హోదా",
+    "melimi": "సపాట;",
+    "note": ""
+  },
+  {
+    "standard": "గిరాకీ",
+    "melimi": "ఎగంబాటు;",
+    "note": ""
+  },
+  {
+    "standard": "రవాణా",
+    "melimi": "పెఱికాటం;",
+    "note": ""
+  },
+  {
+    "standard": "కాగితం",
+    "melimi": "ఏలాంకు;",
+    "note": ""
+  },
+  {
+    "standard": "ఖాళీ",
+    "melimi": "కొల్ల, డొల్ల;",
+    "note": ""
+  },
+  {
+    "standard": "కాలం",
+    "melimi": "ఎడరు, కారు;",
+    "note": ""
+  },
+  {
+    "standard": "తయారు",
+    "melimi": "సయారం;",
+    "note": ""
+  },
+  {
+    "standard": "వాయిదా",
+    "melimi": "అసర;",
+    "note": ""
+  },
+  {
+    "standard": "తమాషా",
+    "melimi": "ఒల్లెక్క;",
+    "note": ""
+  },
+  {
+    "standard": "కచేరి",
+    "melimi": "ఇసాటం;",
+    "note": ""
+  },
+  {
+    "standard": "నమూనా",
+    "melimi": "మాదిరి;",
+    "note": ""
+  },
+  {
+    "standard": "దర్యాప్తు",
+    "melimi": "కనుగోలింపు;",
+    "note": ""
+  },
+  {
+    "standard": "రోజు",
+    "melimi": "నాడు, పొద్దు, ముప్పూటలు.",
+    "note": ""
+  },
+  {
+    "standard": "బంద్",
+    "melimi": "మూసివేత",
+    "note": ""
+  },
+  {
+    "standard": "బజార్",
+    "melimi": "సంత",
+    "note": ""
+  },
+  {
+    "standard": "దుకాణం",
+    "melimi": "అంగడి, కొట్టు",
+    "note": ""
+  },
+  {
+    "standard": "షహర్",
+    "melimi": "ప్రోలు, వీడు, వటారు",
+    "note": ""
+  },
+  {
+    "standard": "జమీన్",
+    "melimi": "నేల, పట్టు, పారి",
+    "note": ""
+  },
+  {
+    "standard": "తేజం",
+    "melimi": "మిసమిస, మిసారం (full energy)",
+    "note": ""
+  },
+  {
+    "standard": "తహసీల్దార్",
+    "melimi": "పన్నులదొర, రాబడులదొర",
+    "note": ""
+  },
+  {
+    "standard": "జమీందారు",
+    "melimi": "నేలదొర",
+    "note": ""
+  },
+  {
+    "standard": "ఖర్చు",
+    "melimi": "వెచ్చం",
+    "note": ""
+  },
+  {
+    "standard": "బస్తా",
+    "melimi": "సంచి",
+    "note": ""
+  },
+  {
+    "standard": "ఖజానా",
+    "melimi": "బొక్కసం, ములుగు",
+    "note": ""
+  },
+  {
+    "standard": "కబాబ్",
+    "melimi": "నీసువంటకం",
+    "note": ""
+  },
+  {
+    "standard": "దర్వాజా",
+    "melimi": "తలుపు, వాకిలి, తూర్మాను",
+    "note": ""
+  },
+  {
+    "standard": "హుషారు",
+    "melimi": "కేరింత",
+    "note": ""
+  },
+  {
+    "standard": "దిల్",
+    "melimi": "గుండె, ఎడంద, డెంద, కందన",
+    "note": ""
+  },
+  {
+    "standard": "ఖుషి",
+    "melimi": "మురుపు, పొంగు",
+    "note": ""
+  },
+  {
+    "standard": "రంగ్",
+    "melimi": "కౌరు",
+    "note": ""
+  },
+  {
+    "standard": "గులాం",
+    "melimi": "బానిస",
+    "note": ""
+  },
+  {
+    "standard": "గులాబి",
+    "melimi": "పెస్సెపూవు",
+    "note": ""
+  },
+  {
+    "standard": "దోస్త్",
+    "melimi": "నేస్తుడు, చెలికాడు, చెలి",
+    "note": ""
+  },
+  {
+    "standard": "ఫౌజ్",
+    "melimi": "పడ, లెంకోరు",
+    "note": ""
+  },
+  {
+    "standard": "mother",
+    "melimi": "తల్లి, అమ్మ",
+    "note": ""
+  },
+  {
+    "standard": "కానువు (Appearance)",
+    "melimi": "అందమైన, ఆకట్టుకోగల, పొడవైన, మెరుపుగల, మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "మైబారు (size)",
+    "melimi": "పెద్ద, చిన్న, లావు, సన్న, పొడువు, మోటు, పెలుచ మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "మైగిరి (shape)",
+    "melimi": "గుండ్రం, నలుమర, తేటమైగిరి, గజిబిజి మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "కౌరు (color)",
+    "melimi": "ఎర్ర, నల్ల, తెల్ల, పచ్చ, బూడిద, బంగారు, మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "తనరం (quality)",
+    "melimi": "మంచి, చెడ్డ, గట్టి, ఉలకాంగా, పోతరం, మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "నిలక (state)",
+    "melimi": "కొత్త, పాత, బాగున్న, చెడిపోయిన, మురికిగా, ఒబ్బిడి మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "మెదలం (feeling)",
+    "melimi": "అలరాటం, కుందు, కనలు, అక్కజం, కూర్మి మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "చవి (taste)",
+    "melimi": "తీపి, కారంగా, పుల్లగా, చేదుగా, ఉప్పుగా మొదలైనవి…",
+    "note": ""
+  },
+  {
+    "standard": "అలజడి (sound)",
+    "melimi": "నవకంగా, గట్టిగా, కరకరలాడే, మోతిడి (soundless)",
+    "note": ""
+  },
+  {
+    "standard": "ప్రాయం (age)",
+    "melimi": "చిన్న, పెద్ద, కోడె, ముది",
+    "note": ""
+  },
+  {
+    "standard": "కరోలి (weather)",
+    "melimi": "చల్లగా, వేడిగా, తేమగా, పొడిగా",
+    "note": ""
+  },
+  {
+    "standard": "school",
+    "melimi": "బడి",
+    "note": ""
+  },
+  {
+    "standard": "principal",
+    "melimi": "మిడియేలు",
+    "note": ""
+  },
+  {
+    "standard": "teacher",
+    "melimi": "కాంచువు",
+    "note": ""
+  },
+  {
+    "standard": "student, చదువరి = Reader",
+    "melimi": "నేరువాను",
+    "note": ""
+  },
+  {
+    "standard": "class",
+    "melimi": "తరఁగది",
+    "note": ""
+  },
+  {
+    "standard": "blackboard",
+    "melimi": "నల్లబల్ల",
+    "note": ""
+  },
+  {
+    "standard": "chalkpiece",
+    "melimi": "వెల్లముక్క",
+    "note": ""
+  },
+  {
+    "standard": "book",
+    "melimi": "పొత్తం",
+    "note": ""
+  },
+  {
+    "standard": "lesson",
+    "melimi": "నేరిక",
+    "note": ""
+  },
+  {
+    "standard": "notes",
+    "melimi": "వివ్రా",
+    "note": ""
+  },
+  {
+    "standard": "story",
+    "melimi": "వాకువ",
+    "note": ""
+  },
+  {
+    "standard": "essay",
+    "melimi": "ఇమురం",
+    "note": ""
+  },
+  {
+    "standard": "poem",
+    "melimi": "పోహణ",
+    "note": ""
+  },
+  {
+    "standard": "pencil",
+    "melimi": "వ్రాకోల",
+    "note": ""
+  },
+  {
+    "standard": "pen",
+    "melimi": "రెలుక",
+    "note": ""
+  },
+  {
+    "standard": "duster, eraser",
+    "melimi": "తుడిపెన",
+    "note": ""
+  },
+  {
+    "standard": "sharpener",
+    "melimi": "పదనుమూటు",
+    "note": ""
+  },
+  {
+    "standard": "exam",
+    "melimi": "అరైక",
+    "note": ""
+  },
+  {
+    "standard": "question",
+    "melimi": "మల్క",
+    "note": ""
+  },
+  {
+    "standard": "answer",
+    "melimi": "మార్పలుకు",
+    "note": ""
+  },
+  {
+    "standard": "result",
+    "melimi": "రాగడ",
+    "note": ""
+  },
+  {
+    "standard": "దేవుడు",
+    "melimi": "వేల్పు, అంకుడు , పైవాడు;",
+    "note": ""
+  },
+  {
+    "standard": "దేవాలయం",
+    "melimi": "గుడి, కోవెల, వేఁడిలి",
+    "note": ""
+  },
+  {
+    "standard": "ఆరతి",
+    "melimi": "నివాళి",
+    "note": ""
+  },
+  {
+    "standard": "ఆరాధన",
+    "melimi": "మైసల్పన",
+    "note": ""
+  },
+  {
+    "standard": "భక్తి",
+    "melimi": "నెరిమ",
+    "note": ""
+  },
+  {
+    "standard": "ప్రార్థన",
+    "melimi": "వేఁడిక",
+    "note": ""
+  },
+  {
+    "standard": "మంత్రం",
+    "melimi": "వల్లరం",
+    "note": ""
+  },
+  {
+    "standard": "యజ్ఞం/హోమం",
+    "melimi": "వేలిమి",
+    "note": ""
+  },
+  {
+    "standard": "పూజ",
+    "melimi": "కైసల్పన",
+    "note": ""
+  },
+  {
+    "standard": "తీర్థం",
+    "melimi": "కోవెల్లం",
+    "note": ""
+  },
+  {
+    "standard": "ప్రసాదం",
+    "melimi": "కోదోంటు, ఒసంగం",
+    "note": ""
+  },
+  {
+    "standard": "కర్మ",
+    "melimi": "చైవు",
+    "note": ""
+  },
+  {
+    "standard": "మోక్షం",
+    "melimi": "విడమానం",
+    "note": ""
+  },
+  {
+    "standard": "పుణ్యం",
+    "melimi": "గర్గలం",
+    "note": ""
+  },
+  {
+    "standard": "పాపం",
+    "melimi": "కావళం",
+    "note": ""
+  },
+  {
+    "standard": "సద్గతి",
+    "melimi": "మేల్గడ",
+    "note": ""
+  },
+  {
+    "standard": "యాత్ర",
+    "melimi": "కోఁదేఱిక",
+    "note": ""
+  },
+  {
+    "standard": "పవిత్రం",
+    "melimi": "గంగి",
+    "note": ""
+  },
+  {
+    "standard": "దీపం",
+    "melimi": "తిర్లిక, తుగ్గలి",
+    "note": ""
+  },
+  {
+    "standard": "వ్రతం",
+    "melimi": "నోము",
+    "note": ""
+  },
+  {
+    "standard": "నైవేద్యం",
+    "melimi": "ఆరగింపు",
+    "note": ""
+  },
+  {
+    "standard": "ఆశీర్వాదం",
+    "melimi": "దీవెన",
+    "note": ""
+  },
+  {
+    "standard": "కీర్తన",
+    "melimi": "సాయన",
+    "note": ""
+  },
+  {
+    "standard": "భజన",
+    "melimi": "కేల్తాటు",
+    "note": ""
+  },
+  {
+    "standard": "మేల్గాంచు",
+    "melimi": "సద్గురు",
+    "note": ""
+  },
+  {
+    "standard": "responsible person",
+    "melimi": "మోపికారి",
+    "note": ""
+  },
+  {
+    "standard": "Respectable",
+    "melimi": "పేర్మిపాదు",
+    "note": ""
+  },
+  {
+    "standard": "honest",
+    "melimi": "నికమరి",
+    "note": ""
+  },
+  {
+    "standard": "compassionate",
+    "melimi": "కనికారి",
+    "note": ""
+  },
+  {
+    "standard": "confidence",
+    "melimi": "నమ్మకం",
+    "note": ""
+  },
+  {
+    "standard": "patient (/ఓర్పున్నోడు)",
+    "melimi": "ఓర్చువు",
+    "note": ""
+  },
+  {
+    "standard": "hardworking",
+    "melimi": "పాటువాను",
+    "note": ""
+  },
+  {
+    "standard": "Friendly",
+    "melimi": "నేయనింట",
+    "note": ""
+  },
+  {
+    "standard": "helpful person",
+    "melimi": "బాసటి",
+    "note": ""
+  },
+  {
+    "standard": "selfish person",
+    "melimi": "తామట్టు",
+    "note": ""
+  },
+  {
+    "standard": "bad person",
+    "melimi": "చెడ్డవాను",
+    "note": ""
+  },
+  {
+    "standard": "stubborn person",
+    "melimi": "మొండివాను",
+    "note": ""
+  },
+  {
+    "standard": "\"నాలుగు తలలతో చూడగలవాడు\"",
+    "melimi": "🕉️ నలువ (బ్రహ్మ)",
+    "note": ""
+  },
+  {
+    "standard": "\"ఇలలో ఎక్కడైనా ఉండే అంకుడు\"",
+    "melimi": "🌐 ఇలంకుడు (విష్ణువు)",
+    "note": ""
+  },
+  {
+    "standard": "\"పిడు శక్తిగల అంకుడు\"",
+    "melimi": "☁️ పిడంకుడు (ఇంద్రుడు)",
+    "note": ""
+  },
+  {
+    "standard": "\"మూడు కన్నుల వాడు\"",
+    "melimi": "🔱 ముక్కంటి (త్రినేత్రుడు)",
+    "note": ""
+  },
+  {
+    "standard": "\"పెను అంకుడు (మహా ఈశ్వరుడు)\"",
+    "melimi": "🔱 పెనంకుడు (మహేశ్వరుడు)",
+    "note": ""
+  },
+  {
+    "standard": "\"మలకు చెందిన ఆలు/ఆమి(ఆమె)/అన్ని\"",
+    "melimi": "🌺 మల్లాలు /మల్లామి/మల్లన్ని (పార్వతి)",
+    "note": ""
+  },
+  {
+    "standard": "\"గౌరు(ఏనుగు) అంకుడు\"",
+    "melimi": "🛕 గౌరంకుడు (గణేశుడు)",
+    "note": ""
+  },
+  {
+    "standard": "\"పోరు శక్తిగల అంకుడు\"",
+    "melimi": "🦚 పోరంకుడు (సుబ్రహ్మణ్య సామి)",
+    "note": ""
+  },
+  {
+    "standard": "Exam time",
+    "melimi": "అరైక తఱీ",
+    "note": ""
+  },
+  {
+    "standard": "Examination hall)",
+    "melimi": "ఆరైకప్రాకం",
+    "note": ""
+  },
+  {
+    "standard": "Time",
+    "melimi": "తఱీ",
+    "note": ""
+  },
+  {
+    "standard": "Hall ticket",
+    "melimi": "ప్రాక కేవాఁకు",
+    "note": ""
+  },
+  {
+    "standard": "Question paper",
+    "melimi": "మల్కాంకు",
+    "note": ""
+  },
+  {
+    "standard": "answer paper",
+    "melimi": "మార్పల్కాంకు",
+    "note": ""
+  },
+  {
+    "standard": "invigilator",
+    "melimi": "మీఁదుగాంచరి",
+    "note": ""
+  },
+  {
+    "standard": "Roll number",
+    "melimi": "వరుసెన్ను",
+    "note": ""
+  },
+  {
+    "standard": "pencil box",
+    "melimi": "వ్రాకోల డబ్బి",
+    "note": ""
+  },
+  {
+    "standard": "writers",
+    "melimi": "వ్రాతరులు",
+    "note": ""
+  },
+  {
+    "standard": "singer",
+    "melimi": "పాటకాను",
+    "note": ""
+  },
+  {
+    "standard": "walker",
+    "melimi": "నడకాను",
+    "note": ""
+  },
+  {
+    "standard": "guide/guider",
+    "melimi": "త్రోవకాను",
+    "note": ""
+  },
+  {
+    "standard": "developer",
+    "melimi": "పెంపుకాను",
+    "note": ""
+  },
+  {
+    "standard": "Hard worker",
+    "melimi": "పాటుకాను",
+    "note": ""
+  },
+  {
+    "standard": "archer",
+    "melimi": "విలుకాను",
+    "note": ""
+  },
+  {
+    "standard": "వినాశక/నాశనం చేసేవాడు, destroyer",
+    "melimi": "రుత్తుకాను",
+    "note": ""
+  },
+  {
+    "standard": "త్యాగి, sacrificer",
+    "melimi": "పాలికాను",
+    "note": ""
+  },
+  {
+    "standard": "చరిత్రకారుడు, historian",
+    "melimi": "జరిమికాను",
+    "note": ""
+  },
+  {
+    "standard": "ప్రమాదకర, dangerous",
+    "melimi": "ముప్పుకాను",
+    "note": ""
+  },
+  {
+    "standard": "ఆశాజనకమైన, hopeful",
+    "melimi": "క్రచ్చుకాను",
+    "note": ""
+  },
+  {
+    "standard": "pollutant",
+    "melimi": "మసటుకాను",
+    "note": ""
+  },
+  {
+    "standard": "నివారణ,preventive",
+    "melimi": "అడంకాను",
+    "note": ""
+  },
+  {
+    "standard": "leadership",
+    "melimi": "పరికానికం/పరిగారం",
+    "note": ""
+  },
+  {
+    "standard": "guidance",
+    "melimi": "త్రోవగారం",
+    "note": ""
+  },
+  {
+    "standard": "ఉక్తి చమత్కారం",
+    "melimi": "మాటగారం",
+    "note": ""
+  },
+  {
+    "standard": "పోషకం, nutrition",
+    "melimi": "ప్రోదిగారం",
+    "note": ""
+  },
+  {
+    "standard": "తెలుగు person",
+    "melimi": "తెలుగువాను",
+    "note": ""
+  },
+  {
+    "standard": "విద్యార్థి, student",
+    "melimi": "నేరువాను",
+    "note": ""
+  },
+  {
+    "standard": "విజేత/విజేత్రి, Winner",
+    "melimi": "గెలువాను",
+    "note": ""
+  },
+  {
+    "standard": "governor",
+    "melimi": "ఏలువాను",
+    "note": ""
+  },
+  {
+    "standard": "Other person/thing",
+    "melimi": "లాతివాను",
+    "note": ""
+  },
+  {
+    "standard": "Emperor/చక్రవర్తి",
+    "melimi": "పరిపారివాను",
+    "note": ""
+  },
+  {
+    "standard": "భౌతిక, physical/material",
+    "melimi": "మైవాను",
+    "note": ""
+  },
+  {
+    "standard": "enduring",
+    "melimi": "నిలువాను",
+    "note": ""
+  },
+  {
+    "standard": "యాజమాన్యం,ownership",
+    "melimi": "తారివానికం",
+    "note": ""
+  },
+  {
+    "standard": "imaginative person",
+    "melimi": "ఉజ్జమారి",
+    "note": ""
+  },
+  {
+    "standard": "active",
+    "melimi": "పనిమారి",
+    "note": ""
+  },
+  {
+    "standard": "బాసటమారి = బాసట ఇచ్చుటయే స్వభావముగా గలవాడు(helpfull). (భావార్థకము",
+    "melimi": "బాసటమారము = సహాయ శీలము, Helpfulness)",
+    "note": ""
+  },
+  {
+    "standard": "చదువుమారి = చదువుటయే స్వభావముగా గలవాండు(studious person), (భావార్థకము",
+    "melimi": "చదువుమారము = అధ్యయన శీలము, Studious)",
+    "note": ""
+  },
+  {
+    "standard": "ప్రతీకారపరుడు, Avenger",
+    "melimi": "పగలమారి",
+    "note": ""
+  },
+  {
+    "standard": "యోచనపరుడు, Thinker",
+    "melimi": "తలపోతల మారి",
+    "note": ""
+  },
+  {
+    "standard": "చదువ(దగినది), పఠనీయము (readable)",
+    "melimi": "చదువల్వి",
+    "note": ""
+  },
+  {
+    "standard": "వినందగినది, శ్రోతవ్యము (audible)",
+    "melimi": "వినల్వి",
+    "note": ""
+  },
+  {
+    "standard": "తినందగినది, భక్షణీయము, eatable",
+    "melimi": "తినల్వి",
+    "note": ""
+  },
+  {
+    "standard": "ఉండందగినది, వసితవ్యము, stayable",
+    "melimi": "ఉండల్వి",
+    "note": ""
+  },
+  {
+    "standard": "ఐకానువు వనర నెలవరి",
+    "melimi": "URL – ఐవనె",
+    "note": ""
+  },
+  {
+    "standard": "తీవేగు లేని వల",
+    "melimi": "Wi-Fi – తీవ",
+    "note": ""
+  },
+  {
+    "standard": "విషయ / subject/matter",
+    "melimi": "ఎడాటం",
+    "note": ""
+  },
+  {
+    "standard": "అంశం / topic",
+    "melimi": "పరియ",
+    "note": ""
+  },
+  {
+    "standard": "సారాంశం",
+    "melimi": "ఎగ్గుర్తు",
+    "note": ""
+  },
+  {
+    "standard": "పరిజ్ఞానం / Knowledge",
+    "melimi": "తెలిమి",
+    "note": ""
+  },
+  {
+    "standard": "logic",
+    "melimi": "కతన",
+    "note": ""
+  },
+  {
+    "standard": "Explanation",
+    "melimi": "విడఁబర్పు",
+    "note": ""
+  },
+  {
+    "standard": "understanding",
+    "melimi": "ఆకళింపు",
+    "note": ""
+  },
+  {
+    "standard": "వివరాలు / Details",
+    "melimi": "లోరువులు",
+    "note": ""
+  },
+  {
+    "standard": "detailed",
+    "melimi": "లోరువాటి",
+    "note": ""
+  },
+  {
+    "standard": "premise/primary statement",
+    "melimi": "మునుచెప్పిదం",
+    "note": ""
+  },
+  {
+    "standard": "చింతన / thought",
+    "melimi": "తలపోత",
+    "note": ""
+  },
+  {
+    "standard": "విచారణ / inquiry",
+    "melimi": "కనుగోలింపు",
+    "note": ""
+  },
+  {
+    "standard": "నిర్ణయం / decisions",
+    "melimi": "నేటు",
+    "note": ""
+  },
+  {
+    "standard": "గ్రహించు / to comprehend",
+    "melimi": "పసించు",
+    "note": ""
+  },
+  {
+    "standard": "అనువాదం / Translation, Interpretation",
+    "melimi": "నుడింపు",
+    "note": ""
+  },
+  {
+    "standard": "వ్యాఖ్యానం / Commentary, Annotation",
+    "melimi": "మీఁదువల్కు**/**మీఁదువల్కరం",
+    "note": ""
+  },
+  {
+    "standard": "విశ్లేషణ / Analysis",
+    "melimi": "విరలింపు",
+    "note": ""
+  },
+  {
+    "standard": "విశ్లేషణాత్మక వివరణ",
+    "melimi": "విరలాది",
+    "note": ""
+  },
+  {
+    "standard": "వివేకం / Discernment",
+    "melimi": "తెఱకువ",
+    "note": ""
+  },
+  {
+    "standard": "స్పష్టత / Clarity",
+    "melimi": "తేఁటదనం",
+    "note": ""
+  },
+  {
+    "standard": "వివరణాత్మకం / Explanatory",
+    "melimi": "విఁడబర్చుడు",
+    "note": ""
+  },
+  {
+    "standard": "భావన / imagination/notion",
+    "melimi": "మెదలం",
+    "note": ""
+  },
+  {
+    "standard": "అభిప్రాయం / Opinion",
+    "melimi": "అనుకోలు",
+    "note": ""
+  },
+  {
+    "standard": "ఉద్దేశం / Intention",
+    "melimi": "గుఱికోలు",
+    "note": ""
+  },
+  {
+    "standard": "అవధానం /attention",
+    "melimi": "ఆలకం",
+    "note": ""
+  },
+  {
+    "standard": "సందేహ నివృత్తి / Doubt clarification",
+    "melimi": "అరగలి తీరింపు",
+    "note": ""
+  },
+  {
+    "standard": "ప్రకటన/declaration",
+    "melimi": "చాటన",
+    "note": ""
+  },
+  {
+    "standard": "వర్ణన / వర్ణించు",
+    "melimi": "వాగీటు",
+    "note": ""
+  },
+  {
+    "standard": "presentation",
+    "melimi": "చూపకం",
+    "note": ""
+  },
+  {
+    "standard": "observation",
+    "melimi": "తేఱిచూడ్కి",
+    "note": ""
+  },
+  {
+    "standard": "వివరణ గణన / Descriptive statistics",
+    "melimi": "వాగీటువ గుమిలెక్కరం",
+    "note": ""
+  },
+  {
+    "standard": "criticism",
+    "melimi": "మెండీట",
+    "note": ""
+  },
+  {
+    "standard": "doubtful",
+    "melimi": "బిమ్మిటిపాదు",
+    "note": ""
+  },
+  {
+    "standard": "సింహం",
+    "melimi": "వేహి",
+    "note": ""
+  },
+  {
+    "standard": "సోదర",
+    "melimi": "తోబుట్టి/తోబుట్టినోడ",
+    "note": ""
+  },
+  {
+    "standard": "ప్రపంచం",
+    "melimi": "ఒలవు",
+    "note": ""
+  },
+  {
+    "standard": "జగత్తు",
+    "melimi": "కానసం/ఆనసం",
+    "note": ""
+  },
+  {
+    "standard": "నగరం",
+    "melimi": "వటారం/వటారు",
+    "note": ""
+  },
+  {
+    "standard": "Galaxy",
+    "melimi": "మిన్వాఁక",
+    "note": ""
+  },
+  {
+    "standard": "Star cluster",
+    "melimi": "మిణుగుత్తి",
+    "note": ""
+  },
+  {
+    "standard": "Meteor",
+    "melimi": "సిరిక",
+    "note": ""
+  },
+  {
+    "standard": "Comet",
+    "melimi": "తోకజుక్క",
+    "note": ""
+  },
+  {
+    "standard": "Asteroid",
+    "melimi": "విన్నరవ",
+    "note": ""
+  },
+  {
+    "standard": "Milky Way",
+    "melimi": "పాలపుంత/పాలవెల్లి",
+    "note": ""
+  },
+  {
+    "standard": "Solar System",
+    "melimi": "నెసరమరం",
+    "note": ""
+  },
+  {
+    "standard": "sun",
+    "melimi": "నెసరు",
+    "note": ""
+  },
+  {
+    "standard": "Moon",
+    "melimi": "జాబిలి",
+    "note": ""
+  },
+  {
+    "standard": "Mercury",
+    "melimi": "నెలాత",
+    "note": ""
+  },
+  {
+    "standard": "Venus",
+    "melimi": "వేగుపలి",
+    "note": ""
+  },
+  {
+    "standard": "Mars",
+    "melimi": "కెంబలి",
+    "note": ""
+  },
+  {
+    "standard": "Earth",
+    "melimi": "నేలతల్లి / పారిగుండ్రం",
+    "note": ""
+  },
+  {
+    "standard": "Jupiter",
+    "melimi": "కాంచువు",
+    "note": ""
+  },
+  {
+    "standard": "Saturn",
+    "melimi": "గాడ్పలి",
+    "note": ""
+  },
+  {
+    "standard": "Rahu",
+    "melimi": "మాతి",
+    "note": ""
+  },
+  {
+    "standard": "Ketu",
+    "melimi": "సీదరం",
+    "note": ""
+  },
+  {
+    "standard": "Astrological / Celestial Events",
+    "melimi": "🌒 కాఁబల్కర కానాటాలు",
+    "note": ""
+  },
+  {
+    "standard": "Solar Eclipse (సూర్యగ్రహణం)",
+    "melimi": "నెసరుమాటుక",
+    "note": ""
+  },
+  {
+    "standard": "Lunar Eclipse (చంద్రగ్రహణం)",
+    "melimi": "నెలమాటుక",
+    "note": ""
+  },
+  {
+    "standard": "MeteorShower",
+    "melimi": "చుక్కవాన",
+    "note": ""
+  },
+  {
+    "standard": "Supernova (star explosion)",
+    "melimi": "చుక్కప్రేలుడు",
+    "note": ""
+  },
+  {
+    "standard": "singer",
+    "melimi": "పాటకాను",
+    "note": ""
+  },
+  {
+    "standard": "walker",
+    "melimi": "నడకాను",
+    "note": ""
+  },
+  {
+    "standard": "guide/guider",
+    "melimi": "త్రోవకాను",
+    "note": ""
+  },
+  {
+    "standard": "developer",
+    "melimi": "పెంపుకాను",
+    "note": ""
+  },
+  {
+    "standard": "Hard worker",
+    "melimi": "పాటుకాను",
+    "note": ""
+  },
+  {
+    "standard": "archer",
+    "melimi": "విలుకాను",
+    "note": ""
+  },
+  {
+    "standard": "destroyer",
+    "melimi": "రుత్తుకాను",
+    "note": ""
+  },
+  {
+    "standard": "sacrificer",
+    "melimi": "పాలికాను",
+    "note": ""
+  },
+  {
+    "standard": "historian",
+    "melimi": "జరిమికాను",
+    "note": ""
+  },
+  {
+    "standard": "dangerous",
+    "melimi": "ముప్పుకాను",
+    "note": ""
+  },
+  {
+    "standard": "hopeful",
+    "melimi": "క్రచ్చుకాను",
+    "note": ""
+  },
+  {
+    "standard": "pollutant",
+    "melimi": "మసటుకాను",
+    "note": ""
+  },
+  {
+    "standard": "preventive",
+    "melimi": "అడంకాను",
+    "note": ""
+  },
+  {
+    "standard": "leadership",
+    "melimi": "పరికానికం/పరిగారం",
+    "note": ""
+  },
+  {
+    "standard": "guidance",
+    "melimi": "త్రోవగారం",
+    "note": ""
+  },
+  {
+    "standard": "ఉక్తి చమత్కారం",
+    "melimi": "మాటగారం",
+    "note": ""
+  },
+  {
+    "standard": "nutrition",
+    "melimi": "ప్రోదిగారం",
+    "note": ""
+  },
+  {
+    "standard": "తెలుగు person",
+    "melimi": "తెలుగువాను",
+    "note": ""
+  },
+  {
+    "standard": "student",
+    "melimi": "నేరువాను",
+    "note": ""
+  },
+  {
+    "standard": "విజేత/విజేత్రి",
+    "melimi": "గెలువాను",
+    "note": ""
+  },
+  {
+    "standard": "governor",
+    "melimi": "ఏలువాను",
+    "note": ""
+  },
+  {
+    "standard": "Other person/thing",
+    "melimi": "లాతివాను",
+    "note": ""
+  },
+  {
+    "standard": "Emperor/చక్రవర్తి",
+    "melimi": "పరిపారివాను",
+    "note": ""
+  },
+  {
+    "standard": "physical/material",
+    "melimi": "మైవాను",
+    "note": ""
+  },
+  {
+    "standard": "ownership",
+    "melimi": "తారివానికం",
+    "note": ""
+  },
+  {
+    "standard": "enduring",
+    "melimi": "నిలువాను",
+    "note": ""
+  },
+  {
+    "standard": "imaginative person",
+    "melimi": "ఉజ్జమారి",
+    "note": ""
+  },
+  {
+    "standard": "active",
+    "melimi": "పనిమారి",
+    "note": ""
+  },
+  {
+    "standard": "బాసటమారము = సహాయ శీలము)",
+    "melimi": "బాసటమారి = బాసట ఇచ్చుటయే స్వభావముగా గలవాడు. (భావార్థకము",
+    "note": ""
+  },
+  {
+    "standard": "చదువుమారము = అధ్యయన శీలము)",
+    "melimi": "చదువుమారి = చదువుటయే స్వభావముగా గలవాండు (భావార్థకము",
+    "note": ""
+  },
+  {
+    "standard": "ప్రతీకారపరుడు",
+    "melimi": "పగలమారి",
+    "note": ""
+  },
+  {
+    "standard": "యోచనపరుడు",
+    "melimi": "తలపోతల మారి",
+    "note": ""
+  },
+  {
+    "standard": "చదువ(దగినది), పఠనీయము (readable)",
+    "melimi": "చదువు + అల్వి => చదువల్వి",
+    "note": ""
+  },
+  {
+    "standard": "వినందగినది, శ్రోతవ్యము (audible)",
+    "melimi": "వినన్‌ + అల్వి => వినల్వి",
+    "note": ""
+  },
+  {
+    "standard": "తినందగినది, భక్షణీయము",
+    "melimi": "తినన్‌ + అల్వి => తినల్వి",
+    "note": ""
+  },
+  {
+    "standard": "ఉండందగినది, వసితవ్యము",
+    "melimi": "ఉండన్‌ + అల్వి => ఉండల్వి",
+    "note": ""
+  },
+  {
+    "standard": "adaptability",
+    "melimi": "కలుపుకోలుతనం",
+    "note": ""
+  },
+  {
+    "standard": "superiority",
+    "melimi": "హెచ్చుదనం",
+    "note": ""
+  },
+  {
+    "standard": "inferiority",
+    "melimi": "దిగుదనం",
+    "note": ""
+  },
+  {
+    "standard": "lyrics",
+    "melimi": "వ్రాయాది",
+    "note": ""
+  },
+  {
+    "standard": "computational systems",
+    "melimi": "ఎంచుపారు అమరాలు",
+    "note": ""
+  },
+  {
+    "standard": "Software developer",
+    "melimi": "నెంతాది పెంపుకాను/పెంపరి",
+    "note": ""
+  },
+  {
+    "standard": "Full stack devlopment",
+    "melimi": "నెరపోగు పెంపుగారం",
+    "note": ""
+  },
+  {
+    "standard": "web development",
+    "melimi": "వల పెంపుగారం",
+    "note": ""
+  },
+  {
+    "standard": "Frontend developer",
+    "melimi": "మునుకొన పెంపుకాను/పెంపరి",
+    "note": ""
+  },
+  {
+    "standard": "Backend developer",
+    "melimi": "వెనుకొన పెంపుకాను/పెంపరి",
+    "note": ""
+  },
+  {
+    "standard": "Game devloper",
+    "melimi": "ఆట పెంపుకాను/పెంపరి",
+    "note": ""
+  },
+  {
+    "standard": "AI engineer",
+    "melimi": "ఏలితెలివి మరకాను",
+    "note": ""
+  },
+  {
+    "standard": "User Interface designer",
+    "melimi": "వాడుకరితెర కాగీటరి",
+    "note": ""
+  },
+  {
+    "standard": "Database administrator",
+    "melimi": "తెల్వందాది సరియేలరి",
+    "note": ""
+  },
+  {
+    "standard": "project manager",
+    "melimi": "చేపట్టు నెఱపరి",
+    "note": ""
+  },
+  {
+    "standard": "Hardware technician",
+    "melimi": "ఉర్వాది బిసకాను",
+    "note": ""
+  },
+  {
+    "standard": "అడిగండ్లు, అడిగొట్టు, అడిత్రాంగుడు, అడియాస",
+    "melimi": "అడి (మిక్కిలి)",
+    "note": ""
+  },
+  {
+    "standard": "అలనాడు",
+    "melimi": "అలన్‌ (గతము)",
+    "note": ""
+  },
+  {
+    "standard": "అలవాటు, అలవోక",
+    "melimi": "అలన్‌ (మరల మరల)",
+    "note": ""
+  },
+  {
+    "standard": "అసిగాయము, అసికోత, అసిబోవు, అసివాఱు",
+    "melimi": "అసి (తక్కువ)",
+    "note": ""
+  },
+  {
+    "standard": "ఆకొను, ఆకట్టుకొను, ఆపోవు, ఆగుబ్బు, ఆగుబ్బతి",
+    "melimi": "ఆ (తనవైపు)",
+    "note": ""
+  },
+  {
+    "standard": "ఇనుమిక్కిలి, ఇని-మనుమలు (మనుమల సంతానము)",
+    "melimi": "ఇని / ఇను (కొంచెం ఎక్కువ)",
+    "note": ""
+  },
+  {
+    "standard": "ఎగఁగొట్టు, ఎగనూర్చు, ఎగందట్టు, ఎగఁదీయు, ఎగదోయు, ఎగంబడు, ఎగలాంగు, ఎగవేయు.",
+    "melimi": "ఎగన్‌ (పైకి)",
+    "note": ""
+  },
+  {
+    "standard": "ఎడఁబాయు, ఎడతెఱపి, ఎడపోక.",
+    "melimi": "ఎడ / ఎడన్‌ (దూరముగా, విడివిడిగా)",
+    "note": ""
+  },
+  {
+    "standard": "ఎదురాడు, ఎదురే(గు, ఎదుర్కొను, ఎదురుతిరుగు",
+    "melimi": "ఎదురు (ప్రతిగా)",
+    "note": ""
+  },
+  {
+    "standard": "ఎసకొను, ఎసరేణు, ఎసవెట్టు",
+    "melimi": "ఎస / ఎసన్‌ / ఎసల్‌ (ఎక్కువ, తక్కువ)",
+    "note": ""
+  },
+  {
+    "standard": "ఒనగూడు ఒడఁగూడు.",
+    "melimi": "ఒడ / ఒడన్‌ / ఒన / ఒనన్‌ (దగ్గరగా, అనుకూలముగా)",
+    "note": ""
+  },
+  {
+    "standard": "క్రీఁగంట, క్రీనీడ, క్రీగీటు (Underline).",
+    "melimi": "క్రీన్‌ / క్రిన్‌ (క్రింద)",
+    "note": ""
+  },
+  {
+    "standard": "దిగందీయు, దిగంబడు, దిగలాంగు",
+    "melimi": "దిగన్‌ (క్రిందకు)",
+    "note": ""
+  },
+  {
+    "standard": "తోఁబుట్టువు, తోమాల, తోందెంచు",
+    "melimi": "తోన్‌ (తోడుగా)",
+    "note": ""
+  },
+  {
+    "standard": "పెడమోము, పెడసరము, పెడంబాయు",
+    "melimi": "పడ / పెడన్‌ (అవతల, దూరముగా)",
+    "note": ""
+  },
+  {
+    "standard": "పైకూటమి, పైకొను, పైసరము",
+    "melimi": "పై / పైన్‌ (పైకి)",
+    "note": ""
+  },
+  {
+    "standard": "మీందుకట్టు",
+    "melimi": "మీదు (మీద)",
+    "note": ""
+  },
+  {
+    "standard": "మీగడ",
+    "melimi": "మీన‌్ (మీంద)",
+    "note": ""
+  },
+  {
+    "standard": "మరునాడు, మరుమాట, మా రాడు, మారుటుంగరము, మారుతల్లి",
+    "melimi": "మరు / మారు (తరువాతి, మరల, ప్రత్యామ్నాయముగా)",
+    "note": ""
+  },
+  {
+    "standard": "ముంగడ, ముంగాలు, ముంగురులు, ముంగేలు, మునుకొను.",
+    "melimi": "మున్‌ / మును (ముందు, ఇదివరకు)",
+    "note": ""
+  },
+  {
+    "standard": "మైకొను, మైవడి",
+    "melimi": "మై / మైన్‌ (తోడుగా)",
+    "note": ""
+  },
+  {
+    "standard": "లోఁగడ, లోవైనము",
+    "melimi": "లోన్‌ (లోపల, మనస్సులో)",
+    "note": ""
+  },
+  {
+    "standard": "వెనుగొను, వెనుదీయు, వెనుకాడు",
+    "melimi": "వెన్‌ / వెను / వెనుక (వెనుకకు, తరువాత)",
+    "note": ""
+  },
+  {
+    "standard": "సాఁబాలు",
+    "melimi": "సాన్‌ (సగము)",
+    "note": ""
+  },
+  {
+    "standard": "మిడిగుడ్లు, మిడిమేలము, మిడిమిడి జ్ఞానం",
+    "melimi": "మిడి (సైయెత్తు)",
+    "note": ""
+  },
+  {
+    "standard": "వైఁదొలఁగు",
+    "melimi": "వైన్‌ / వై (దారి, దారిలో)",
+    "note": ""
+  },
+  {
+    "standard": "ఐకలి(ప్రకృతి), ఐఁదిలకన (సందర్శన), ఐనిల్క (పరిస్థితి)",
+    "melimi": "ఐన్/ఐ (అన్ని వైపుల/అన్ని వైపుల నుండి)",
+    "note": ""
+  },
+  {
+    "standard": "తమూవల(internet), తమూబాసట (పరస్పర సహకారం), తమూగీటు (తమలో తాము గీసుకున్న పటము, కుమ్మక్కు)",
+    "melimi": "తమూ(తమలో తాము)",
+    "note": ""
+  },
+  {
+    "standard": "అక+అక్కఱ = అకక్కఱ (అనవసరం), అక+కాఱియ = అకాఱియ (అహింస), అకపాటి (అన్యాయం)",
+    "melimi": "అక(కానటువంటి)",
+    "note": ""
+  },
+  {
+    "standard": "ఔన్ (మంచి, positive)",
+    "melimi": "ఔఁగాపు, ఔఁదలఁదాల్చు, ఔఁజందం",
+    "note": ""
+  },
+  {
+    "standard": "మన్ (మంచి, positive)",
+    "melimi": "మందావి(మంచి తావి), మందనం (మంచి తనం), మంద్రోవ (సన్మార్గం)",
+    "note": ""
+  },
+  {
+    "standard": "సీతావి, సీతనం, సీవాడుక(దురాచారము), సీజందం(కుసంస్కారము), సీకఱద(దుర్చుద్ది)",
+    "melimi": "సి/సీ(చెడు)",
+    "note": ""
+  },
+  {
+    "standard": "కైచూచు (ప్రయత్నించు), కైచూడికి (ప్రయత్నం), కైవచ్చు (ఉపయోగపడు), కైరాక/కైరాకడ (ఉపయోగం, ప్రయోజనం)",
+    "melimi": "కై(కి, కు, కొఱకు)",
+    "note": ""
+  },
+  {
+    "standard": "ఓకల్పు (ఉపాసన), ఓచూడికి (గుచ్చి చూడటం)",
+    "melimi": "ఓ(అతిగా, ఎక్కువగా)",
+    "note": ""
+  },
+  {
+    "standard": "తరుకౌట(పర్యవసానం), తరుకుందు (పశ్చాతాపం), తరుతేను (ఆధ్యాత్మికత), తరుపదులు (teenage)",
+    "melimi": "తరు(తరువాత)",
+    "note": ""
+  },
+  {
+    "standard": "మఱీక్రాలిక, మఱీదీమసము",
+    "melimi": "మఱి/మఱీ(అతిగా ఎక్కువగా)",
+    "note": ""
+  },
+  {
+    "standard": "బైప్రెగడ(ఉపమంత్రి), బైమెల్లరి(ఉపకార్యదర్శి), బైవీటు(ఉపాంగం), బైదాఁటు(to overtake)",
+    "melimi": "బై(ప్రక్కన, దగ్గర, తోడుగా, సహాయముగా,ఉప)",
+    "note": ""
+  },
+  {
+    "standard": "అమామారిక, అమామార్పు = ఉత్సరివర్తనము (Mutation).",
+    "melimi": "అమా(అకస్మాత్తుగా)",
+    "note": ""
+  },
+  {
+    "standard": "ఎలవంచి (సామాన్యం, సామాన్యుడు, సామాన్యురాలు), ఎలమైకోలు (అందరి ఒప్పుకోలు), ఎలసోంకు (pandemic), ఎలకార్తి (సర్వకాలికం), ఎలసీమ (సార్వదేశికం), ఎలమందిటి (సార్వజనీనం), ఎలతెలి (సర్వజ్ఞుడు), ఎలందారు (నిరంకుశం, నిరంకుశుడు, నిరంకుశురాలు)",
+    "melimi": "ఎల/ ఎలన్‌/ ఎల్‌(అన్నియు, అందఱు)",
+    "note": ""
+  },
+  {
+    "standard": "వికానువు (రూపాంతరం), వికానువించు (రూపాంతరీకరించు), వినాకువింపు (రూపాంతరీకరణ)",
+    "melimi": "వి(విడి, విడిగా, వేఱుగా, వేఱైన)",
+    "note": ""
+  },
+  {
+    "standard": "లాసీమ (విదేశం), లాసీమరి (విదేశీయుడు), లాసీమటి (విదేశీయం), లాఁగానసం (పరలోకం)",
+    "melimi": "లా/లాన్‌(వేఱు, వేఱైన, స్వంతము కానట్టి)",
+    "note": ""
+  },
+  {
+    "standard": "సైపడు, సైపరుచు, సైవాను, సైకాను, సైకుట్టు ఉడుపు (ముందే కుట్టిన బట్ట), సైలం (సై-ఉల్లం, సిద్ధమైన మనసు)",
+    "melimi": "సై(సిద్దము, సిద్దముగా, ముందే)",
+    "note": ""
+  },
+  {
+    "standard": "ఆయిమాడ్కి = ఒకే మాడ్కి గల (సదృశము), ఆయి-చదువరులు = ఒకే చదువు చదివినవారు, సీమ = దేశము ; ఆయిసీమరి = అదే దేశమువాండు, ఆయి + ఊరి + లు » ఆయూరీలు = ఒకే ఊరువారు, కొల్వలి = మతము ; ఆయికొల్వటి = అదే మతమునకు చెందినవాండు ; ఆయికొల్వటీలు = ఒకే మతమునకు చెందినవారు.",
+    "melimi": "ఆయి(అదే)",
+    "note": ""
+  },
+  {
+    "standard": "సవితటం/ సవీతటం = అట్లని తట్టినది, పరిభావన (concept)",
+    "melimi": "సవి/సవీ (అట్ల అని)",
+    "note": ""
+  },
+  {
+    "standard": "సరి+చూచు -౨సరిచూచు =తనిఖీ చేయు ; సరిచూడ్కి తనిఖీ (scrutiny, verification) సరి + పోలు » సరిపోలు = ఒకే విధముగా ఉండు, సరి + పోవు » సరిపోవు = చాలుట సరి+పడు సరిపడు =చెలిమి కుదురు సరి +పెట్టు సరిపెట్టు =చాలునట్లు చేయు, సరిపోలునట్లు చేయు, సరి+చేయు -సరిచేయు =బాగుచేయు (To fix something) సరి + దిద్దు సరిదిద్దు = సవరించు (t0 amend), సరి + పుచ్చుకొను » సరిపుచ్చుకొను= ఆశించిన దాని కన్న తక్కువతో తృప్తిపడు; సరి + దీటు ౨ సరిదీటు = సంస్కరించు., సరిదీటము/ సరిదీటు = సంస్కరణ, సరిదీటరి = సంస్కర్త.",
+    "melimi": "సరి(ఒకే విధముగా, ఎప్పటి వలెనె, సరిగా, మంచిగా, చక్కగా, అందముగా)",
+    "note": ""
+  },
+  {
+    "standard": "బాసేత (repair), బాసేతరి, బాగిలి (garage)",
+    "melimi": "బా (మంచిగా)",
+    "note": ""
+  },
+  {
+    "standard": "క్రమి = హత్య ; పొలో + క్రమి = పొలోక్రమి = సామూహిక హత్య (Mass Murders), చెఱపము = మానభంగము ; పొలో + చెఱపము = పొలోచెఱపము = సామూహిక మానభంగము (gang-rape), మనువు = పెండ్లి ; పొలో + మనువులు = పొలోమనువులు = సామూహిక వివాహాలు (mass weddings), కేడన = రాజీనామా ; పోలో + కేడనలు = పొలోకేడనలు = సామూహిక రాజీనామాలు (mass resignations)",
+    "melimi": "పొలో(సామూహికముగా, గుంపుగా)",
+    "note": ""
+  },
+  {
+    "standard": "అపాబ్రదిమి = శశ్వదాయుష్యము",
+    "melimi": "అపా(ఎల్లప్పుడు)",
+    "note": ""
+  },
+  {
+    "standard": "తిరికల్గం = తిరిగి కలిగించుట (తిరిగి ఉనికిలోనికి తెచ్చుట = పునరుజ్జీవనము = Renaissance). తిరివల్కు = మరల పలుకుట (పునరుక్తి)",
+    "melimi": "తిరి(మరల)",
+    "note": ""
+  },
+  {
+    "standard": "మెల + చేత = మెలసేత = సమీక్ష్యకారిత్వము.",
+    "melimi": "మెల(జాగ్రత్తగా, మెల్లగా)",
+    "note": ""
+  },
+  {
+    "standard": "ఉడునాన = నాన (సిగ్గు) లేనిది/ నానను కోల్పోయినది. = నిర్లజ్ఞారాలు. ఉడుంబైకము = పైకము లేనిది = నిర్ణనము. ఉడుంగాయపు = కాయు (రక్షణ) లేనిది.",
+    "melimi": "ఉడున్‌(ఉడుఁగు (కోల్పోవు))",
+    "note": ""
+  },
+  {
+    "standard": "దరివల్కు (ఉపదేశం)",
+    "melimi": "దరి(దగర)",
+    "note": ""
+  },
+  {
+    "standard": "లలిగాంచు (గౌరవించు)",
+    "melimi": "లలి(ప్రేమతో, ఇష్టముతో)",
+    "note": ""
+  },
+  {
+    "standard": "కడముట్టుట (అంతమగుట)",
+    "melimi": "కడ(చివర)",
+    "note": ""
+  },
+  {
+    "standard": "పేరుమన్యం (Empire)",
+    "melimi": "పేరు(పెద్ద)",
+    "note": ""
+  },
+  {
+    "standard": "బోరువాన (పెద్దవాన)",
+    "melimi": "బోరు(పెద్ద)",
+    "note": ""
+  },
+  {
+    "standard": "పెద్ద",
+    "melimi": "ప్రెన్‌/ప్రెను/పెన్‌/ప్రెను",
+    "note": ""
+  },
+  {
+    "standard": "ఇంటి యొక్క, కుటుంబపు, వంశపు",
+    "melimi": "ఇల",
+    "note": ""
+  },
+  {
+    "standard": "తనను, తన యొక్క",
+    "melimi": "తన్‌/తమ్‌",
+    "note": ""
+  },
+  {
+    "standard": "తనయంతట తాను",
+    "melimi": "తాన్‌/ తా",
+    "note": ""
+  },
+  {
+    "standard": "కలిసి, కలిపి",
+    "melimi": "కౌన్",
+    "note": ""
+  },
+  {
+    "standard": "కలియునట్లుగా",
+    "melimi": "కలన్/కలయన్",
+    "note": ""
+  },
+  {
+    "standard": "బయట (కు)",
+    "melimi": "వెలి",
+    "note": ""
+  },
+  {
+    "standard": "శరీరపు, శరీరముతో.",
+    "melimi": "మై/మే/మేన్",
+    "note": ""
+  },
+  {
+    "standard": "మంచి",
+    "melimi": "మేల్",
+    "note": ""
+  },
+  {
+    "standard": "డబ్బు, ఆర్థికం",
+    "melimi": "రో",
+    "note": ""
+  },
+  {
+    "standard": "అంతయు, అందఱు",
+    "melimi": "ఎల/ఎల్ల",
+    "note": ""
+  },
+  {
+    "standard": "ప్రజా/ పబ్లిక్",
+    "melimi": "పరి",
+    "note": ""
+  },
+  {
+    "standard": "నోరు, మాట, నోటితో, మాటలలో",
+    "melimi": "వా",
+    "note": ""
+  },
+  {
+    "standard": "దేవునికి లేదా అదృష్టమునకు సంబంధించిన, పవిత్రమైన, దివ్యమైన",
+    "melimi": "కో/కోన్",
+    "note": ""
+  },
+  {
+    "standard": "ఎక్కువగా",
+    "melimi": "కడు",
+    "note": ""
+  },
+  {
+    "standard": "అంతరిక్షము, రోదసి",
+    "melimi": "మిన్న్",
+    "note": ""
+  },
+  {
+    "standard": "ఆకాశము",
+    "melimi": "విన్న్",
+    "note": ""
+  },
+  {
+    "standard": "చెట్టు, చెట్లకు సంబంధించిన",
+    "melimi": "మ్రాన్/మ్రా",
+    "note": ""
+  },
+  {
+    "standard": "ఱాయి. ఱాతికి సంబంధించిన",
+    "melimi": "ఱా",
+    "note": ""
+  },
+  {
+    "standard": "భూమి, నేల లేదా మట్టికి సంబంధించిన",
+    "melimi": "పారి",
+    "note": ""
+  },
+  {
+    "standard": "వలపు",
+    "melimi": "వల",
+    "note": ""
+  },
+  {
+    "standard": "మట్టికి సంబంధించిన",
+    "melimi": "మన్",
+    "note": ""
+  },
+  {
+    "standard": "రాజునకు, లేదా ప్రభుత్వమునకు సంబంధించిన, ఆధికారికమైన",
+    "melimi": "రా",
+    "note": ""
+  },
+  {
+    "standard": "రాత్రికి సంబంధించిన",
+    "melimi": "రే",
+    "note": ""
+  },
+  {
+    "standard": "వేగము, వేయి, వేఱు",
+    "melimi": "వే",
+    "note": ""
+  },
+  {
+    "standard": "బహిరంగము",
+    "melimi": "రట్టు/రటు",
+    "note": ""
+  },
+  {
+    "standard": "రహస్యము",
+    "melimi": "గుట్టు/గుటు",
+    "note": ""
+  },
+  {
+    "standard": "వరుస",
+    "melimi": "తరము/తర",
+    "note": ""
+  },
+  {
+    "standard": "జ్ఞాపకము)",
+    "melimi": "నేన",
+    "note": ""
+  },
+  {
+    "standard": "(సాక్ష్యము)",
+    "melimi": "కరి",
+    "note": ""
+  },
+  {
+    "standard": "బయట, విఱివైన పెద్ద పెఱడు.",
+    "melimi": "బైలు/ బైల్",
+    "note": ""
+  },
+  {
+    "standard": "తెలుపు, తెల్లము, తెలిసినవాఁడు. మొదలైనవి.",
+    "melimi": "తెలి",
+    "note": ""
+  },
+  {
+    "standard": "మంచి, బాగు, మేలు, శ్రేష్ఠము",
+    "melimi": "లెస్స/లెస",
+    "note": ""
+  },
+  {
+    "standard": "మెల్లగా క్రమముగా",
+    "melimi": "మైమై",
+    "note": ""
+  },
+  {
+    "standard": "యథార్థమైన. మొదలైనవి.",
+    "melimi": "కల",
+    "note": ""
+  },
+  {
+    "standard": "నట్టు",
+    "melimi": "వాసి",
+    "note": ""
+  },
+  {
+    "standard": "పులుమావి)",
+    "melimi": "జనితం = మావి (మచ్చుక",
+    "note": ""
+  },
+  {
+    "standard": "నెలతాల్పు)",
+    "melimi": "ధారి = తాల్పు (మచ్చుక",
+    "note": ""
+  },
+  {
+    "standard": "అర్తి",
+    "melimi": "అంతం",
+    "note": ""
+  },
+  {
+    "standard": "ఏరు/ఏరి",
+    "melimi": "ఆది",
+    "note": ""
+  },
+  {
+    "standard": "కరఁగెడి తాయి లోహము",
+    "melimi": "కరకల్లు",
+    "note": ""
+  },
+  {
+    "standard": "నిప్పుల గొట్టము తుపాకి",
+    "melimi": "చిక్రోవి",
+    "note": "సిక్రోవి"
+  },
+  {
+    "standard": "సంధ్యావందనము)",
+    "melimi": "ప్రోవాఱిక (సూర్యునకై నీటిని అర్ఘ్యముగా పాటించుట",
+    "note": ""
+  },
+  {
+    "standard": "ఉండెడి చోటు నివాస స్థానము-చిరునామా, address",
+    "melimi": "ఉన్వలతి",
+    "note": ""
+  },
+  {
+    "standard": "వైఖరి",
+    "melimi": "మోదీరు",
+    "note": ""
+  },
+  {
+    "standard": "యజ్ఞోపవీతము",
+    "melimi": "గన్నూలు",
+    "note": ""
+  },
+  {
+    "standard": "పవిత్ర గ్రంథము",
+    "melimi": "గన్నోలు",
+    "note": ""
+  },
+  {
+    "standard": "reply",
+    "melimi": "తిరివల్కు",
+    "note": "— తిరి సంస్కృతములోని 'పునః' కు సమానార్ధకముగా"
+  },
+  {
+    "standard": "బ్రదుకునట్టి (live/ alive)",
+    "melimi": "బ్రది, బ్రదీ",
+    "note": ""
+  },
+  {
+    "standard": "చావు, చావునకు సంబంధించిన, చనిపోయిన.",
+    "melimi": "సమయు→ సమ/సమా",
+    "note": ""
+  },
+  {
+    "standard": "ఉందేఱమి = గైర్హాజరీ.",
+    "melimi": "ఉండుదేఱు→ ఉందేఱు = హాజరగు ; ఉందేఱిక = హాజరీ ; ఉందేఱువు = హాజరైన మనిషి",
+    "note": ""
+  },
+  {
+    "standard": "పరమోన్నత అగ్రము",
+    "melimi": "చివర చివర→ చిట్టచివర చిటారు",
+    "note": ""
+  },
+  {
+    "standard": "మిటారము (ఎగిరెగిరి పడుట)",
+    "melimi": "మిడిమిడి → మిట్టమిడి",
+    "note": ""
+  },
+  {
+    "standard": "గుడారము",
+    "melimi": "గుడి గుడి (గుండ్రము గుండ్రము)",
+    "note": ""
+  },
+  {
+    "standard": "కటారు (అంతము)",
+    "melimi": "కడ కడ→ కట్టకడ",
+    "note": ""
+  },
+  {
+    "standard": "మమ్మఱు (మాటిమాటికి) మమ్మఱించు, మామఱించు = (ఆమ్రేడించు. పునరావృత్తము చేయు - To repeat), మామఱింపు = ఆమ్రేడన, పునరావృత్తి, మామఱిదం = ఆమ్రేడితము పునరావృత్తము",
+    "melimi": "మఱు + మఱు",
+    "note": ""
+  },
+  {
+    "standard": "తందఱచు —> తందరుసు (సామాన్యము)",
+    "melimi": "తఱచు + తఱచు",
+    "note": ""
+  },
+  {
+    "standard": "కనీసము",
+    "melimi": "సైకము + సైకము (కొంచెము కొంచెము) ససైకము",
+    "note": ""
+  },
+  {
+    "standard": "చేయు చేయు",
+    "melimi": "సలుపు + సలుపు",
+    "note": "సంసల్పు (సాధన చేయు) To practise)"
+  },
+  {
+    "standard": "ఏకైకము (unique)",
+    "melimi": "వంచి + వంచి (ఒకటి ఒకటి వావంచి",
+    "note": ""
+  },
+  {
+    "standard": "కీలక హోదా, key position)",
+    "melimi": "వంచ + వంచ (ముఖ్యము ముఖ్యము వావంచ= కీలకము (నావంచ సపాట",
+    "note": ""
+  },
+  {
+    "standard": "analogy",
+    "melimi": "పోలికల",
+    "note": "గుండా క్రొత్త మాటల వానకము"
+  },
+  {
+    "standard": "ప్రాచిపోయినది",
+    "melimi": "ప్రాఁత→ ప్రాచీ",
+    "note": ""
+  },
+  {
+    "standard": "తాజా (fresh/latest), తిండి పదార్థముల విషయంలో తాజాదనమునకు కరసీమ మాండలికములో వాడు మాట 'నేవళము'",
+    "melimi": "క్రొత్త → క్రోచి",
+    "note": ""
+  },
+  {
+    "standard": "గతము",
+    "melimi": "లోవైనము",
+    "note": ""
+  },
+  {
+    "standard": "ఇతిహాసము ('ఆనాడు జరిగినది' - Epic)",
+    "melimi": "అలవైనము",
+    "note": ""
+  },
+  {
+    "standard": "ప్రత్యయముల",
+    "melimi": "వెనుజేర్పుల",
+    "note": "గుండా క్రొత్త మాటల వానకము :"
+  },
+  {
+    "standard": "తెగువరి, తలవరి, జాలరి, మేదరి, నిజమరి, పోటర్, పూజారి, తలారి",
+    "melimi": "అరి",
+    "note": ""
+  },
+  {
+    "standard": "వేఁటకాఁడు, ఆటగాఁడు, ననుపుకాఁడు. నీటుకాఁడు, చెలికాఁడు.",
+    "melimi": "కాఁడు",
+    "note": ""
+  },
+  {
+    "standard": "పనికత్తె, చెలికత్తె, వంటగత్తె. ఆటగత్తె.",
+    "melimi": "కత్తె/కత్తియ",
+    "note": ""
+  },
+  {
+    "standard": "పడఁతి, ఒక్కర్తె, వెలఁదుక",
+    "melimi": "తి, తె, తుక",
+    "note": ""
+  },
+  {
+    "standard": "పేదరాలు, ముద్దరాలు.",
+    "melimi": "రాలు",
+    "note": ""
+  },
+  {
+    "standard": "సిగ్గిఁడి, వాలిఁడి, ఉప్పిఁడి.",
+    "melimi": "ఇఁడి",
+    "note": ""
+  },
+  {
+    "standard": "నెలసరి, బెట్టుసరి, దినసరి",
+    "melimi": "సరి",
+    "note": ""
+  },
+  {
+    "standard": "తంపుల మారి, తంటాలమారి, ముండలమారి",
+    "melimi": "మారి",
+    "note": ""
+  },
+  {
+    "standard": "మంచితనము. చెడ్డతనము, జాణతనము.",
+    "melimi": "తనము",
+    "note": ""
+  },
+  {
+    "standard": "మేనఱికము రాచఱికము, శిష్యఱికము",
+    "melimi": "ఱికము",
+    "note": ""
+  },
+  {
+    "standard": "ముప్పుకాను (dangerous), పాటకాను (singer), నడకాను (walker), త్రోవకాను(guide/guider), పెంపుకాను (developer), పాటుకాను (Hard worker), విలుకాను(archer), రుత్తుకాను(destroyer), పాలికాను(sacrificer), జరిమికాను (historian), ముప్పుకాను(dangerous), క్రచ్చుకాను (hopeful), మసటుకాను (pollutant), అడంకాను (preventive)",
+    "melimi": "అరి, కాఁడు గాఁడు, కత్తె' లకు మారుగా 'కాను/ కాన్' = చేయునట్టి",
+    "note": ""
+  },
+  {
+    "standard": "ముప్పుకానికము, ముప్పుగారం (ప్రమాదకరం), పరికానికం/పరిగారం(leadership), త్రోవగారం(guidance), మాటగారం(ఉక్తి చమత్కారం), ప్రోదిగారం(nutrition)",
+    "melimi": "కాను/కాన్ యొక్క భావార్ధకము 'గారము' లేక 'కానికము'",
+    "note": ""
+  },
+  {
+    "standard": "'కలిగిన సంబంధించిన'",
+    "melimi": "'వాను/ వాన్'",
+    "note": ""
+  },
+  {
+    "standard": "కృతజ్ఞుఁడు",
+    "melimi": "నెనరువాను",
+    "note": "; ప్రాయివాను (అదృష్టవంతుఁడు); నోలువాను (గ్రాంథికము); మైవాను (భౌతికము); మైవాను ఆకట్టు (భౌతిక ఆకర్షణ); బ్రాకవాను (Weak \"x\"); రెంచవాను (అదే, మనిషి); గెలువాను (విజేత విజేత్రి); నిలువాను (durable, enduring); ఏలువాను (పరిపాలకుఁడు Governor); ఏలువానిత (పరిపాలకురాలు), తారివాను (యజమానుఁడు);"
+  },
+  {
+    "standard": "తారివానికము (యాజమాన్యము),",
+    "melimi": "వాను/వాన్ యొక్క భావార్థకము 'వానికము'",
+    "note": ""
+  },
+  {
+    "standard": "'మారి'",
+    "melimi": "మంచి/ తటస్థ",
+    "note": ""
+  },
+  {
+    "standard": "కార్యశీల, active",
+    "melimi": "పనిమారి",
+    "note": "; పనిమారిత (కార్యశీలురాలు); బాసటమారి (బాసట చేయుటయే స్వభావముగా గలవాడు); చదువుమారి (చదువుటయే స్వభావముగా గలవాఁడు), తలపుమారి (thoughtful), ఉజ్జమారి (imaginative), పగలమారి (ప్రతీకారపరుడు), తలపోతలమారి (యోచనపరుడు), నెమ్మనమారి (peaceful),"
+  },
+  {
+    "standard": "పనిమారము (activity); బాసటమారము (సహాయ శీలము), చదువుమారము (అధ్యయన శీలము), నెమ్మనమారం (peacefulness)",
+    "melimi": "\"మారి\" భావార్ధకము \"మారం\"",
+    "note": ""
+  },
+  {
+    "standard": "చేయుటకు శక్యము, సాధ్యము యోగ్యము, అర్హము అని దీని అర్థము.",
+    "melimi": "అలవి/ అల్వి",
+    "note": ""
+  },
+  {
+    "standard": "readable",
+    "melimi": "చదువల్వి",
+    "note": "; వినల్వి (audible); తినల్వి (edible); ఉండల్వి (livable), చేయల్వి (doable), చూడల్వి (Visible), వ్రాయల్వి (Writable), గెంటల్వి (expellable), క్రేయల్వి (boycottable), వెలివేయల్వి (excommunicable), కుదించల్వి (abridgeable),"
+  },
+  {
+    "standard": "unwritable",
+    "melimi": "చదువరిది (unreadable); వినర్ది (inaudible); తినర్ది (inedible); ఉండర్ది (unlivable), చూడర్ది (invisible), చేయర్ది (undoable), వ్రాయర్ది",
+    "note": ""
+  },
+  {
+    "standard": "ఇది కూడ అర్థములోను, ప్రయోజనములోను 'అల్వి' ప్రత్యయము వంటిదే. కాని ఏమనఁగా దీనిని నామవాచకములకు చేర్చవలె.",
+    "melimi": "పాదు ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "శరణ్యం, శరణ్యుడు, శరణ్యురాలు",
+    "melimi": "ఈవిపాదు (donable) దీవనపాదు (blessable); దండపాదు (worthy of salutation), వెలారపాదు (exposable), ఱోయల్పి (abhorable), కంటుపాదు (ద్వేషాస్పదం), వ్రాపైలపాదు (recordable), హంజరపాదు (ప్రవేశనీయం), కూర్మిపాదు (ప్రేమస్పదం, ప్రేమస్పదుడు, ప్రేమస్పదురాలు), నీడికపాదు",
+    "note": ""
+  },
+  {
+    "standard": "ఇది 'పాదు' ప్రత్యయమునకు వ్యతిరేకార్థకము 'తగనిది' అని దీనికి అర్థము. ఉదాహరణకు-",
+    "melimi": "పఱ ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "నమస్కార అనర్హమైన)",
+    "melimi": "ఈవిపఱ (ఈవికి తగని దాన అయోగ్యమైన), దీవనపఱ (దీవనకు తగని - ఆశీర్ అయోగ్యమైన), దండపఱ (దండము పెట్టుటకు తగని",
+    "note": ""
+  },
+  {
+    "standard": "కాఁబడిన, చేయఁబడిన అని దీని అర్థము",
+    "melimi": "ద/ఇద ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "ఒప్పారినది",
+    "melimi": "ఒప్పు + ఇదము→ఒప్పిదము",
+    "note": ""
+  },
+  {
+    "standard": "తప్పినది",
+    "melimi": "తప్పు + ఇదము←తప్పిదము",
+    "note": ""
+  },
+  {
+    "standard": "చేసినది.",
+    "melimi": "చెయ్యు + ఇదము →చెయిదము",
+    "note": ""
+  },
+  {
+    "standard": "పెల్లు అయినది, సమృద్ధము.",
+    "melimi": "పెల్లు + ఇదము ←పెల్లిదము",
+    "note": ""
+  },
+  {
+    "standard": "కఠినుఁడు",
+    "melimi": "బెట్టు + ఇదుఁడు → బెట్టిదుఁడు",
+    "note": ""
+  },
+  {
+    "standard": "చేసిన పోరాటము",
+    "melimi": "పోరు + ఇతము→పోరితము",
+    "note": ""
+  },
+  {
+    "standard": "ప్రియము, ఇష్టము",
+    "melimi": "ఇంచు + ఇతము←ఇంపితము",
+    "note": ""
+  },
+  {
+    "standard": "క్రొవ్వెక్కి ఆడిన మాట",
+    "melimi": "క్రొవ్వు + ఇదము→క్రొవ్విదము",
+    "note": ""
+  },
+  {
+    "standard": "అభీష్టము",
+    "melimi": "కోరు + ఇదము --> కోరిదము",
+    "note": ""
+  },
+  {
+    "standard": "విదితము, విశదము",
+    "melimi": "తెలియు + ఇదము --> తెలిదము",
+    "note": ""
+  },
+  {
+    "standard": "వికసితము",
+    "melimi": "విఱియు + ఇదము → విఱిదము",
+    "note": ""
+  },
+  {
+    "standard": "ఎడారిగా మార్చబడినట్టిది, మారినట్టిది (desertified).",
+    "melimi": "ఎడారి +దం ఎడారిదం",
+    "note": ""
+  },
+  {
+    "standard": "Proto-Telugu లో మన పూర్వికులు వాడిన మఱియొకక్త ప్రత్యయము ఈ క్రింది ప్రాఁత చూడుఁడు.",
+    "melimi": "'అ'",
+    "note": ""
+  },
+  {
+    "standard": "కట్ట = కట్టఁబడునది",
+    "melimi": "కట్టు +",
+    "note": ""
+  },
+  {
+    "standard": "వ్రయ్య= ప్రచ్చఁబడినది (ముక్క తునుక)",
+    "melimi": "వ్రచ్చు + అ",
+    "note": ""
+  },
+  {
+    "standard": "కోయఁబడునది.",
+    "melimi": "కోయు + అ→ కొయ్య",
+    "note": ""
+  },
+  {
+    "standard": "దాఁటఁబడునది",
+    "melimi": "కడచు (దాఁటు) + ఆ→ కడప/ గడప",
+    "note": ""
+  },
+  {
+    "standard": "కూడ/కూర = తిండిలో కలుపఁబడినది",
+    "melimi": "కూడు + అ→ కలియు",
+    "note": ""
+  },
+  {
+    "standard": "໖໖ (pop-corn)",
+    "melimi": "ప్రేలు + అ→ ప్రేల",
+    "note": ""
+  },
+  {
+    "standard": "మీట = వ్రేళ్ళతో నొక్కఁబడునది (switch/ key)",
+    "melimi": "మీటు + అ→",
+    "note": ""
+  },
+  {
+    "standard": "నడవఁబడునది (corridor)",
+    "melimi": "నడచు + అ→ నడవ",
+    "note": ""
+  },
+  {
+    "standard": "పాయ, విడిపోయినది (Tributory of a river or hair-parting",
+    "melimi": "పాయు + అ→ విడు/ వీడు",
+    "note": ""
+  },
+  {
+    "standard": "నలుగు",
+    "melimi": "నలియు",
+    "note": "+ ఆ→ నలియ, నల్ల"
+  },
+  {
+    "standard": "తెల్ల(బడు",
+    "melimi": "వెలియు",
+    "note": "+ అ→ వెలియ, వెల్ల"
+  },
+  {
+    "standard": "బాధపడు గాయపడు",
+    "melimi": "ఎఱియు",
+    "note": "+ అ ఎఱియ, ఎఱ్ఱ"
+  },
+  {
+    "standard": "తెమడ = తేలి పైకి వచ్చునది- శ్లేష్మము లేక లాల. (saliva)",
+    "melimi": "తెములు (తేలివచ్చు) + అ",
+    "note": ""
+  },
+  {
+    "standard": "తడి (humidity) లేకుండపోయిన సూర్యకాంతి",
+    "melimi": "ఎండు (తడిలేనిదిగా మారు) + అ ఎండ",
+    "note": ""
+  },
+  {
+    "standard": "ఒక మొక్క",
+    "melimi": "బారంగి",
+    "note": ""
+  },
+  {
+    "standard": "ఓడ నడుపువాఁడు",
+    "melimi": "ఓడంగి",
+    "note": ""
+  },
+  {
+    "standard": "ఆడువారి వలె నడుచుకొనువాఁడు.",
+    "melimi": "ఆడంగి",
+    "note": ""
+  },
+  {
+    "standard": "దేవుని మనిషి",
+    "melimi": "కోనంగి",
+    "note": ""
+  },
+  {
+    "standard": "వెచ్చని కాలము",
+    "melimi": "వెచ్చ + అంగి వెచ్చంగి",
+    "note": ""
+  },
+  {
+    "standard": "వెదంగి?",
+    "melimi": "ఇంకను 'చిల్లంగి, గోసంగి, గిడ్డంగి, ముల్లంగి, వెల్లంకి",
+    "note": "లైన పెక్కు మాటలున గాని వీటి వెనుక దాఁగిన మూలపదములు (చిల్ల, గోసు, గిడ్డ మొ॥), వాటి అర్థములు యమును వాడుకొని నేను కల్పించిన క్రొత్త మాటలు-"
+  },
+  {
+    "standard": "తల; నెఱ్ఱు + అంగి→ నెఱంగి = కపాలము",
+    "melimi": "నెఱ్ఱు",
+    "note": ""
+  },
+  {
+    "standard": "ఒక వెలకు ఇవ్వఁబడు వస్తువు (ఉచి",
+    "melimi": "వెల + అంగి వెలంగి",
+    "note": ""
+  },
+  {
+    "standard": "ద్వయము",
+    "melimi": "ఇరు + అంగి→ ఇరంగి",
+    "note": ""
+  },
+  {
+    "standard": "దశాబ్దము",
+    "melimi": "పది + అంగి పదంగి",
+    "note": ""
+  },
+  {
+    "standard": "శతాబ్దము",
+    "melimi": "నూఱు + అంగి నూఱంగి",
+    "note": ""
+  },
+  {
+    "standard": "millenium (సహస్రాబ్ది).",
+    "melimi": "వేయి + అంగి వేయంగి",
+    "note": ""
+  },
+  {
+    "standard": "రహితము (కలిగి ఉండనిది) అని దీని అర్థము",
+    "melimi": "మాలు' ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "అనామకుఁడు, అనామకురాలు, అనామకము",
+    "melimi": "పేరుమాలు",
+    "note": ""
+  },
+  {
+    "standard": "అవసరము ; అక్కఱమాలు = అనవసరము",
+    "melimi": "అక్కఱ",
+    "note": ""
+  },
+  {
+    "standard": "నెరసుమాలు = నిర్దోషి నిర్దోషిణి, నిర్దోషము",
+    "melimi": "నెరసు = దోషము",
+    "note": ""
+  },
+  {
+    "standard": "అనామకుఁడు",
+    "melimi": "పేరుమాలువు",
+    "note": ""
+  },
+  {
+    "standard": "అనామకులు",
+    "melimi": "పేరుమాలువులు",
+    "note": ""
+  },
+  {
+    "standard": "అనామకురాలు :",
+    "melimi": "పేరుమాలిత",
+    "note": ""
+  },
+  {
+    "standard": "అనామకురాండ్రు",
+    "melimi": "పేరుమాలితలు",
+    "note": ""
+  },
+  {
+    "standard": "అనామకము",
+    "melimi": "పేరుమాలు",
+    "note": ""
+  },
+  {
+    "standard": "అనామకములు",
+    "melimi": "పేరుమాలులు",
+    "note": ""
+  },
+  {
+    "standard": "అనామకత్వము",
+    "melimi": "పేరుమాలిక",
+    "note": ""
+  },
+  {
+    "standard": "కనైణి = కన్య బ్రహ్మచారి (virgin)",
+    "melimi": "కవైణికము = కన్యాత్వము (virginity)",
+    "note": ""
+  },
+  {
+    "standard": "గొప్ప; మిహికము = మహిమ",
+    "melimi": "మిహి",
+    "note": ""
+  },
+  {
+    "standard": "సోదరుఁడు/ సోదరి; తోబుట్టుకము = సౌభ్రాత్రము",
+    "melimi": "తోఁబుట్టువు",
+    "note": ""
+  },
+  {
+    "standard": "తామట్టుకము = స్వార్థము, స్వార్థపరత",
+    "melimi": "తామట్టు = స్వార్థపరుఁడు, స్వార్థపరురాలు",
+    "note": ""
+  },
+  {
+    "standard": "స్వతంత్రము ; విచ్చుకము = స్వాతంత్ర్యము.",
+    "melimi": "విచ్చు",
+    "note": ""
+  },
+  {
+    "standard": "దీనిని 'ఒక మొత్తము, గుంపు' అను అర్థములో ఎసవాడవలె.",
+    "melimi": "'గము' ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "పరి+గమి, పరిగము = కమిటీ (committee)",
+    "melimi": "పరి = మనుష్యులు, ప్రజ",
+    "note": ""
+  },
+  {
+    "standard": "ఎన్నరి + గమి ఎన్నరిగము = నియోజకవర్గము (constituency)",
+    "melimi": "ఎన్నరి = ఎన్నుకొనువాఁడు, వోటర్",
+    "note": ""
+  },
+  {
+    "standard": "దీనిని 'సంస్థ, వ్యవస్థ' అను అర్థములలో నామవాచకాలకు చేర్చవలసి యుండును.",
+    "melimi": "ఓరు' ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "పాటి + ఓరు పాటియోరు = న్యాయవ్యవస్థ (Judiciary)",
+    "melimi": "పాటి = న్యాయము",
+    "note": ""
+  },
+  {
+    "standard": "అధికారము; మణియ + ఓరు మణియోరు = ప్రాధికార సంస్థ (Authority)",
+    "melimi": "మణియము",
+    "note": ""
+  },
+  {
+    "standard": "లెంక + ఓరు లెంకోరు = సైన్యము",
+    "melimi": "లెంక = సైనికుఁడు",
+    "note": ""
+  },
+  {
+    "standard": "కోలీవి + ఓరు కోలీవియోరు = కార్పొరేషన్",
+    "melimi": "కోలీవి = వాణిజ్యము",
+    "note": ""
+  },
+  {
+    "standard": "నెలుపు + ఓరు నెఱపోరు =నిర్వాహక వ్యవస్థ (Board)",
+    "melimi": "నెఱపు = నిర్వహణ",
+    "note": ""
+  },
+  {
+    "standard": "దీనిని ఒక మొత్తము, సమాహారము, సమూహము' అను అర్థము",
+    "melimi": "'ఆది' ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "నేర్పుల పుట్ట, నిపుణుఁడు నెరవు = నేర్పు ; నెరవు + ఆది",
+    "melimi": "నెరవాది",
+    "note": ""
+  },
+  {
+    "standard": "బారు + ఆది",
+    "melimi": "బారాది = అనేకము బారు = వరుస",
+    "note": ""
+  },
+  {
+    "standard": "ఆశ్రయము ; పంచ+ ఆది పంచాది = ఆశ్రయముల సమూహము, మానవ ఆవాసము (A habi township)",
+    "melimi": "పంచ",
+    "note": ""
+  },
+  {
+    "standard": "బరువు కష్టము; మోపు + ఆది→ మోపాది = ఉపద్రవము, ప్రమాదము",
+    "melimi": "మోపు",
+    "note": ""
+  },
+  {
+    "standard": "సంవత్సరము ; ఏడు + ఆది = ఏడాది",
+    "melimi": "ఏడు",
+    "note": ""
+  },
+  {
+    "standard": "నూఱు. వందలు + ఆది = వందలాది",
+    "melimi": "వంద",
+    "note": ""
+  },
+  {
+    "standard": "పదివందలు ; వేలు + ఆది = వేలాది",
+    "melimi": "వేయి",
+    "note": ""
+  },
+  {
+    "standard": "ఇంటిల్లిపాది",
+    "melimi": "ఇంటివేలుపు + ఆది",
+    "note": ""
+  },
+  {
+    "standard": "నిల్పాది/ నింపాది = స్థిరముగా ఒకే వేగముతో (steady, consistent)",
+    "melimi": "నిలుపు/ నిల్పు + ఆది",
+    "note": ""
+  },
+  {
+    "standard": "ఉరువు + ఆది ఉరువాది/ ఉరాది = సామాను సామగ్రి",
+    "melimi": "ఉరువు = వస్తువు",
+    "note": ""
+  },
+  {
+    "standard": "చెక్క. మాను + ఆది = మానాది (furniture).",
+    "melimi": "మాను",
+    "note": ""
+  },
+  {
+    "standard": "దీన్ని అర్థం 'వరుస'",
+    "melimi": "ఓలి' ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "మాటోలి = పదజాలము",
+    "melimi": "మాట + ఓలి",
+    "note": ""
+  },
+  {
+    "standard": "కందు + ఓలి కందోలి = సంతానపు వరుస (వంశము)",
+    "melimi": "కందు = పసిబిడ్డ",
+    "note": ""
+  },
+  {
+    "standard": "అక్షరము + ఓలి→ వ్రాయోలి = అక్షరాల వరుస (వర్ణమాల)",
+    "melimi": "వ్రాయి",
+    "note": ""
+  },
+  {
+    "standard": "వర్ణమాలా క్రమము (alphabetical order) మొ",
+    "melimi": "వ్రాయాది వరుస",
+    "note": ""
+  },
+  {
+    "standard": "దీనిని 'క్రమము విధము విధానము, పద్ధతి, శైలి' అను అర్థమిచ్చెడి నామవాచకము",
+    "melimi": "'ఓజ' ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "జీవనము ; బ్రదుకు + ఓజ = బ్రదుకోజ (జీవనశైలి = life cycle)",
+    "melimi": "బ్రదుకు",
+    "note": ""
+  },
+  {
+    "standard": "ఆలోచన; తలఁపు + ఓజ → తలఁపోజ =ఆలోచనా విధానము (mindset)",
+    "melimi": "తలఁపు",
+    "note": ""
+  },
+  {
+    "standard": "పరిపాలించుట; ఏలు + ఓజ = ఏలోజ = పరిపాలన విధానము. రాజనీతి",
+    "melimi": "ఏలు",
+    "note": ""
+  },
+  {
+    "standard": "నును + ఓజ = మనోజ = బ్రదుకుదెరువు. ఉపాధి (employment)",
+    "melimi": "మను = బ్రదుకు",
+    "note": ""
+  },
+  {
+    "standard": "కట్టు +ఓజ→ కట్టోజ = నిర్మాణ శిల్పము (వాస్తుశిల్పి",
+    "melimi": "కట్టు = నిర్మించు",
+    "note": ""
+  },
+  {
+    "standard": "గీత (స్ట్రోక్); గెఱ + ఓజ = గెఱోజ. గీత గీఁచు విధానము (font).",
+    "melimi": "గెఱ",
+    "note": ""
+  },
+  {
+    "standard": "'కల్గిన, చేయునట్టి' ఆను అర్థము",
+    "melimi": "'ఇ' ప్రత్యయము",
+    "note": ""
+  },
+  {
+    "standard": "(తాళి) త్రెంచుట; త్రెంపు + ఇ = త్రెంపి = వితంతువు (తాళి త్రెంపుడు ఎవఱికైతే జరిగినదో ఆమె)",
+    "melimi": "త్రెంపు",
+    "note": ""
+  },
+  {
+    "standard": "మొదటి ఋతువు; తొలుకారు + ఇ→ తొలుకారి/తొలుకరి = తొలుకార్తికి సంబంధించిన వాన",
+    "melimi": "తొలుకారు",
+    "note": ""
+  },
+  {
+    "standard": "నీరు ఉబికి వచ్చు; ఉబ్బు + ఇ = ఉబ్బి ఊబి = ఉబుకు కలిగినది.",
+    "melimi": "ఉబ్బు",
+    "note": ""
+  },
+  {
+    "standard": "దట్టము = బొత్తు + ఇ బొత్తి = దట్టముగా ఉన్నది (కాగితముల సంపుటము)",
+    "melimi": "పొత్తు పొత్తు/బొత్తు",
+    "note": ""
+  },
+  {
+    "standard": "కాపు = కాఁపుదల, రక్షణ; దరి + కాఁపు + ఇ దరిగాఁపి. = దగ్గరగా ఉండి కాఁచుకొనువాఁడు. అంగరక్షకుఁడు (bodyguard).",
+    "melimi": "దరి = దగ్గర (గా)",
+    "note": ""
+  },
+  {
+    "standard": "ఊరు => ఊరి",
+    "melimi": "ఇ",
+    "note": ""
+  },
+  {
+    "standard": "గోయి => గోతి",
+    "melimi": "తి",
+    "note": ""
+  },
+  {
+    "standard": "తాడు => తాటి",
+    "melimi": "టి",
+    "note": ""
+  },
+  {
+    "standard": "నిక్కపుటెఱుక, నిక్కంపుటెఱుక)",
+    "melimi": "పు/మ్పు (నిక్కము + ఎఱుక",
+    "note": ""
+  },
+  {
+    "standard": "అడాకులు => అడ్లాకుల",
+    "melimi": "అ",
+    "note": ""
+  },
+  {
+    "standard": "సుదీర్షము (longish)",
+    "melimi": "పొడవు +ఆటి ౨ పొడవాటి.",
+    "note": ""
+  },
+  {
+    "standard": "తనుమాత్రము (smallish)",
+    "melimi": "చిన్న +పాటి ఆ చిన్నపాటి",
+    "note": ""
+  },
+  {
+    "standard": "rocky",
+    "melimi": "ఱాయి +పారు => ఱాతిపారు =శిలామయము",
+    "note": ""
+  },
+  {
+    "standard": "హ్రస్వము, నీచము (short, mean)",
+    "melimi": "నేల +బారు-నేలబారు",
+    "note": ""
+  },
+  {
+    "standard": "సాందర్భికము, ప్రొస్తావికము (contextual, relevant)",
+    "melimi": "ఇ => కైకట్టు + ఇ , కైకట్టి",
+    "note": ""
+  },
+  {
+    "standard": "భావోద్వేగము (Emotion) ; ఎసరేంక + టి ౨ ఎసరేకటి = భావోద్వేగ పరమైన (emotional) ఎసరేఁకటి బెదిరింపు = emotional blackmail.",
+    "melimi": "ఎసరేఁక",
+    "note": ""
+  },
+  {
+    "standard": "scientific",
+    "melimi": "ఎర్మి (science) => ఎర్మిటి",
+    "note": ""
+  },
+  {
+    "standard": "వెలాటి = ఖరీదైన (costly)",
+    "melimi": "వెల + ఆటి",
+    "note": ""
+  },
+  {
+    "standard": "విలువాటి = అమూల్యమైన (precious)",
+    "melimi": "విలువ + ఆటి",
+    "note": ""
+  },
+  {
+    "standard": "హృదయము; డెందాప = హృదయమునకు సంబంధించినది, హార్షికము (cordial)",
+    "melimi": "డెందము",
+    "note": ""
+  },
+  {
+    "standard": "మనస్సు ; ఉల్లాప = మనస్సునకు సంబంధించినది, మానసికము (mental/ psychological)",
+    "melimi": "ఉలము",
+    "note": ""
+  },
+  {
+    "standard": "= భాషాసంబంధి (linguistic)",
+    "melimi": "వాయరము => వాయరాప",
+    "note": ""
+  },
+  {
+    "standard": "పొన్నాప = దృశ్యసంబంధి (visual)",
+    "melimi": "పొన్నము = దృశ్యము",
+    "note": ""
+  },
+  {
+    "standard": "శరీరము ; మై +ఆత = మయ్యాత = శరీరము నుండి పుట్టినది/ పుట్టినవాండు (సంతానము)",
+    "melimi": "మై",
+    "note": ""
+  },
+  {
+    "standard": "పారియాత = భూమి కొడుకు (అంగారక గ్రహము)",
+    "melimi": "పారి =భూమి; పారి + ఆత",
+    "note": ""
+  },
+  {
+    "standard": "సూర్యుండు ; నెసరు+ ఆత = నెసరాత = సూర్యుని కొడుకు (శని)",
+    "melimi": "నెసరు",
+    "note": ""
+  },
+  {
+    "standard": "నెలాత = చంద్రుని కొడుకు (బుధుండు)",
+    "melimi": "నెల =-చంద్రుండు ; నెల + ఆత",
+    "note": ""
+  },
+  {
+    "standard": "భూమిపు త్రిక (సీతాదేవి)",
+    "melimi": "పారి. =భూమి; పారి + ఆమి ౩ పారియామి",
+    "note": ""
+  },
+  {
+    "standard": "రాయామి = రాజకుమార్తె",
+    "melimi": "రా + ఆమి",
+    "note": ""
+  },
+  {
+    "standard": "Happy",
+    "melimi": "రహారం, అలరిక, అలరాటం, ఎలర్చు, పొంగు, మురుపు, రహి {n.}",
+    "note": ""
+  },
+  {
+    "standard": "Anger",
+    "melimi": "కనలు, కనలిక, కినుక, చిఱ్ఱు, చిడిముడి, అలక, అలుక, కనారం, కనారిక {n.}",
+    "note": ""
+  },
+  {
+    "standard": "Sadness",
+    "melimi": "ఏడుపు, ఏడ్పు, అంగద, ఆరివేరం, అల్లట, ఒందిలి, ఒంజిలి, చూకురు, నెంజిలి, నెగులు, దావంతం, పొక్కు, పొగులు, మనికితం, మెరకు {n.}",
+    "note": ""
+  },
+  {
+    "standard": "Very, much, many, excessive",
+    "melimi": "చాలా, అగ్గలం, ఆలం, ఇట్టలం, ఉటువు, ఎక్కటి, ఏరాళం, కోవరం, గొప్ప, గోప, గోపా, తెందేప, దండి, దందడి, నిట్టలం, పెక్కువ, పెల్లిదం, ప్రెక్కువ, మిక్కిలి, మిగుల, మిక్కుటం, మిమ్మటం, మెండు, టొడ్డు, లాతు, లంప, వప్పు, వెగ్గలం, వైమాలం, శాన,శానా, హెచ్చు, హేరాళం, హేరళం {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "small, స్వల్పం",
+    "melimi": "అలతి. సా.మా. అలిపిరి, అసదు, ఉలి, కసిడి, కిముడు, కీత, కీస, కీసర, కొదుక, చిడిపి, తక్కెజి, తిబిరి, దోని, పలుచ, పిసరు {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "fast",
+    "melimi": "తొందటి, గబగబా, చప్పున, చెచ్చెజ, నెప్పరం, నెప్రం, పరువడి, బలువిడి, బిజాన, బిజీలున, బోరన, వడి, వెస, వైళం, {adv.}",
+    "note": ""
+  },
+  {
+    "standard": "slow/late",
+    "melimi": "జాగు, జాప్యం, అసర, జంపు, జాపిరం, జాప్యం, తడవు, తచ్చాటం, తత్సాటం, తామసం, నట్టు, నుసలిక, పంటన, మసలిక వాలూరిక{adv.}",
+    "note": ""
+  },
+  {
+    "standard": "good",
+    "melimi": "మంచి, మేటి {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "bad",
+    "melimi": "చెడు, చెట్ట, చెడ్డది, కీడు. సా.మా. చెబుపు, చేటు, ఎగ్గు, ఓకు, అఱ్ఱ, కీడ్చాటు, గాణు, చెట్ట, చెణుపు, చేటు, డగరం, తల పాటు, దగరం, నెగులు, సెబ్బర. {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "Beauty",
+    "melimi": "అందం, చక్కదనం, చక్కందనం, సౌగసు, సౌబగు, సోయగం, సౌరు, చెలువం, జసు, హౌసు, ఒసపరితనం, ఒసపు, ఒసపరం, కపురు, కొమరు, గొనబు, చందు, చెన్ను, జాను, త్రెవ్వన, ననువు, నలువు, పొన్నారం, ప్రన్నన, ప్రన్నదనం, మురువు, సవరదనం, సవరన, సవర్ష, హరువు, హవణిక.{adj.}",
+    "note": ""
+  },
+  {
+    "standard": "ugly",
+    "melimi": "ఎబ్రాసి, దొడవ {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "rich",
+    "melimi": "ఉన్న, రో, పెద్ద {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "నిరుపేద, బీద {adj.}",
+    "melimi": "పేద",
+    "note": ""
+  },
+  {
+    "standard": "గట్టి, ఉటీది, బింగం, బిరుసు, బిగి, బిగితం, బిగుతు, బిగువు, సదాటు. {adj.}",
+    "melimi": "గట్టి",
+    "note": ""
+  },
+  {
+    "standard": "soft",
+    "melimi": "జినుగు, జినువు, నౌరు, నవకపు- మవ్వపు- సున్నితపు- సుతారపు {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "fear",
+    "melimi": "వెఱ, వెఱపు, సా.మా. అంజిక, అడలు, అడలిక, హడలు, హడల్‌, అదుకుబిదుకు, అళుకు, జంకు, జడుపు, దడుపు, త్రెంక, పంగు.{n.}",
+    "note": ""
+  },
+  {
+    "standard": "love",
+    "melimi": "కూటీమి, కూర్మి, కాదిలి, ననుపు, నెమ్మి, బ్రాతి, లలి, లవి, మక్కువ {n.}",
+    "note": ""
+  },
+  {
+    "standard": "Hatred",
+    "melimi": "కంటు, కంటగం, ఒడ్డారం.{n.}",
+    "note": ""
+  },
+  {
+    "standard": "life",
+    "melimi": "బ్రదిమానం, బ్రదుకు, బ్రతుకు, మనిక, మనిమి, మన్ని. {n.}",
+    "note": ""
+  },
+  {
+    "standard": "death",
+    "melimi": "చావు, సమ, సమా, సమయిక, సమైక, కన్నుమూత, కనుమూత, కన్మూత, పెనుగూర్కు, కడూర్పు, చనిపోవిక, కడసనిక, కడతేటీక, పరిమారిక.{n.}",
+    "note": ""
+  },
+  {
+    "standard": "fire",
+    "melimi": "మంట, నిప్పు, చిచ్చు, చిరి, కొఱవి, కొఱకచ్చు, డిగ్గి, డిగి, డివి, మండువు, రౌలం {n.}",
+    "note": ""
+  },
+  {
+    "standard": "sky",
+    "melimi": "నింగి, మిన్ను, మిన్నులు, విన్ను, ఉప్పరం, చదలు {n.}",
+    "note": ""
+  },
+  {
+    "standard": "friendship",
+    "melimi": "చెలిమి, చెలికారం, నంటు, నెయ్యం, నేయం, నేస్తం {n.}",
+    "note": ""
+  },
+  {
+    "standard": "enemy",
+    "melimi": "మార్తుండు, పగతుండు, పగవాండు, పగటి, సూడు, కంటు, గొంగ, గొట్టు, తొలగుబావ, వెట్టం{n",
+    "note": ""
+  },
+  {
+    "standard": "God",
+    "melimi": "అంకుడు, ప్రెందాను, వేల్పు, పైవాను {n.}",
+    "note": ""
+  },
+  {
+    "standard": "Temple",
+    "melimi": "గుడి, కోవెల, వేండిలి, పర్యాళం, పరియాళం, పరియలం, పరియాలం, పర్యాలం{n.}",
+    "note": ""
+  },
+  {
+    "standard": "hot",
+    "melimi": "వేడి, వేండిమి, ఉడుకు, ఉడక, ఉక్క, ఉబ్బు, చుటుకు, దగడు, బాలం, వెట్ల, బెట్ట, వడ, వెక్క, వెచ్చ, వెచ్చన, వెప్పు, వెమ్ము, వేండ్రం{adj.}",
+    "note": ""
+  },
+  {
+    "standard": "cool",
+    "melimi": "చల్లని, చల్లటి, చల్ల, ఉహువ, ఉహూవ, మంచు {adj.}",
+    "note": ""
+  },
+  {
+    "standard": "speed",
+    "melimi": "నెప్రం, నెప్పరం, ఉత్తలం, ఉటీవి, తొంద, దొందడి, పదటం, పరువిడి, బిజాన, బోలెం, బోలియం, వడి, విసారం, వెస, వే, వైళం {n.}",
+    "note": ""
+  },
+  {
+    "standard": "city",
+    "melimi": "ప్రోలు, వీడు వీటిపట్టు, నెలవీడు పడుసర {n.}",
+    "note": ""
+  },
+  {
+    "standard": "village",
+    "melimi": "ఊరు, పల్లె {n.}",
+    "note": ""
+  },
+  {
+    "standard": "కాయ {n.}",
+    "melimi": "పండు",
+    "note": ""
+  },
+  {
+    "standard": "work",
+    "melimi": "పని, అగవు, ఒంజలి, కెలసం, కల్సం, వెంట {n.}",
+    "note": ""
+  },
+  {
+    "standard": "book",
+    "melimi": "నోలు, ఆంకం, ఆంకీరం, స్తెకమ్మ, పొత్తం {n.}",
+    "note": ""
+  }
+]
