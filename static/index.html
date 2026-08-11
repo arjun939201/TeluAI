@@ -1,273 +1,390 @@
 <!DOCTYPE html>
 <html lang="te">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>మెలిమి తెలుగు</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Noto+Serif+Telugu:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #14181f;
-    --surface: #1c2330;
-    --surface-2: #232b3a;
-    --ink: #ede6d6;
-    --muted: #8b93a3;
-    --teal: #4fb3a9;
-    --gold: #d9a441;
-    --accent: var(--teal);
-  }
+    <meta charset="UTF-8">
 
-  * { box-sizing: border-box; }
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Inter', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-  }
+    <meta
+        name="theme-color"
+        content="#0b0b0c"
+    >
 
-  .app {
-    width: 100%;
-    max-width: 640px;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-  }
+    <title>TeluAI — మేలిమి తెలుగు AI</title>
 
-  header {
-    padding: 28px 20px 18px;
-    border-bottom: 1px solid rgba(237, 230, 214, 0.08);
-  }
-
-  h1 {
-    font-family: 'Fraunces', serif;
-    font-weight: 700;
-    font-size: 26px;
-    margin: 0 0 4px;
-    letter-spacing: 0.01em;
-  }
-
-  h1 .telugu {
-    font-family: 'Noto Serif Telugu', serif;
-  }
-
-  .subtitle {
-    color: var(--muted);
-    font-size: 13px;
-    margin: 0 0 18px;
-  }
-
-  /* Toggle: a palm-leaf style underline slider */
-  .toggle {
-    position: relative;
-    display: inline-flex;
-    background: var(--surface);
-    border-radius: 999px;
-    padding: 4px;
-    gap: 4px;
-  }
-
-  .toggle button {
-    position: relative;
-    z-index: 1;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-family: 'Noto Serif Telugu', serif;
-    font-size: 15px;
-    padding: 8px 20px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: color 0.25s ease;
-  }
-
-  .toggle button.active {
-    color: #14181f;
-  }
-
-  .toggle .thumb {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    height: calc(100% - 8px);
-    width: calc(50% - 4px);
-    border-radius: 999px;
-    background: var(--accent);
-    transition: transform 0.25s ease, background 0.25s ease;
-  }
-
-  .toggle.melimi .thumb {
-    transform: translateX(100%);
-    background: var(--gold);
-  }
-
-  main {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .msg {
-    max-width: 82%;
-    padding: 12px 16px;
-    border-radius: 14px;
-    font-family: 'Noto Serif Telugu', serif;
-    font-size: 16px;
-    line-height: 1.6;
-    animation: rise 0.2s ease;
-  }
-
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .msg.user {
-    align-self: flex-end;
-    background: var(--surface-2);
-    border-bottom-right-radius: 4px;
-  }
-
-  .msg.bot {
-    align-self: flex-start;
-    background: var(--surface);
-    border-left: 3px solid var(--accent);
-    border-bottom-left-radius: 4px;
-  }
-
-  .msg.bot.melimi { border-left-color: var(--gold); }
-
-  .msg.error {
-    align-self: flex-start;
-    color: #e08a8a;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-  }
-
-  footer {
-    padding: 16px 20px 22px;
-    border-top: 1px solid rgba(237, 230, 214, 0.08);
-    display: flex;
-    gap: 10px;
-  }
-
-  input[type="text"] {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid rgba(237, 230, 214, 0.1);
-    color: var(--ink);
-    font-family: 'Noto Serif Telugu', serif;
-    font-size: 15px;
-    padding: 12px 16px;
-    border-radius: 10px;
-    outline: none;
-  }
-
-  input[type="text"]:focus {
-    border-color: var(--accent);
-  }
-
-  button.send {
-    background: var(--accent);
-    border: none;
-    color: #14181f;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    padding: 0 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background 0.25s ease;
-  }
-
-  .toggle.melimi ~ * button.send { background: var(--gold); }
-</style>
+    <link
+        rel="stylesheet"
+        href="/static/css/styles.css"
+    >
 </head>
+
+
 <body>
+
 <div class="app">
-  <header>
-    <h1><span class="telugu">మెలిమి</span> Telugu Chatbot</h1>
-    <p class="subtitle">Test console — talk in standard or Melimi Telugu</p>
-    <div class="toggle melimi" id="toggle">
-      <div class="thumb"></div>
-      <button id="btn-standard">ప్రామాణిక</button>
-      <button id="btn-melimi" class="active">మెలిమి</button>
-    </div>
-  </header>
 
-  <main id="messages"></main>
+    <!-- ========================= -->
+    <!-- SIDEBAR -->
+    <!-- ========================= -->
 
-  <footer>
-    <input type="text" id="input" placeholder="మీ సందేశం రాయండి..." />
-    <button class="send" id="sendBtn">పంపు</button>
-  </footer>
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                T
+            </div>
+
+            <div class="brand-text">
+
+                <div class="brand-name">
+                    TeluAI
+                </div>
+
+                <div class="brand-subtitle">
+                    మేలిమి తెలుగు AI
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <button
+            id="clearButton"
+            class="new-chat-button"
+            type="button"
+        >
+
+            <span class="plus">
+                ＋
+            </span>
+
+            కొత్త మాట
+
+        </button>
+
+
+        <!-- MODE -->
+
+        <div class="sidebar-section">
+
+            <div class="section-title">
+                భాషా రీతి
+            </div>
+
+
+            <div class="mode-switch">
+
+                <button
+                    id="standardMode"
+                    class="mode-button"
+                    type="button"
+                >
+                    ప్రామాణిక తెలుగు
+                </button>
+
+
+                <button
+                    id="melimiMode"
+                    class="mode-button active"
+                    type="button"
+                >
+                    మేలిమి తెలుగు
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- CHAT HISTORY -->
+
+        <div class="sidebar-section">
+
+            <div class="section-title">
+                ఈరోజు
+            </div>
+
+
+            <div
+                id="chatHistory"
+                class="chat-history"
+            >
+
+                <div class="chat-item active">
+
+                    <span class="chat-icon">
+                        ◌
+                    </span>
+
+                    <span>
+                        కొత్త సంభాషణ
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SIDEBAR BOTTOM -->
+
+        <div class="sidebar-bottom">
+
+            <div class="status">
+
+                <span class="status-dot"></span>
+
+                <span>
+                    AI పనిచేస్తోంది
+                </span>
+
+            </div>
+
+
+            <div class="powered">
+                Groq ఆధారితం
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ========================= -->
+    <!-- MAIN -->
+    <!-- ========================= -->
+
+    <main class="main">
+
+
+        <!-- TOPBAR -->
+
+        <header class="topbar">
+
+            <div class="mobile-brand">
+
+                <div class="brand-icon small">
+                    T
+                </div>
+
+                <span>
+                    TeluAI
+                </span>
+
+            </div>
+
+
+            <div class="model-info">
+
+                <span
+                    id="modelName"
+                    class="model-name"
+                >
+                    మేలిమి తెలుగు AI
+                </span>
+
+                <span class="model-badge">
+                    AI
+                </span>
+
+            </div>
+
+
+            <button
+                id="mobileNewChat"
+                class="mobile-new-chat"
+                type="button"
+                aria-label="కొత్త మాట"
+            >
+                ＋
+            </button>
+
+        </header>
+
+
+        <!-- ========================= -->
+        <!-- CHAT -->
+        <!-- ========================= -->
+
+        <section
+            id="chatContainer"
+            class="chat-container"
+        >
+
+            <!-- WELCOME -->
+
+            <div
+                id="welcome"
+                class="welcome"
+            >
+
+                <div class="welcome-icon">
+                    T
+                </div>
+
+
+                <h1>
+                    ఏమి తెలుసుకొనగోరుతున్నావు?
+                </h1>
+
+
+                <p>
+                    మేలిమి తెలుగులో ఏదైనా అడుగు.
+                    పదాల అర్థాలు, పదనిర్మాణం,
+                    భాషా నియమాలు లేదా సాధారణ విషయాల గురించి
+                    కూడా అడగవచ్చు.
+                </p>
+
+
+                <div class="suggestions">
+
+
+                    <button
+                        class="suggestion"
+                        data-message="మేలిమి తెలుగు అంటే ఏమిటి?"
+                        type="button"
+                    >
+
+                        <span>
+                            ◈
+                        </span>
+
+                        <span>
+                            మేలిమి తెలుగు అంటే ఏమిటి?
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        class="suggestion"
+                        data-message="హత్తరం అనే పదానికి అర్థం ఏమిటి?"
+                        type="button"
+                    >
+
+                        <span>
+                            ◇
+                        </span>
+
+                        <span>
+                            ఒక మేలిమి పదం అర్థం అడుగు
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        class="suggestion"
+                        data-message="ఒక కొత్త మేలిమి తెలుగు పదాన్ని సూచించు."
+                        type="button"
+                    >
+
+                        <span>
+                            ✦
+                        </span>
+
+                        <span>
+                            కొత్త పదం సూచించు
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        class="suggestion"
+                        data-message="మేలిమి తెలుగు పదనిర్మాణ నియమాలను వివరించు."
+                        type="button"
+                    >
+
+                        <span>
+                            ⌘
+                        </span>
+
+                        <span>
+                            పదనిర్మాణం నేర్చుకో
+                        </span>
+
+                    </button>
+
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- COMPOSER -->
+        <!-- ========================= -->
+
+        <div class="composer-area">
+
+            <form
+                id="chatForm"
+                class="composer"
+            >
+
+                <textarea
+                    id="messageInput"
+                    placeholder="మేలిమి తెలుగులో అడుగు..."
+                    rows="1"
+                    autocomplete="off"
+                    spellcheck="false"
+                ></textarea>
+
+
+                <button
+                    type="submit"
+                    id="sendButton"
+                    aria-label="పంపు"
+                >
+
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                    >
+
+                        <path
+                            d="M5 12H19M19 12L13 6M19 12L13 18"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+
+                    </svg>
+
+                </button>
+
+            </form>
+
+
+            <div class="composer-footer">
+
+                TeluAI తప్పులు చేయవచ్చు.
+                ముఖ్యమైన సమాచారాన్ని నిర్ధారించుకో.
+
+            </div>
+
+        </div>
+
+    </main>
+
 </div>
 
-<script>
-  const toggle = document.getElementById('toggle');
-  const btnStandard = document.getElementById('btn-standard');
-  const btnMelimi = document.getElementById('btn-melimi');
-  const messagesEl = document.getElementById('messages');
-  const input = document.getElementById('input');
-  const sendBtn = document.getElementById('sendBtn');
 
-  let mode = 'melimi';
-  let history = [];
+<script src="/static/js/chatbot.js"></script>
 
-  function setMode(newMode) {
-    mode = newMode;
-    toggle.classList.toggle('melimi', mode === 'melimi');
-    btnStandard.classList.toggle('active', mode === 'standard');
-    btnMelimi.classList.toggle('active', mode === 'melimi');
-  }
-
-  btnStandard.addEventListener('click', () => setMode('standard'));
-  btnMelimi.addEventListener('click', () => setMode('melimi'));
-
-  function addMessage(text, role, extraClass = '') {
-    const div = document.createElement('div');
-    div.className = `msg ${role} ${extraClass}`.trim();
-    div.textContent = text;
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-    return div;
-  }
-
-  async function send() {
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    addMessage(text, 'user');
-    history.push({ role: 'user', content: text });
-
-    try {
-      const res = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, mode, history: history.slice(0, -1) })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        addMessage(err.detail || `Error ${res.status}`, 'error');
-        return;
-      }
-      const data = await res.json();
-      addMessage(data.reply, 'bot', mode === 'melimi' ? 'melimi' : '');
-      history.push({ role: 'assistant', content: data.reply });
-    } catch (e) {
-      addMessage('Could not reach the server.', 'error');
-    }
-  }
-
-  sendBtn.addEventListener('click', send);
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
-</script>
 </body>
+
 </html>
