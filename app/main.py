@@ -129,32 +129,42 @@ async def chat(
     req: ChatRequest,
 ):
 
-    # --------------------------------------------------------
-    # VOCABULARY
-    # --------------------------------------------------------
+    message = req.message.strip()
+
+    if not message:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Message cannot be empty.",
+        )
+
+
+    # ========================================================
+    # AUTHORITATIVE VOCABULARY
+    # ========================================================
 
     vocab_matches = retrieve_vocab(
-        req.message
+        message
     )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # MORPHOLOGICAL UNDERSTANDING
-    # --------------------------------------------------------
+    # ========================================================
 
     morphology_context = []
 
     if req.mode == "melimi":
 
         morphology_context = analyze_text(
-            req.message,
+            message,
             VOCABULARY,
         )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # MELIMI RESOURCES
-    # --------------------------------------------------------
+    # ========================================================
 
     examples = []
 
@@ -166,46 +176,119 @@ async def chat(
         "reduplication": [],
     }
 
-
     root_candidates = []
 
 
     if req.mode == "melimi":
 
-        examples = get_examples()
+        # ----------------------------------------------------
+        # Vocabulary examples
+        # ----------------------------------------------------
+
+        examples = get_examples(
+            message
+        )
+
+
+        # ----------------------------------------------------
+        # Known phrases
+        # ----------------------------------------------------
 
         phrases = get_phrases()
 
+
+        # ----------------------------------------------------
+        # Grammar
+        # ----------------------------------------------------
+
         grammar_matches = (
             retrieve_grammar(
-                req.message
+                message
             )
         )
+
+
+        # ----------------------------------------------------
+        # Possible roots
+        # ----------------------------------------------------
 
         root_candidates = (
             find_root_candidates(
-                req.message
+                message
             )
         )
 
 
-    # --------------------------------------------------------
+    # ========================================================
+    # LEARNED CORPUS
+    # ========================================================
+    #
+    # This is the important new connection.
+    #
+    # Texts previously learned by learner.py can now influence
+    # the current AI response.
+    #
+    # Example:
+    #
+    # User text:
+    #
+    #     హాళికాను ఎడాటం
+    #
+    # Later user:
+    #
+    #     హాళికాను ఎడాటాన్ని
+    #
+    # The learned phrase / variation evidence can be supplied
+    # to Groq along with the authoritative vocabulary.
+    # ========================================================
+
+    learned_context = ""
+
+    if req.mode == "melimi":
+
+        try:
+
+            learned_context = (
+                build_learned_context(
+                    message,
+                    limit=10,
+                    max_chars=6000,
+                )
+            )
+
+        except Exception:
+
+            # Learned corpus must never make the entire
+            # chatbot unavailable.
+            learned_context = ""
+
+
+    # ========================================================
     # SYSTEM PROMPT
-    # --------------------------------------------------------
+    # ========================================================
 
     system_prompt = build_system_prompt(
-        mode=req.mode,
-        vocab_matches=vocab_matches,
-        examples=examples,
-        grammar_matches=grammar_matches,
-        phrases=phrases,
-        morphology_context=morphology_context,
+
+        vocabulary_context=(
+            _build_vocabulary_context(
+                vocab_matches,
+                examples,
+                phrases,
+                grammar_matches,
+                morphology_context,
+                root_candidates,
+            )
+        ),
+
+        learned_context=(
+            learned_context
+        ),
     )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # HISTORY
-    # --------------------------------------------------------
+    # ========================================================
 
     history = [
         turn.model_dump()
@@ -213,16 +296,16 @@ async def chat(
     ]
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # GENERATE
-    # --------------------------------------------------------
+    # ========================================================
 
     try:
 
         reply = await call_groq(
             system_prompt,
             history,
-            req.message,
+            message,
         )
 
     except RuntimeError as e:
@@ -233,9 +316,9 @@ async def chat(
         )
 
 
-    # --------------------------------------------------------
-    # RESPONSE CHECK
-    # --------------------------------------------------------
+    # ========================================================
+    # MELIMI RESPONSE CHECK
+    # ========================================================
 
     if (
         req.mode == "melimi"
@@ -280,12 +363,14 @@ async def chat(
 
             except RuntimeError:
 
+                # The first response is still usable
+                # if the correction request fails.
                 pass
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # RESPONSE
-    # --------------------------------------------------------
+    # ========================================================
 
     return ChatResponse(
 
@@ -330,6 +415,250 @@ async def chat(
 
 
 # ============================================================
+# BUILD VOCABULARY CONTEXT
+# ============================================================
+
+def _build_vocabulary_context(
+    vocab_matches,
+    examples,
+    phrases,
+    grammar_matches,
+    morphology_context,
+    root_candidates,
+):
+
+    sections = []
+
+
+    # ========================================================
+    # AUTHORITATIVE VOCABULARY
+    # ========================================================
+
+    if vocab_matches:
+
+        lines = [
+            "AUTHORITATIVE MELIMI VOCABULARY:"
+        ]
+
+        for entry in vocab_matches:
+
+            if not isinstance(
+                entry,
+                dict,
+            ):
+                continue
+
+            standard = str(
+                entry.get(
+                    "standard",
+                    "",
+                )
+            ).strip()
+
+            melimi = str(
+                entry.get(
+                    "melimi",
+                    "",
+                )
+            ).strip()
+
+            note = str(
+                entry.get(
+                    "note",
+                    "",
+                )
+            ).strip()
+
+            meaning = str(
+                entry.get(
+                    "meaning",
+                    entry.get(
+                        "definition",
+                        entry.get(
+                            "english",
+                            "",
+                        ),
+                    ),
+                )
+            ).strip()
+
+            line = (
+                f"- {standard}"
+                f" → {melimi}"
+            )
+
+            if meaning:
+
+                line += (
+                    f" | meaning: {meaning}"
+                )
+
+            if note:
+
+                line += (
+                    f" | note: {note}"
+                )
+
+            lines.append(
+                line
+            )
+
+        sections.append(
+            "\n".join(lines)
+        )
+
+
+    # ========================================================
+    # VOCABULARY EXAMPLES
+    # ========================================================
+
+    if examples:
+
+        sections.append(
+            "RELEVANT MELIMI EXAMPLES:\n"
+            + str(examples)
+        )
+
+
+    # ========================================================
+    # PHRASES
+    # ========================================================
+
+    if phrases:
+
+        sections.append(
+            "RELEVANT MELIMI PHRASES:\n"
+            + str(phrases)
+        )
+
+
+    # ========================================================
+    # GRAMMAR
+    # ========================================================
+
+    grammar_lines = []
+
+
+    for key in (
+        "suffixes",
+        "prefixes",
+        "reduplication",
+    ):
+
+        values = grammar_matches.get(
+            key,
+            [],
+        )
+
+        if not values:
+            continue
+
+        grammar_lines.append(
+            f"{key.upper()}:"
+        )
+
+        for item in values:
+
+            grammar_lines.append(
+                "- "
+                + str(item)
+            )
+
+
+    if grammar_lines:
+
+        sections.append(
+            "MELIMI GRAMMAR:\n"
+            + "\n".join(
+                grammar_lines
+            )
+        )
+
+
+    # ========================================================
+    # MORPHOLOGY
+    # ========================================================
+
+    if morphology_context:
+
+        sections.append(
+            "MORPHOLOGICAL UNDERSTANDING:\n"
+            + str(
+                morphology_context
+            )
+        )
+
+
+    # ========================================================
+    # ROOT CANDIDATES
+    # ========================================================
+
+    if root_candidates:
+
+        sections.append(
+            "POSSIBLE MELIMI ROOTS:\n"
+            + str(
+                root_candidates
+            )
+        )
+
+
+    # ========================================================
+    # FINAL CONTEXT
+    # ========================================================
+
+    context = "\n\n".join(
+        sections
+    )
+
+    # Prevent the vocabulary portion from becoming
+    # unnecessarily enormous.
+    if len(context) > 9000:
+
+        context = context[
+            :9000
+        ]
+
+    return context
+
+
+# ============================================================
+# LEARN MELIMI TEXT
+# ============================================================
+
+@app.post(
+    "/learn/text",
+)
+def learn_melimi_text(
+    text: str,
+    document_id: str = "user_text",
+):
+
+    if not text.strip():
+
+        raise HTTPException(
+            status_code=400,
+            detail="Text cannot be empty.",
+        )
+
+    try:
+
+        result = learn_text(
+            text=text,
+            document_id=document_id,
+        )
+
+        return result
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
+
+
+# ============================================================
 # LEARN VOCAB
 # ============================================================
 
@@ -346,7 +675,6 @@ def learn_vocab(
         req.melimi,
         req.note,
     )
-
 
     return LearnResponse(
         added=added,
@@ -379,7 +707,6 @@ def learn_grammar(
         req.note,
     )
 
-
     return LearnResponse(
         added=added,
         message=(
@@ -407,7 +734,6 @@ def learn_phrase(
         req.standard,
         req.melimi,
     )
-
 
     return LearnResponse(
         added=added,
