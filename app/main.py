@@ -18,7 +18,6 @@ from app.models import (
 from app.vocab import (
     retrieve_vocab,
     retrieve_context,
-    find_standard_terms,
     VOCABULARY,
 )
 
@@ -28,7 +27,6 @@ from app.morphology import (
 
 from app.prompts import (
     build_system_prompt,
-    build_melimi_correction_prompt,
 )
 
 from app.groq_client import (
@@ -58,7 +56,7 @@ app.add_middleware(
 
 
 # ============================================================
-# STATIC
+# PATHS
 # ============================================================
 
 BASE_DIR = os.path.dirname(
@@ -73,13 +71,19 @@ STATIC_DIR = os.path.join(
 )
 
 
-app.mount(
-    "/static",
-    StaticFiles(
-        directory=STATIC_DIR
-    ),
-    name="static",
-)
+# ============================================================
+# STATIC FILES
+# ============================================================
+
+if os.path.isdir(STATIC_DIR):
+
+    app.mount(
+        "/static",
+        StaticFiles(
+            directory=STATIC_DIR
+        ),
+        name="static",
+    )
 
 
 # ============================================================
@@ -89,11 +93,20 @@ app.mount(
 @app.get("/")
 def serve_index():
 
-    return FileResponse(
-        os.path.join(
-            STATIC_DIR,
-            "index.html",
+    index_file = os.path.join(
+        STATIC_DIR,
+        "index.html",
+    )
+
+    if not os.path.exists(index_file):
+
+        raise HTTPException(
+            status_code=404,
+            detail="index.html not found.",
         )
+
+    return FileResponse(
+        index_file
     )
 
 
@@ -123,7 +136,10 @@ async def chat(
     req: ChatRequest,
 ):
 
-    message = req.message.strip()
+    message = (
+        req.message
+        or ""
+    ).strip()
 
     if not message:
 
@@ -134,46 +150,89 @@ async def chat(
 
 
     # ========================================================
-    # 1. AUTHORITATIVE VOCABULARY
-    # ========================================================
-
-    vocab_matches = retrieve_vocab(
-        message,
-        limit=18,
-    )
-
-
-    # ========================================================
-    # 2. COMPLETE VOCABULARY / PHRASE CONTEXT
+    # AUTHORITATIVE VOCABULARY
     # ========================================================
 
     try:
 
-        vocab_context = retrieve_context(
+        vocab_matches = retrieve_vocab(
+            message,
+            limit=18,
+        )
+
+    except TypeError:
+
+        # Compatibility with an older retrieve_vocab()
+        # signature.
+        vocab_matches = retrieve_vocab(
             message
         )
 
     except Exception:
 
-        vocab_context = {
-            "entries": vocab_matches,
-            "text": "",
-        }
+        vocab_matches = []
 
 
     # ========================================================
-    # 3. MORPHOLOGICAL UNDERSTANDING
+    # COMPLETE VOCABULARY CONTEXT
+    # ========================================================
+
+    vocabulary_context = ""
+
+    try:
+
+        context = retrieve_context(
+            message
+        )
+
+        if isinstance(
+            context,
+            dict,
+        ):
+
+            vocabulary_context = str(
+                context.get(
+                    "text",
+                    "",
+                )
+            )
+
+        elif context:
+
+            vocabulary_context = str(
+                context
+            )
+
+    except Exception:
+
+        vocabulary_context = ""
+
+
+    # --------------------------------------------------------
+    # Fallback if retrieve_context() did not provide text.
+    # --------------------------------------------------------
+
+    if not vocabulary_context:
+
+        vocabulary_context = (
+            _format_vocabulary(
+                vocab_matches
+            )
+        )
+
+
+    # ========================================================
+    # MORPHOLOGICAL UNDERSTANDING
     # ========================================================
     #
-    # This connects surface forms to known Melimi words.
+    # This helps understand surface variations such as:
     #
-    # Example:
+    #     ఎడాటం
+    #     ఎడాటాలు
+    #     ఎడాటాన్ని
+    #     ఎడాటానికి
     #
-    # ఎడాటాలు
-    # ఎడాటాన్ని
-    # ఎడాటానికి
-    #
-    # can be analyzed against known vocabulary.
+    # when they can be connected to a known vocabulary base.
     # ========================================================
 
     morphology_context = []
@@ -193,18 +252,44 @@ async def chat(
 
 
     # ========================================================
-    # 4. LEARNED CORPUS
+    # ADD MORPHOLOGY TO AI CONTEXT
+    # ========================================================
+
+    morphology_text = (
+        _format_morphology(
+            morphology_context
+        )
+    )
+
+    if morphology_text:
+
+        if vocabulary_context:
+
+            vocabulary_context += (
+                "\n\n"
+                + morphology_text
+            )
+
+        else:
+
+            vocabulary_context = (
+                morphology_text
+            )
+
+
+    # ========================================================
+    # LEARNED CORPUS
     # ========================================================
     #
-    # learner.py stores:
+    # learner.py stores information learned from Melimi
+    # texts:
     #
     # - words
     # - phrases
     # - sentences
-    # - documents
     # - observed variations
     #
-    # The learned information is now sent to Groq.
+    # That information is now passed to the AI.
     # ========================================================
 
     learned_context = ""
@@ -221,73 +306,33 @@ async def chat(
                 )
             )
 
+        except TypeError:
+
+            try:
+
+                learned_context = (
+                    build_learned_context(
+                        message
+                    )
+                )
+
+            except Exception:
+
+                learned_context = ""
+
         except Exception:
 
             learned_context = ""
 
 
     # ========================================================
-    # 5. BUILD AI CONTEXT
-    # ========================================================
-
-    vocabulary_text = ""
-
-    if isinstance(
-        vocab_context,
-        dict,
-    ):
-
-        vocabulary_text = str(
-            vocab_context.get(
-                "text",
-                "",
-            )
-        )
-
-    elif vocab_context:
-
-        vocabulary_text = str(
-            vocab_context
-        )
-
-
-    # If retrieve_context returned nothing,
-    # fall back to the direct vocabulary matches.
-
-    if not vocabulary_text:
-
-        vocabulary_text = (
-            _format_vocabulary(
-                vocab_matches
-            )
-        )
-
-
-    morphology_text = (
-        _format_morphology(
-            morphology_context
-        )
-    )
-
-
-    combined_vocabulary_context = (
-        _combine_context(
-            vocabulary_text,
-            morphology_text,
-        )
-    )
-
-
-    # ========================================================
-    # 6. SYSTEM PROMPT
+    # SYSTEM PROMPT
     # ========================================================
 
     system_prompt = build_system_prompt(
-
         vocabulary_context=(
-            combined_vocabulary_context
+            vocabulary_context
         ),
-
         learned_context=(
             learned_context
         ),
@@ -295,17 +340,35 @@ async def chat(
 
 
     # ========================================================
-    # 7. CONVERSATION HISTORY
+    # CONVERSATION HISTORY
     # ========================================================
 
-    history = [
-        turn.model_dump()
-        for turn in req.history
-    ]
+    history = []
+
+    for turn in (
+        req.history or []
+    ):
+
+        try:
+
+            history.append(
+                turn.model_dump()
+            )
+
+        except AttributeError:
+
+            if isinstance(
+                turn,
+                dict,
+            ):
+
+                history.append(
+                    turn
+                )
 
 
     # ========================================================
-    # 8. ASK GROQ
+    # GROQ
     # ========================================================
 
     try:
@@ -316,89 +379,55 @@ async def chat(
             message,
         )
 
-    except RuntimeError as e:
+    except RuntimeError as exc:
 
         raise HTTPException(
             status_code=502,
-            detail=str(e),
+            detail=str(exc),
+        )
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "AI request failed: "
+                + str(exc)
+            ),
         )
 
 
     # ========================================================
-    # 9. MELIMI RESPONSE VALIDATION
-    # ========================================================
-    #
-    # Detect standard words in the generated answer
-    # for which an established Melimi alternative exists.
-    #
-    # This does NOT blindly replace words.
-    # A second Groq pass decides whether correction
-    # is appropriate in context.
+    # CLEAN RESPONSE
     # ========================================================
 
-    if (
-        req.mode == "melimi"
-        and reply
-    ):
+    reply = str(
+        reply or ""
+    ).strip()
 
-        try:
+    if not reply:
 
-            alternatives = (
-                find_standard_terms(
-                    reply
-                )
-            )
-
-        except Exception:
-
-            alternatives = []
-
-
-        if alternatives:
-
-            try:
-
-                correction_prompt = (
-                    build_melimi_correction_prompt(
-                        reply,
-                        alternatives,
-                    )
-                )
-
-                corrected = await call_groq(
-                    correction_prompt,
-                    [],
-                    reply,
-                )
-
-                if (
-                    corrected
-                    and corrected.strip()
-                ):
-
-                    reply = (
-                        corrected.strip()
-                    )
-
-            except RuntimeError:
-
-                # Keep the original answer if
-                # the correction request fails.
-                pass
+        raise HTTPException(
+            status_code=502,
+            detail="AI returned an empty response.",
+        )
 
 
     # ========================================================
-    # 10. DEBUG INFORMATION
+    # MATCHED VOCABULARY
     # ========================================================
 
     matched_vocab = []
 
-    for entry in vocab_matches:
+    for entry in (
+        vocab_matches or []
+    ):
 
         if not isinstance(
             entry,
             dict,
         ):
+
             continue
 
         standard = str(
@@ -429,7 +458,18 @@ async def chat(
 
 
     # ========================================================
-    # 11. RETURN
+    # MORPHOLOGY SURFACES
+    # ========================================================
+
+    root_candidates = (
+        _get_morphology_surfaces(
+            morphology_context
+        )
+    )
+
+
+    # ========================================================
+    # RESPONSE
     # ========================================================
 
     return ChatResponse(
@@ -442,20 +482,22 @@ async def chat(
             matched_vocab
         ),
 
+        # Your current models expect these fields.
+        # Grammar-specific retrieval is not currently
+        # implemented in vocab.py, so leave them empty
+        # instead of importing nonexistent functions.
         matched_grammar_suffixes=[],
 
         matched_grammar_prefixes=[],
 
         root_candidates=(
-            _get_morphology_surfaces(
-                morphology_context
-            )
+            root_candidates
         ),
     )
 
 
 # ============================================================
-# FORMAT VOCABULARY
+# VOCABULARY FORMATTER
 # ============================================================
 
 def _format_vocabulary(
@@ -570,7 +612,7 @@ def _format_vocabulary(
 
 
 # ============================================================
-# FORMAT MORPHOLOGY
+# MORPHOLOGY FORMATTER
 # ============================================================
 
 def _format_morphology(
@@ -588,7 +630,9 @@ def _format_morphology(
     ]
 
 
-    for item in morphology_context:
+    for item in (
+        morphology_context
+    ):
 
         if not isinstance(
             item,
@@ -622,7 +666,9 @@ def _format_morphology(
         )
 
 
-        for entry in matches:
+        for entry in (
+            matches or []
+        ):
 
             if not isinstance(
                 entry,
@@ -648,17 +694,28 @@ def _format_morphology(
             ).strip()
 
 
-            if melimi:
+            if not melimi:
 
-                lines.append(
-                    f"  → known Melimi base: "
-                    f"{melimi}"
-                    + (
-                        f" | standard: {standard}"
-                        if standard
-                        else ""
-                    )
+                continue
+
+
+            line = (
+                f"  → known Melimi base: "
+                f"{melimi}"
+            )
+
+
+            if standard:
+
+                line += (
+                    f" | standard: "
+                    f"{standard}"
                 )
+
+
+            lines.append(
+                line
+            )
 
 
     result = "\n".join(
@@ -677,38 +734,7 @@ def _format_morphology(
 
 
 # ============================================================
-# COMBINE CONTEXT
-# ============================================================
-
-def _combine_context(
-    vocabulary_text,
-    morphology_text,
-):
-
-    sections = []
-
-
-    if vocabulary_text:
-
-        sections.append(
-            vocabulary_text
-        )
-
-
-    if morphology_text:
-
-        sections.append(
-            morphology_text
-        )
-
-
-    return "\n\n".join(
-        sections
-    )
-
-
-# ============================================================
-# MORPHOLOGY SURFACES
+# MORPHOLOGY SURFACE LIST
 # ============================================================
 
 def _get_morphology_surfaces(
@@ -718,12 +744,9 @@ def _get_morphology_surfaces(
     result = []
 
 
-    if not morphology_context:
-
-        return result
-
-
-    for item in morphology_context:
+    for item in (
+        morphology_context or []
+    ):
 
         if not isinstance(
             item,
@@ -763,7 +786,12 @@ def learn_melimi_text(
     document_id: str = "user_text",
 ):
 
-    if not text.strip():
+    text = (
+        text or ""
+    ).strip()
+
+
+    if not text:
 
         raise HTTPException(
             status_code=400,
@@ -780,9 +808,9 @@ def learn_melimi_text(
 
         return result
 
-    except Exception as e:
+    except Exception as exc:
 
         raise HTTPException(
             status_code=500,
-            detail=str(e),
+            detail=str(exc),
         )
