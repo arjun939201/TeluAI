@@ -1,13 +1,20 @@
 import json
 import os
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from app.config import settings
 
 
+# ============================================================
+# FILE HELPERS
+# ============================================================
+
 def _path(filename: str) -> str:
-    return os.path.join(settings.DATA_DIR, filename)
+    return os.path.join(
+        settings.DATA_DIR,
+        filename,
+    )
 
 
 def _load_json(filename: str):
@@ -23,14 +30,30 @@ def _load_json(filename: str):
 
         return []
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(
+        path,
+        "r",
+        encoding="utf-8",
+    ) as f:
         return json.load(f)
 
 
-def _save_json(filename: str, data) -> None:
-    path = _path(filename)
+def _save_json(
+    filename: str,
+    data,
+) -> None:
 
-    with open(path, "w", encoding="utf-8") as f:
+    os.makedirs(
+        settings.DATA_DIR,
+        exist_ok=True,
+    )
+
+    with open(
+        _path(filename),
+        "w",
+        encoding="utf-8",
+    ) as f:
+
         json.dump(
             data,
             f,
@@ -40,7 +63,7 @@ def _save_json(filename: str, data) -> None:
 
 
 # ============================================================
-# LOAD MELIMI LANGUAGE DATA
+# LOAD MELIMI RESOURCES
 # ============================================================
 
 VOCABULARY: List[Dict] = _load_json(
@@ -61,7 +84,7 @@ PHRASES: List[Dict] = _load_json(
 
 
 # ============================================================
-# TELUGU TOKENIZER
+# TELUGU TOKENIZATION
 # ============================================================
 
 _WORD_RE = re.compile(
@@ -70,29 +93,117 @@ _WORD_RE = re.compile(
 )
 
 
-def _tokenize(message: str) -> List[str]:
+def _tokenize(
+    text: str,
+) -> List[str]:
 
     return _WORD_RE.findall(
-        message or ""
+        text or ""
     )
 
 
-def _normalize(value: str) -> str:
+def _normalize(
+    value: str,
+) -> str:
 
     value = str(
         value or ""
     ).strip().lower()
 
-    return re.sub(
+    value = re.sub(
         r"\s+",
         " ",
         value,
     )
 
+    return value
+
+
+def _clean_for_matching(
+    value: str,
+) -> str:
+
+    value = _normalize(
+        value
+    )
+
+    value = re.sub(
+        r"[^\u0C00-\u0C7F\w]+",
+        " ",
+        value,
+        flags=re.UNICODE,
+    )
+
+    return re.sub(
+        r"\s+",
+        " ",
+        value,
+    ).strip()
+
+
+def _contains_term(
+    text: str,
+    term: str,
+) -> bool:
+
+    text = _clean_for_matching(
+        text
+    )
+
+    term = _clean_for_matching(
+        term
+    )
+
+    if not text or not term:
+        return False
+
+    padded_text = (
+        " "
+        + text
+        + " "
+    )
+
+    padded_term = (
+        " "
+        + term
+        + " "
+    )
+
+    return padded_term in padded_text
+
 
 # ============================================================
-# BUILD SEARCHABLE VOCABULARY TEXT
+# SEARCHABLE ENTRY
 # ============================================================
+
+def _field_to_text(
+    value,
+) -> str:
+
+    if isinstance(
+        value,
+        list,
+    ):
+
+        return " ".join(
+            str(item)
+            for item in value
+        )
+
+    if isinstance(
+        value,
+        dict,
+    ):
+
+        return " ".join(
+            str(item)
+            for item in value.values()
+        )
+
+    return str(
+        value or ""
+    )
+
 
 def _searchable_entry_text(
     entry: Dict,
@@ -100,7 +211,7 @@ def _searchable_entry_text(
 
     fields = []
 
-    possible_fields = [
+    keys = [
         "standard",
         "melimi",
         "meaning",
@@ -117,35 +228,18 @@ def _searchable_entry_text(
         "tags",
     ]
 
-    for key in possible_fields:
+    for key in keys:
 
-        value = entry.get(
-            key,
-            "",
+        value = _field_to_text(
+            entry.get(
+                key,
+                "",
+            )
         )
 
-        if isinstance(
-            value,
-            list,
-        ):
-            value = " ".join(
-                str(item)
-                for item in value
-            )
-
-        elif isinstance(
-            value,
-            dict,
-        ):
-            value = " ".join(
-                str(item)
-                for item in value.values()
-            )
-
         if value:
-
             fields.append(
-                str(value)
+                value
             )
 
     return _normalize(
@@ -161,21 +255,21 @@ def retrieve_vocab(
     message: str,
     limit: int = None,
 ) -> List[Dict]:
+
     """
-    Retrieve the most relevant Melimi Telugu vocabulary.
+    Retrieve the most relevant Melimi vocabulary
+    for the user's message.
 
-    The entire vocabulary.json is NEVER sent to Groq.
+    The entire vocabulary.json is never sent to Groq.
 
-    Instead, entries are ranked according to relevance.
-
-    Priority:
+    Ranking:
 
     1. Exact Melimi match
     2. Exact standard Telugu match
     3. Melimi token match
-    4. Standard Telugu token match
+    4. Standard token match
     5. Meaning/definition match
-    6. Related searchable information
+    6. Related searchable fields
     """
 
     limit = (
@@ -191,7 +285,7 @@ def retrieve_vocab(
     if not message:
         return []
 
-    message_normalized = _normalize(
+    normalized_message = _normalize(
         message
     )
 
@@ -201,7 +295,9 @@ def retrieve_vocab(
         if len(token.strip()) >= 2
     ]
 
-    scored = []
+    scored: List[
+        Tuple[int, int, Dict]
+    ] = []
 
 
     for index, entry in enumerate(
@@ -222,38 +318,48 @@ def retrieve_vocab(
             )
         )
 
-        searchable = _searchable_entry_text(
-            entry
+        searchable = (
+            _searchable_entry_text(
+                entry
+            )
         )
 
         score = 0
 
 
-        # ====================================================
-        # EXACT MELIMI MATCH
-        # ====================================================
+        # ----------------------------------------------------
+        # EXACT MELIMI
+        # ----------------------------------------------------
 
         if (
             melimi
-            and melimi in message_normalized
+            and _contains_term(
+                normalized_message,
+                melimi,
+            )
         ):
-            score += 150
+
+            score += 200
 
 
-        # ====================================================
-        # EXACT STANDARD TELUGU MATCH
-        # ====================================================
+        # ----------------------------------------------------
+        # EXACT STANDARD
+        # ----------------------------------------------------
 
         if (
             standard
-            and standard in message_normalized
+            and _contains_term(
+                normalized_message,
+                standard,
+            )
         ):
-            score += 130
+
+            score += 180
 
 
-        # ====================================================
-        # TOKEN MATCHING
-        # ====================================================
+        # ----------------------------------------------------
+        # TOKEN MATCHES
+        # ----------------------------------------------------
 
         for token in tokens:
 
@@ -261,24 +367,27 @@ def retrieve_vocab(
                 melimi
                 and token == melimi
             ):
-                score += 120
+
+                score += 150
 
             elif (
                 standard
                 and token == standard
             ):
-                score += 100
+
+                score += 130
 
             elif (
                 token
                 and token in searchable
             ):
+
                 score += 20
 
 
-        # ====================================================
-        # PARTIAL MATCH
-        # ====================================================
+        # ----------------------------------------------------
+        # PARTIAL WORD MATCH
+        # ----------------------------------------------------
 
         for token in tokens:
 
@@ -290,31 +399,31 @@ def retrieve_vocab(
                 standard
                 and token in standard
             ):
-                score += 12
+
+                score += 15
 
 
             if (
                 melimi
                 and token in melimi
             ):
-                score += 15
+
+                score += 18
 
 
-        # ====================================================
-        # MEANING / DEFINITION MATCH
-        # ====================================================
+        # ----------------------------------------------------
+        # MEANING / DEFINITION
+        # ----------------------------------------------------
 
         meaning_fields = [
             entry.get(
                 "meaning",
                 "",
             ),
-
             entry.get(
                 "definition",
                 "",
             ),
-
             entry.get(
                 "english",
                 "",
@@ -330,14 +439,15 @@ def retrieve_vocab(
 
             if (
                 meaning
-                and meaning in message_normalized
+                and meaning in normalized_message
             ):
+
                 score += 80
 
 
-        # ====================================================
-        # NOTE / DESCRIPTION MATCH
-        # ====================================================
+        # ----------------------------------------------------
+        # NOTES
+        # ----------------------------------------------------
 
         notes = _normalize(
             entry.get(
@@ -352,10 +462,12 @@ def retrieve_vocab(
             )
         )
 
+
         if (
             notes
-            and notes in message_normalized
+            and notes in normalized_message
         ):
+
             score += 30
 
 
@@ -370,7 +482,6 @@ def retrieve_vocab(
             )
 
 
-    # Highest relevance first
     scored.sort(
         key=lambda item: (
             -item[0],
@@ -384,6 +495,134 @@ def retrieve_vocab(
         for _, _, entry
         in scored[:limit]
     ]
+
+
+# ============================================================
+# RESPONSE VOCABULARY CHECK
+# ============================================================
+
+def find_standard_melimi_alternatives(
+    response: str,
+    limit: int = None,
+) -> List[Dict]:
+
+    """
+    Find established standard-Telugu words occurring in the
+    generated response for which vocabulary.json contains
+    a different Melimi form.
+
+    Example:
+
+        standard = "భాష"
+        melimi = "నుడి"
+
+    If the generated response contains "భాష", this function
+    returns that vocabulary entry.
+
+    This does NOT perform blind replacement.
+    The result is passed to Groq so Groq can rewrite the
+    complete sentence naturally.
+    """
+
+    limit = (
+        limit
+        or settings.MAX_RESPONSE_CHECKS
+    )
+
+    if not response:
+        return []
+
+    matches = []
+
+    for index, entry in enumerate(
+        VOCABULARY
+    ):
+
+        standard = str(
+            entry.get(
+                "standard",
+                "",
+            )
+        ).strip()
+
+        melimi = str(
+            entry.get(
+                "melimi",
+                "",
+            )
+        ).strip()
+
+
+        if not standard or not melimi:
+            continue
+
+
+        # Same word means there is no alternative.
+        if _normalize(
+            standard
+        ) == _normalize(
+            melimi
+        ):
+            continue
+
+
+        if _contains_term(
+            response,
+            standard,
+        ):
+
+            # If the response already contains
+            # the Melimi form too, don't force a rewrite
+            # unnecessarily.
+            if _contains_term(
+                response,
+                melimi,
+            ):
+                continue
+
+
+            matches.append(
+                (
+                    len(
+                        _clean_for_matching(
+                            standard
+                        )
+                    ),
+                    index,
+                    entry,
+                )
+            )
+
+
+    # Longer expressions first.
+    matches.sort(
+        key=lambda item: (
+            -item[0],
+            item[1],
+        )
+    )
+
+
+    return [
+        entry
+        for _, _, entry
+        in matches[:limit]
+    ]
+
+
+# ============================================================
+# VOCABULARY FOR RESPONSE CHECKING
+# ============================================================
+
+def get_melimi_alternatives_for_text(
+    text: str,
+    limit: int = None,
+) -> List[Dict]:
+
+    return find_standard_melimi_alternatives(
+        text,
+        limit=limit,
+    )
 
 
 # ============================================================
@@ -428,13 +667,17 @@ def _known_vocab_melimi_words() -> set:
 
     for entry in VOCABULARY:
 
-        melimi = entry.get(
-            "melimi",
-            "",
+        melimi = str(
+            entry.get(
+                "melimi",
+                "",
+            )
         )
 
         words.update(
-            _tokenize(melimi)
+            _tokenize(
+                melimi
+            )
         )
 
     return words
@@ -459,7 +702,6 @@ def find_root_candidates(
         message
     ):
 
-        # Only Telugu-script words
         if not re.search(
             r"[\u0C00-\u0C7F]",
             token,
@@ -467,8 +709,6 @@ def find_root_candidates(
             continue
 
 
-        # Already known vocabulary
-        # does not need root analysis.
         if token in _KNOWN_MELIMI_WORDS:
             continue
 
@@ -522,9 +762,9 @@ def retrieve_grammar(
         ]
 
 
-    # ========================================================
+    # --------------------------------------------------------
     # SUFFIXES
-    # ========================================================
+    # --------------------------------------------------------
 
     matched_suffixes = []
 
@@ -581,15 +821,18 @@ def retrieve_grammar(
 
 
         if (
-            len(matched_suffixes)
+            len(
+                matched_suffixes
+            )
             >= limit
         ):
+
             break
 
 
-    # ========================================================
+    # --------------------------------------------------------
     # PREFIXES
-    # ========================================================
+    # --------------------------------------------------------
 
     matched_prefixes = []
 
@@ -646,15 +889,18 @@ def retrieve_grammar(
 
 
         if (
-            len(matched_prefixes)
+            len(
+                matched_prefixes
+            )
             >= limit
         ):
+
             break
 
 
-    # ========================================================
+    # --------------------------------------------------------
     # REDUPLICATION
-    # ========================================================
+    # --------------------------------------------------------
 
     matched_reduplication = []
 
@@ -669,6 +915,7 @@ def retrieve_grammar(
                 "",
             )
         )
+
 
         if (
             pattern
@@ -686,6 +933,7 @@ def retrieve_grammar(
             )
             >= limit
         ):
+
             break
 
 
