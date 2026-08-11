@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Set
 
 
 # ============================================================
@@ -44,6 +44,15 @@ def normalize_text(
         " ",
         str(text or "").strip(),
     )
+
+
+def normalize_word(
+    word: str,
+) -> str:
+
+    return normalize_text(
+        word
+    ).lower()
 
 
 def tokenize(
@@ -97,9 +106,15 @@ def load_database() -> Dict[str, Any]:
             encoding="utf-8",
         ) as file:
 
-            data = json.load(file)
+            data = json.load(
+                file
+            )
 
-    except Exception:
+    except (
+        OSError,
+        json.JSONDecodeError,
+        TypeError,
+    ):
 
         data = empty_database()
 
@@ -124,10 +139,6 @@ def load_database() -> Dict[str, Any]:
             ):
 
                 data[key] = []
-
-            else:
-
-                data[key] = default_value
 
     return data
 
@@ -176,7 +187,7 @@ def learn_word(
     sentence: str,
 ) -> None:
 
-    word = normalize_text(
+    word = normalize_word(
         word
     )
 
@@ -195,7 +206,9 @@ def learn_word(
             "examples": [],
         }
 
-    entry = words[word]
+    entry = words[
+        word
+    ]
 
     entry[
         "count"
@@ -298,6 +311,100 @@ def learn_phrase(
 
 
 # ============================================================
+# VARIATION LEARNING
+# ============================================================
+
+def learn_variation(
+    data: Dict[str, Any],
+    surface_form: str,
+    possible_base: str,
+    document_id: str,
+    sentence: str,
+    relation: str = "observed_variation",
+) -> None:
+
+    surface_form = normalize_word(
+        surface_form
+    )
+
+    possible_base = normalize_word(
+        possible_base
+    )
+
+    if not surface_form:
+        return
+
+    if not possible_base:
+        return
+
+    if surface_form == possible_base:
+        return
+
+    variations = data[
+        "variations"
+    ]
+
+    if surface_form not in variations:
+
+        variations[
+            surface_form
+        ] = {}
+
+    if possible_base not in variations[
+        surface_form
+    ]:
+
+        variations[
+            surface_form
+        ][
+            possible_base
+        ] = {
+            "count": 0,
+            "relation": relation,
+            "documents": {},
+            "examples": [],
+        }
+
+    entry = variations[
+        surface_form
+    ][
+        possible_base
+    ]
+
+    entry[
+        "count"
+    ] += 1
+
+    documents = entry[
+        "documents"
+    ]
+
+    documents[
+        document_id
+    ] = (
+        documents.get(
+            document_id,
+            0,
+        )
+        + 1
+    )
+
+    examples = entry[
+        "examples"
+    ]
+
+    if (
+        sentence
+        and sentence not in examples
+        and len(examples) < 5
+    ):
+
+        examples.append(
+            sentence
+        )
+
+
+# ============================================================
 # SENTENCE SPLITTING
 # ============================================================
 
@@ -325,6 +432,237 @@ def split_sentences(
             )
 
     return sentences
+
+
+# ============================================================
+# OBSERVED VARIATION CANDIDATES
+# ============================================================
+
+def possible_surface_bases(
+    word: str,
+) -> List[str]:
+
+    """
+    Generate conservative candidates for an observed
+    grammatical surface form.
+
+    These are NOT declared to be official Melimi
+    grammatical rules.
+
+    They are only candidate relationships that can
+    later be strengthened by repeated corpus usage.
+    """
+
+    word = normalize_word(
+        word
+    )
+
+    if not word:
+        return []
+
+    candidates: Set[str] = set()
+
+    # --------------------------------------------------------
+    # PLURAL / CASE FORMS
+    # --------------------------------------------------------
+
+    suffixes = [
+        "లతో",
+        "లలో",
+        "లకు",
+        "లను",
+        "లని",
+        "లపై",
+        "లకై",
+        "లకూ",
+        "లవల్ల",
+    ]
+
+    for suffix in suffixes:
+
+        if (
+            word.endswith(suffix)
+            and len(word)
+            > len(suffix) + 1
+        ):
+
+            root = word[
+                :-len(suffix)
+            ]
+
+            if root:
+
+                candidates.add(
+                    root
+                )
+
+    # --------------------------------------------------------
+    # SIMPLE PLURAL
+    # --------------------------------------------------------
+
+    if (
+        word.endswith("లు")
+        and len(word) > 3
+    ):
+
+        candidates.add(
+            word[:-2]
+        )
+
+    # --------------------------------------------------------
+    # COMMON CASE FORMS
+    # --------------------------------------------------------
+
+    case_suffixes = [
+        "లోని",
+        "నుంచి",
+        "నుండి",
+        "యొక్క",
+        "కోసం",
+        "గురించి",
+        "పైన",
+        "వల్ల",
+        "తోటి",
+        "తో",
+        "లో",
+        "ను",
+        "ని",
+        "కు",
+        "కి",
+        "కూ",
+        "పై",
+        "గా",
+    ]
+
+    for suffix in case_suffixes:
+
+        if (
+            word.endswith(suffix)
+            and len(word)
+            > len(suffix) + 1
+        ):
+
+            root = word[
+                :-len(suffix)
+            ]
+
+            if root:
+
+                candidates.add(
+                    root
+                )
+
+    # --------------------------------------------------------
+    # COMMON VERBAL / NOMINAL SURFACE ENDINGS
+    # --------------------------------------------------------
+    #
+    # These are deliberately treated as candidates only.
+    #
+    # They are NOT automatically accepted as Melimi rules.
+    # --------------------------------------------------------
+
+    possible_endings = [
+        "ంగా",
+        "ముగా",
+        "మై",
+        "మైన",
+        "మైనా",
+        "మును",
+        "మున",
+        "ము",
+        "ం",
+    ]
+
+    for ending in possible_endings:
+
+        if (
+            word.endswith(ending)
+            and len(word)
+            > len(ending) + 1
+        ):
+
+            root = word[
+                :-len(ending)
+            ]
+
+            if root:
+
+                candidates.add(
+                    root
+                )
+
+    return sorted(
+        candidates,
+        key=len,
+        reverse=True,
+    )
+
+
+# ============================================================
+# LEARN VARIATIONS FROM CORPUS
+# ============================================================
+
+def learn_surface_variations(
+    data: Dict[str, Any],
+    words: List[str],
+    document_id: str,
+    sentence: str,
+) -> int:
+
+    learned = 0
+
+    unique_words = list(
+        dict.fromkeys(
+            normalize_word(
+                word
+            )
+            for word in words
+        )
+    )
+
+    known_words = set(
+        data[
+            "words"
+        ].keys()
+    )
+
+    for surface_word in unique_words:
+
+        if not surface_word:
+            continue
+
+        candidates = (
+            possible_surface_bases(
+                surface_word
+            )
+        )
+
+        for candidate in candidates:
+
+            # ------------------------------------------------
+            # Only record candidate relationships when the
+            # candidate has actually appeared elsewhere in
+            # the corpus.
+            #
+            # This prevents arbitrary suffix stripping from
+            # creating thousands of false "rules".
+            # ------------------------------------------------
+
+            if candidate not in known_words:
+
+                continue
+
+            learn_variation(
+                data=data,
+                surface_form=surface_word,
+                possible_base=candidate,
+                document_id=document_id,
+                sentence=sentence,
+            )
+
+            learned += 1
+
+    return learned
 
 
 # ============================================================
@@ -390,6 +728,8 @@ def learn_text(
 
     phrase_occurrences = 0
 
+    variation_occurrences = 0
+
     # --------------------------------------------------------
     # PROCESS SENTENCES
     # --------------------------------------------------------
@@ -428,17 +768,16 @@ def learn_text(
         # PHRASES
         # ----------------------------------------------------
         #
-        # We record observed 2-word and 3-word sequences.
+        # Store observed 2, 3 and 4 word sequences.
         #
-        # We do NOT automatically declare them grammatical
-        # rules.
-        #
-        # They are corpus evidence only.
+        # They are corpus evidence, not automatically
+        # declared grammatical rules.
         # ----------------------------------------------------
 
         for size in (
             2,
             3,
+            4,
         ):
 
             if len(words) < size:
@@ -465,7 +804,7 @@ def learn_text(
                 phrase_occurrences += 1
 
         # ----------------------------------------------------
-        # SENTENCES
+        # SENTENCE
         # ----------------------------------------------------
 
         if sentence not in data[
@@ -477,6 +816,29 @@ def learn_text(
             ].append(
                 sentence
             )
+
+    # --------------------------------------------------------
+    # VARIATIONS
+    # --------------------------------------------------------
+    #
+    # Run AFTER learning the words so that a possible base
+    # can be checked against the observed corpus vocabulary.
+    # --------------------------------------------------------
+
+    for sentence in sentences:
+
+        words = tokenize(
+            sentence
+        )
+
+        variation_occurrences += (
+            learn_surface_variations(
+                data=data,
+                words=words,
+                document_id=document_id,
+                sentence=sentence,
+            )
+        )
 
     # --------------------------------------------------------
     # SAVE
@@ -508,6 +870,9 @@ def learn_text(
         "phrase_occurrences":
             phrase_occurrences,
 
+        "variation_occurrences":
+            variation_occurrences,
+
         "total_words_known":
             len(
                 data["words"]
@@ -516,6 +881,15 @@ def learn_text(
         "total_phrases_known":
             len(
                 data["phrases"]
+            ),
+
+        "total_variations_known":
+            sum(
+                len(value)
+                for value
+                in data[
+                    "variations"
+                ].values()
             ),
 
         "total_sentences":
@@ -593,6 +967,99 @@ def search_learned_words(
 
 
 # ============================================================
+# SEARCH LEARNED VARIATIONS
+# ============================================================
+
+def search_learned_variations(
+    message: str,
+    limit: int = 12,
+) -> Dict[str, Any]:
+
+    data = load_database()
+
+    query_words = set(
+        tokenize(
+            message
+        )
+    )
+
+    results = []
+
+    for surface_form, bases in data[
+        "variations"
+    ].items():
+
+        if surface_form not in query_words:
+            continue
+
+        for base, info in bases.items():
+
+            count = int(
+                info.get(
+                    "count",
+                    0,
+                )
+            )
+
+            score = (
+                1200
+                + count
+                + len(base)
+            )
+
+            results.append(
+                (
+                    score,
+                    surface_form,
+                    base,
+                    info,
+                )
+            )
+
+    results.sort(
+        reverse=True,
+        key=lambda item: item[0],
+    )
+
+    output = {}
+
+    for (
+        _,
+        surface_form,
+        base,
+        info,
+    ) in results[:limit]:
+
+        if surface_form not in output:
+
+            output[
+                surface_form
+            ] = []
+
+        output[
+            surface_form
+        ].append(
+            {
+                "base": base,
+                "count": info.get(
+                    "count",
+                    0,
+                ),
+                "relation": info.get(
+                    "relation",
+                    "observed_variation",
+                ),
+                "examples": info.get(
+                    "examples",
+                    [],
+                ),
+            }
+        )
+
+    return output
+
+
+# ============================================================
 # SEARCH LEARNED PHRASES
 # ============================================================
 
@@ -625,10 +1092,19 @@ def search_learned_phrases(
             )
         )
 
+        word_count = len(
+            tokenize(
+                phrase
+            )
+        )
+
         score = (
             1000
             + count
-            + len(phrase)
+            + (
+                word_count
+                * 100
+            )
         )
 
         scored.append(
@@ -656,7 +1132,7 @@ def search_learned_phrases(
 
 
 # ============================================================
-# SEARCH LEARNED CORPUS
+# SEARCH COMPLETE LEARNED CORPUS
 # ============================================================
 
 def search_learned(
@@ -676,11 +1152,17 @@ def search_learned(
                 message,
                 limit,
             ),
+
+        "variations":
+            search_learned_variations(
+                message,
+                limit,
+            ),
     }
 
 
 # ============================================================
-# BUILD GROQ CONTEXT
+# BUILD CONTEXT FOR AI
 # ============================================================
 
 def build_learned_context(
@@ -697,7 +1179,7 @@ def build_learned_context(
     sections = []
 
     # --------------------------------------------------------
-    # WORDS
+    # OBSERVED WORDS
     # --------------------------------------------------------
 
     words = results[
@@ -743,7 +1225,7 @@ def build_learned_context(
         )
 
     # --------------------------------------------------------
-    # PHRASES
+    # OBSERVED PHRASES
     # --------------------------------------------------------
 
     phrases = results[
@@ -788,6 +1270,72 @@ def build_learned_context(
             "\n".join(lines)
         )
 
+    # --------------------------------------------------------
+    # OBSERVED VARIATIONS
+    # --------------------------------------------------------
+
+    variations = results[
+        "variations"
+    ]
+
+    if variations:
+
+        lines = [
+            "OBSERVED MELIMI WORD VARIATIONS:"
+        ]
+
+        for surface, bases in (
+            variations.items()
+        ):
+
+            for item in bases:
+
+                base = item.get(
+                    "base",
+                    "",
+                )
+
+                count = item.get(
+                    "count",
+                    0,
+                )
+
+                relation = item.get(
+                    "relation",
+                    "observed_variation",
+                )
+
+                examples = item.get(
+                    "examples",
+                    [],
+                )
+
+                line = (
+                    f"- {surface}"
+                    f" → possible base: {base}"
+                    f" | observed {count} times"
+                    f" | relation: {relation}"
+                )
+
+                if examples:
+
+                    line += (
+                        f" | example: "
+                        f"{examples[0]}"
+                    )
+
+                lines.append(
+                    line
+                )
+
+        sections.append(
+            "\n".join(lines)
+        )
+
+    # --------------------------------------------------------
+    # LIMIT CONTEXT SIZE
+    # --------------------------------------------------------
+
     context = "\n\n".join(
         sections
     )
@@ -799,6 +1347,68 @@ def build_learned_context(
         ]
 
     return context
+
+
+# ============================================================
+# GET LEARNED EXAMPLES FOR A WORD
+# ============================================================
+
+def get_word_examples(
+    word: str,
+    limit: int = 5,
+) -> List[str]:
+
+    data = load_database()
+
+    word = normalize_word(
+        word
+    )
+
+    info = data[
+        "words"
+    ].get(
+        word
+    )
+
+    if not info:
+
+        return []
+
+    return info.get(
+        "examples",
+        [],
+    )[:limit]
+
+
+# ============================================================
+# GET PHRASE EXAMPLES
+# ============================================================
+
+def get_phrase_examples(
+    phrase: str,
+    limit: int = 5,
+) -> List[str]:
+
+    data = load_database()
+
+    phrase = normalize_text(
+        phrase
+    )
+
+    info = data[
+        "phrases"
+    ].get(
+        phrase
+    )
+
+    if not info:
+
+        return []
+
+    return info.get(
+        "examples",
+        [],
+    )[:limit]
 
 
 # ============================================================
@@ -828,5 +1438,14 @@ def get_learning_stats() -> Dict[str, int]:
         "documents":
             len(
                 data["documents"]
+            ),
+
+        "variations":
+            sum(
+                len(value)
+                for value
+                in data[
+                    "variations"
+                ].values()
             ),
     }
