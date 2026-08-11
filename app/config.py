@@ -1,13 +1,4 @@
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-class Settings:
-    GROQ_TOKEN: str = os.getenv("GROQ_TOKEN", "")
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-    GROQ_URL: str = "https://api.groq.com/openai/v1/chat/completions"import os
 
 from dotenv import load_dotenv
 
@@ -98,7 +89,7 @@ class Settings:
 
 
     # ========================================================
-    # DATA
+    # DATA DIRECTORY
     # ========================================================
 
     DATA_DIR: str = os.path.join(
@@ -120,15 +111,3 @@ if not settings.GROQ_TOKEN:
         "WARNING: GROQ_TOKEN is not set. "
         "Add your Groq token to the environment."
     )
-    MAX_VOCAB_MATCHES: int = int(os.getenv("MAX_VOCAB_MATCHES", "8"))
-    MAX_EXAMPLES: int = int(os.getenv("MAX_EXAMPLES", "5"))
-    MAX_GRAMMAR_MATCHES: int = int(os.getenv("MAX_GRAMMAR_MATCHES", "4"))
-    MAX_PHRASES: int = int(os.getenv("MAX_PHRASES", "5"))
-
-    DATA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-
-
-settings = Settings()
-
-if not settings.GROQ_TOKEN:
-    print("WARNING: GROQ_TOKEN is not set. Add your Groq token to the environment.")
