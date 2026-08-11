@@ -1,297 +1,319 @@
 import json
 import os
 import re
-from typing import Dict, List, Optional
-
-from app.config import settings
+from typing import Any, Dict, List
 
 
 # ============================================================
-# FILE HELPERS
+# PATHS
 # ============================================================
 
-def _path(
-    filename: str,
-) -> str:
-
-    return os.path.join(
-        settings.DATA_DIR,
-        filename,
+BASE_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
     )
+)
 
+DATA_DIR = os.path.join(
+    BASE_DIR,
+    "data",
+)
 
-def _load_json(
-    filename: str,
-):
-
-    path = _path(
-        filename
-    )
-
-
-    if not os.path.exists(path):
-
-        if filename == "grammar.json":
-
-            return {
-                "prefixes": [],
-                "suffixes": [],
-                "reduplication": [],
-            }
-
-
-        return []
-
-
-    with open(
-        path,
-        "r",
-        encoding="utf-8",
-    ) as f:
-
-        return json.load(f)
-
-
-def _save_json(
-    filename: str,
-    data,
-) -> None:
-
-    os.makedirs(
-        settings.DATA_DIR,
-        exist_ok=True,
-    )
-
-
-    with open(
-        _path(filename),
-        "w",
-        encoding="utf-8",
-    ) as f:
-
-        json.dump(
-            data,
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
+VOCABULARY_FILE = os.path.join(
+    DATA_DIR,
+    "vocabulary.json",
+)
 
 
 # ============================================================
-# DATA
+# TELUGU TOKENIZATION
 # ============================================================
 
-VOCABULARY = _load_json(
-    "vocabulary.json"
+TELUGU_WORD_RE = re.compile(
+    r"[\u0C00-\u0C7F]+",
+    re.UNICODE,
 )
 
-GRAMMAR = _load_json(
-    "grammar.json"
-)
 
-EXAMPLES = _load_json(
-    "examples.json"
-)
+def tokenize(
+    text: str,
+) -> List[str]:
 
-PHRASES = _load_json(
-    "phrases.json"
-)
+    return TELUGU_WORD_RE.findall(
+        text or ""
+    )
 
 
 # ============================================================
 # NORMALIZATION
 # ============================================================
 
-def _normalize(
-    value: str,
+def normalize(
+    text: str,
 ) -> str:
 
     return re.sub(
         r"\s+",
         " ",
-        str(value or "")
+        str(text or "")
         .strip()
         .lower(),
     )
 
 
-def _split_alternatives(
-    value: str,
+# ============================================================
+# LOAD VOCABULARY
+# ============================================================
+
+def load_vocabulary() -> List[Dict[str, Any]]:
+
+    if not os.path.exists(
+        VOCABULARY_FILE
+    ):
+
+        raise FileNotFoundError(
+            "vocabulary.json was not found at: "
+            + VOCABULARY_FILE
+        )
+
+    with open(
+        VOCABULARY_FILE,
+        "r",
+        encoding="utf-8",
+    ) as file:
+
+        data = json.load(
+            file
+        )
+
+    # --------------------------------------------------------
+    # Supported structures
+    # --------------------------------------------------------
+
+    if isinstance(
+        data,
+        list,
+    ):
+
+        return data
+
+    if isinstance(
+        data,
+        dict,
+    ):
+
+        if isinstance(
+            data.get("vocabulary"),
+            list,
+        ):
+
+            return data[
+                "vocabulary"
+            ]
+
+        if isinstance(
+            data.get("words"),
+            list,
+        ):
+
+            return data[
+                "words"
+            ]
+
+    raise ValueError(
+        "vocabulary.json must contain "
+        "a JSON list or a 'vocabulary'/'words' list."
+    )
+
+
+VOCABULARY = load_vocabulary()
+
+
+# ============================================================
+# ALTERNATIVE STANDARD FORMS
+# ============================================================
+
+def split_alternatives(
+    value: Any,
 ) -> List[str]:
 
-    """
-    Supports dictionary entries such as:
+    if value is None:
 
-        "swantham, sontham"
-
-        "స్వంతం, సొంతం"
-
-        "స్వంతం / సొంతం"
-
-        "స్వంతం; సొంతం"
-    """
-
-    if not value:
         return []
-
-
-    parts = re.split(
-        r"\s*(?:,|/|;|\|| లేదా )\s*",
-        str(value),
-    )
-
-
-    return [
-        part.strip()
-        for part in parts
-        if part.strip()
-    ]
-
-
-def _entry_standard_forms(
-    entry: Dict,
-) -> List[str]:
-
-    return _split_alternatives(
-        str(
-            entry.get(
-                "standard",
-                "",
-            )
-        )
-    )
-
-
-def _entry_melimi_forms(
-    entry: Dict,
-) -> List[str]:
-
-    return _split_alternatives(
-        str(
-            entry.get(
-                "melimi",
-                "",
-            )
-        )
-    )
-
-
-def _contains_term(
-    text: str,
-    term: str,
-) -> bool:
-
-    text = _normalize(
-        text
-    )
-
-    term = _normalize(
-        term
-    )
-
-
-    if not text or not term:
-        return False
-
-
-    return (
-        term in text
-    )
-
-
-# ============================================================
-# TOKENIZATION
-# ============================================================
-
-_WORD_RE = re.compile(
-    r"[\u0C00-\u0C7F\w]+",
-    re.UNICODE,
-)
-
-
-def _tokenize(
-    text: str,
-) -> List[str]:
-
-    return _WORD_RE.findall(
-        text or ""
-    )
-
-
-# ============================================================
-# SEARCHABLE TEXT
-# ============================================================
-
-def _field_to_text(
-    value,
-) -> str:
 
     if isinstance(
         value,
         list,
     ):
 
-        return " ".join(
-            str(x)
-            for x in value
+        return [
+            normalize(
+                item
+            )
+            for item in value
+            if str(item).strip()
+        ]
+
+    text = str(
+        value
+    ).strip()
+
+    if not text:
+
+        return []
+
+    # --------------------------------------------------------
+    # Examples supported:
+    #
+    # స్వంతం, సొంతం
+    # swantham, sontham
+    # స్వంతం / సొంతం
+    # స్వంతం; సొంతం
+    # స్వంతం | సొంతం
+    # --------------------------------------------------------
+
+    parts = re.split(
+        r"\s*(?:,|/|;|\||\s+లేదా\s+)\s*",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    return [
+        normalize(
+            part
         )
+        for part in parts
+        if part.strip()
+    ]
 
 
-    if isinstance(
-        value,
-        dict,
-    ):
+# ============================================================
+# ENTRY HELPERS
+# ============================================================
 
-        return " ".join(
-            str(x)
-            for x in value.values()
+def standard_forms(
+    entry: Dict[str, Any],
+) -> List[str]:
+
+    return split_alternatives(
+        entry.get(
+            "standard",
+            "",
         )
-
-
-    return str(
-        value or ""
     )
 
 
-def _searchable_entry_text(
-    entry: Dict,
+def melimi_forms(
+    entry: Dict[str, Any],
+) -> List[str]:
+
+    return split_alternatives(
+        entry.get(
+            "melimi",
+            "",
+        )
+    )
+
+
+def searchable_fields(
+    entry: Dict[str, Any],
 ) -> str:
 
     fields = []
 
-    for key in [
+    for key in (
         "standard",
         "melimi",
+        "note",
         "meaning",
         "definition",
         "english",
-        "note",
-        "notes",
-        "description",
         "gloss",
+        "description",
         "example",
         "examples",
         "related",
         "synonyms",
         "tags",
-    ]:
+    ):
 
-        value = _field_to_text(
-            entry.get(
-                key,
-                "",
-            )
+        value = entry.get(
+            key,
+            "",
         )
 
-        if value:
+        if isinstance(
+            value,
+            list,
+        ):
 
-            fields.append(
-                value
+            fields.extend(
+                str(item)
+                for item in value
             )
 
+        elif isinstance(
+            value,
+            dict,
+        ):
 
-    return _normalize(
+            fields.extend(
+                str(item)
+                for item in value.values()
+            )
+
+        else:
+
+            fields.append(
+                str(value)
+            )
+
+    return normalize(
         " ".join(fields)
+    )
+
+
+# ============================================================
+# MATCHING
+# ============================================================
+
+def contains_phrase(
+    text: str,
+    phrase: str,
+) -> bool:
+
+    text = normalize(
+        text
+    )
+
+    phrase = normalize(
+        phrase
+    )
+
+    if not text or not phrase:
+
+        return False
+
+    return phrase in text
+
+
+def exact_word_match(
+    query_words: set,
+    candidate: str,
+) -> bool:
+
+    candidate_words = set(
+        tokenize(
+            candidate
+        )
+    )
+
+    if not candidate_words:
+
+        return False
+
+    return candidate_words.issubset(
+        query_words
     )
 
 
@@ -301,155 +323,144 @@ def _searchable_entry_text(
 
 def retrieve_vocab(
     message: str,
-    limit: int = None,
-) -> List[Dict]:
+    limit: int = 18,
+) -> List[Dict[str, Any]]:
 
-    limit = (
-        limit
-        or settings.MAX_VOCAB_MATCHES
-    )
-
-
-    if not message:
-        return []
-
-
-    message_normalized = _normalize(
+    message = normalize(
         message
     )
 
+    if not message:
 
-    tokens = [
-        _normalize(x)
-        for x in _tokenize(
+        return []
+
+    query_words = set(
+        tokenize(
             message
         )
-    ]
+    )
 
+    if not query_words:
+
+        return []
 
     scored = []
-
 
     for index, entry in enumerate(
         VOCABULARY
     ):
 
-        standard_forms = (
-            _entry_standard_forms(
-                entry
-            )
-        )
+        if not isinstance(
+            entry,
+            dict,
+        ):
 
-        melimi_forms = (
-            _entry_melimi_forms(
-                entry
-            )
-        )
-
-
-        searchable = (
-            _searchable_entry_text(
-                entry
-            )
-        )
-
+            continue
 
         score = 0
 
+        standards = (
+            standard_forms(
+                entry
+            )
+        )
+
+        melimis = (
+            melimi_forms(
+                entry
+            )
+        )
+
+        searchable = (
+            searchable_fields(
+                entry
+            )
+        )
 
         # ----------------------------------------------------
         # STANDARD ALTERNATIVES
         # ----------------------------------------------------
 
-        for standard in standard_forms:
+        for standard in standards:
 
-            if _contains_term(
-                message_normalized,
+            if contains_phrase(
+                message,
                 standard,
-            ):
-
-                score += 180
-
-
-            for token in tokens:
-
-                if (
-                    token
-                    == _normalize(
-                        standard
-                    )
-                ):
-
-                    score += 140
-
-
-        # ----------------------------------------------------
-        # MELIMI FORMS
-        # ----------------------------------------------------
-
-        for melimi in melimi_forms:
-
-            if _contains_term(
-                message_normalized,
-                melimi,
             ):
 
                 score += 200
 
-
-            for token in tokens:
-
-                if (
-                    token
-                    == _normalize(
-                        melimi
-                    )
-                ):
-
-                    score += 150
-
-
-        # ----------------------------------------------------
-        # SEARCHABLE MEANING
-        # ----------------------------------------------------
-
-        for token in tokens:
-
-            if (
-                len(token) >= 3
-                and token in searchable
+            if exact_word_match(
+                query_words,
+                standard,
             ):
 
-                score += 15
-
+                score += 150
 
         # ----------------------------------------------------
-        # ENGLISH / MEANING
+        # MELIMI WORDS
         # ----------------------------------------------------
 
-        for key in [
+        for melimi in melimis:
+
+            if contains_phrase(
+                message,
+                melimi,
+            ):
+
+                score += 250
+
+            if exact_word_match(
+                query_words,
+                melimi,
+            ):
+
+                score += 180
+
+        # ----------------------------------------------------
+        # WORD-LEVEL SEARCH
+        # ----------------------------------------------------
+
+        for word in query_words:
+
+            if len(word) < 2:
+
+                continue
+
+            if word in searchable:
+
+                score += 8
+
+        # ----------------------------------------------------
+        # MEANING / ENGLISH SEARCH
+        # ----------------------------------------------------
+
+        for key in (
             "meaning",
             "definition",
             "english",
-        ]:
+            "gloss",
+        ):
 
-            value = _normalize(
+            value = normalize(
                 entry.get(
                     key,
                     "",
                 )
             )
 
+            if not value:
+
+                continue
 
             if (
-                value
-                and value in message_normalized
+                value in message
+                or message in value
             ):
 
-                score += 70
+                score += 50
 
-
-        if score:
+        if score > 0:
 
             scored.append(
                 (
@@ -459,14 +470,12 @@ def retrieve_vocab(
                 )
             )
 
-
     scored.sort(
-        key=lambda x: (
-            -x[0],
-            x[1],
+        key=lambda item: (
+            -item[0],
+            item[1],
         )
     )
-
 
     return [
         entry
@@ -476,78 +485,373 @@ def retrieve_vocab(
 
 
 # ============================================================
-# RESPONSE CHECKER
+# PHRASE RETRIEVAL
 # ============================================================
 
-def find_standard_melimi_alternatives(
-    response: str,
-    limit: int = None,
-) -> List[Dict]:
+def retrieve_phrase_entries(
+    message: str,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
 
-    limit = (
-        limit
-        or settings.MAX_RESPONSE_CHECKS
+    message = normalize(
+        message
     )
 
+    if not message:
 
-    matches = []
+        return []
 
+    scored = []
 
     for index, entry in enumerate(
         VOCABULARY
     ):
 
-        standard_forms = (
-            _entry_standard_forms(
+        if not isinstance(
+            entry,
+            dict,
+        ):
+
+            continue
+
+        standards = (
+            standard_forms(
                 entry
             )
         )
 
-        melimi_forms = (
-            _entry_melimi_forms(
+        melimis = (
+            melimi_forms(
                 entry
             )
         )
 
+        best_score = 0
 
-        if not standard_forms:
+        for standard in standards:
+
+            word_count = len(
+                tokenize(
+                    standard
+                )
+            )
+
+            if word_count < 2:
+
+                continue
+
+            if contains_phrase(
+                message,
+                standard,
+            ):
+
+                best_score = max(
+                    best_score,
+                    500 + (
+                        word_count * 50
+                    ),
+                )
+
+        for melimi in melimis:
+
+            word_count = len(
+                tokenize(
+                    melimi
+                )
+            )
+
+            if word_count < 2:
+
+                continue
+
+            if contains_phrase(
+                message,
+                melimi,
+            ):
+
+                best_score = max(
+                    best_score,
+                    600 + (
+                        word_count * 50
+                    ),
+                )
+
+        if best_score:
+
+            scored.append(
+                (
+                    best_score,
+                    index,
+                    entry,
+                )
+            )
+
+    scored.sort(
+        key=lambda item: (
+            -item[0],
+            item[1],
+        )
+    )
+
+    return [
+        entry
+        for _, _, entry
+        in scored[:limit]
+    ]
+
+
+# ============================================================
+# FORMAT VOCABULARY FOR GROQ
+# ============================================================
+
+def format_vocab_context(
+    entries: List[Dict[str, Any]],
+    max_chars: int = 6000,
+) -> str:
+
+    lines = []
+
+    for entry in entries:
+
+        standard = str(
+            entry.get(
+                "standard",
+                "",
+            )
+        ).strip()
+
+        melimi = str(
+            entry.get(
+                "melimi",
+                "",
+            )
+        ).strip()
+
+        note = str(
+            entry.get(
+                "note",
+                "",
+            )
+        ).strip()
+
+        meaning = str(
+            entry.get(
+                "meaning",
+                entry.get(
+                    "definition",
+                    entry.get(
+                        "english",
+                        "",
+                    ),
+                ),
+            )
+        ).strip()
+
+        if not (
+            standard
+            or melimi
+        ):
+
             continue
 
-        if not melimi_forms:
+        line = (
+            f"- {standard} "
+            f"→ {melimi}"
+        )
+
+        if meaning:
+
+            line += (
+                f" | meaning: {meaning}"
+            )
+
+        if note:
+
+            line += (
+                f" | note: {note}"
+            )
+
+        lines.append(
+            line
+        )
+
+    context = "\n".join(
+        lines
+    )
+
+    if len(context) > max_chars:
+
+        context = context[
+            :max_chars
+        ]
+
+    return context
+
+
+# ============================================================
+# COMPLETE CONTEXT RETRIEVAL
+# ============================================================
+
+def retrieve_context(
+    message: str,
+) -> Dict[str, Any]:
+
+    vocabulary = retrieve_vocab(
+        message,
+        limit=18,
+    )
+
+    phrases = retrieve_phrase_entries(
+        message,
+        limit=8,
+    )
+
+    # --------------------------------------------------------
+    # Avoid duplicate entries
+    # --------------------------------------------------------
+
+    seen = set()
+
+    combined = []
+
+    for entry in (
+        phrases
+        + vocabulary
+    ):
+
+        marker = (
+            str(
+                entry.get(
+                    "standard",
+                    "",
+                )
+            ),
+            str(
+                entry.get(
+                    "melimi",
+                    "",
+                )
+            ),
+        )
+
+        if marker in seen:
+
             continue
 
+        seen.add(
+            marker
+        )
 
-        for standard in standard_forms:
+        combined.append(
+            entry
+        )
 
-            if not _contains_term(
+    return {
+        "entries": combined,
+        "text": format_vocab_context(
+            combined
+        ),
+    }
+
+
+# ============================================================
+# GET VOCABULARY CONTEXT
+# ============================================================
+
+def get_examples(
+    message: str,
+) -> str:
+
+    context = retrieve_context(
+        message
+    )
+
+    return context[
+        "text"
+    ]
+
+
+# ============================================================
+# FIND STANDARD TERMS IN GENERATED RESPONSE
+# ============================================================
+
+def find_standard_terms(
+    response: str,
+    limit: int = 20,
+) -> List[Dict[str, Any]]:
+
+    response = normalize(
+        response
+    )
+
+    if not response:
+
+        return []
+
+    matches = []
+
+    for index, entry in enumerate(
+        VOCABULARY
+    ):
+
+        if not isinstance(
+            entry,
+            dict,
+        ):
+
+            continue
+
+        standards = (
+            standard_forms(
+                entry
+            )
+        )
+
+        melimis = (
+            melimi_forms(
+                entry
+            )
+        )
+
+        if not standards:
+            continue
+
+        if not melimis:
+            continue
+
+        for standard in standards:
+
+            if not contains_phrase(
                 response,
                 standard,
             ):
 
                 continue
 
+            # ------------------------------------------------
+            # If the Melimi equivalent is already present,
+            # this is not necessarily an error.
+            # ------------------------------------------------
 
-            # If any Melimi equivalent is already
-            # present, don't force correction.
-            already_melimi = any(
-                _contains_term(
+            melimi_present = False
+
+            for melimi in melimis:
+
+                if contains_phrase(
                     response,
                     melimi,
-                )
-                for melimi
-                in melimi_forms
-            )
+                ):
 
+                    melimi_present = True
+                    break
 
-            if already_melimi:
+            if melimi_present:
+
                 continue
-
 
             matches.append(
                 (
-                    len(
-                        standard
-                    ),
+                    len(standard),
                     index,
                     entry,
                 )
@@ -555,14 +859,12 @@ def find_standard_melimi_alternatives(
 
             break
 
-
     matches.sort(
-        key=lambda x: (
-            -x[0],
-            x[1],
+        key=lambda item: (
+            -item[0],
+            item[1],
         )
     )
-
 
     return [
         entry
@@ -572,437 +874,41 @@ def find_standard_melimi_alternatives(
 
 
 # ============================================================
-# GRAMMAR
+# VOCABULARY STATISTICS
 # ============================================================
 
-def retrieve_grammar(
-    message: str,
-    limit: int = None,
-) -> Dict:
-
-    limit = (
-        limit
-        or settings.MAX_GRAMMAR_MATCHES
-    )
-
-
-    tokens = _tokenize(
-        message
-    )
-
-
-    matched_suffixes = []
-    matched_prefixes = []
-    matched_reduplication = []
-
-
-    # --------------------------------------------------------
-    # SUFFIXES
-    # --------------------------------------------------------
-
-    for rule in GRAMMAR.get(
-        "suffixes",
-        [],
-    ):
-
-        suffix = str(
-            rule.get(
-                "suffix",
-                "",
-            )
-        )
-
-
-        variants = _split_alternatives(
-            suffix
-        )
-
-
-        found = False
-
-
-        for variant in variants:
-
-            if variant in message:
-
-                found = True
-                break
-
-
-            for token in tokens:
-
-                if token.endswith(
-                    variant
-                ):
-
-                    found = True
-                    break
-
-
-            if found:
-                break
-
-
-        if found:
-
-            matched_suffixes.append(
-                rule
-            )
-
-
-        if (
-            len(
-                matched_suffixes
-            )
-            >= limit
-        ):
-
-            break
-
-
-    # --------------------------------------------------------
-    # PREFIXES
-    # --------------------------------------------------------
-
-    for rule in GRAMMAR.get(
-        "prefixes",
-        [],
-    ):
-
-        element = str(
-            rule.get(
-                "element",
-                "",
-            )
-        )
-
-
-        variants = _split_alternatives(
-            element
-        )
-
-
-        found = False
-
-
-        for variant in variants:
-
-            if variant in message:
-
-                found = True
-                break
-
-
-            for token in tokens:
-
-                if token.startswith(
-                    variant
-                ):
-
-                    found = True
-                    break
-
-
-            if found:
-                break
-
-
-        if found:
-
-            matched_prefixes.append(
-                rule
-            )
-
-
-        if (
-            len(
-                matched_prefixes
-            )
-            >= limit
-        ):
-
-            break
-
-
-    # --------------------------------------------------------
-    # REDUPLICATION
-    # --------------------------------------------------------
-
-    for rule in GRAMMAR.get(
-        "reduplication",
-        [],
-    ):
-
-        pattern = str(
-            rule.get(
-                "pattern",
-                "",
-            )
-        )
-
-
-        if (
-            pattern
-            and pattern in message
-        ):
-
-            matched_reduplication.append(
-                rule
-            )
-
-
-        if (
-            len(
-                matched_reduplication
-            )
-            >= limit
-        ):
-
-            break
-
+def get_vocabulary_stats() -> Dict[str, int]:
 
     return {
-        "suffixes":
-            matched_suffixes,
+        "entries": len(
+            VOCABULARY
+        ),
 
-        "prefixes":
-            matched_prefixes,
-
-        "reduplication":
-            matched_reduplication,
-    }
-
-
-# ============================================================
-# EXAMPLES / PHRASES
-# ============================================================
-
-def get_examples(
-    limit: int = None,
-) -> List[Dict]:
-
-    return EXAMPLES[
-        :(
-            limit
-            or settings.MAX_EXAMPLES
-        )
-    ]
-
-
-def get_phrases(
-    limit: int = None,
-) -> List[Dict]:
-
-    return PHRASES[
-        :(
-            limit
-            or settings.MAX_PHRASES
-        )
-    ]
-
-
-# ============================================================
-# ROOT CANDIDATES
-# ============================================================
-
-def find_root_candidates(
-    message: str,
-) -> List[str]:
-
-    return [
-        token
-        for token
-        in _tokenize(message)
-        if re.search(
-            r"[\u0C00-\u0C7F]",
-            token,
-        )
-    ]
-
-
-# ============================================================
-# LEARNING
-# ============================================================
-
-def add_vocab_entry(
-    standard: str,
-    melimi: str,
-    note: str = "",
-) -> bool:
-
-    global VOCABULARY
-
-
-    for entry in VOCABULARY:
-
-        if (
-            _normalize(
-                entry.get(
-                    "standard",
-                    "",
+        "standard_forms": sum(
+            len(
+                standard_forms(
+                    entry
                 )
             )
-            ==
-            _normalize(
-                standard
+            for entry
+            in VOCABULARY
+            if isinstance(
+                entry,
+                dict,
             )
-            and
-            _normalize(
-                entry.get(
-                    "melimi",
-                    "",
+        ),
+
+        "melimi_forms": sum(
+            len(
+                melimi_forms(
+                    entry
                 )
             )
-            ==
-            _normalize(
-                melimi
+            for entry
+            in VOCABULARY
+            if isinstance(
+                entry,
+                dict,
             )
-        ):
-
-            return False
-
-
-    VOCABULARY.append(
-        {
-            "standard":
-                standard,
-
-            "melimi":
-                melimi,
-
-            "note":
-                note,
-        }
-    )
-
-
-    _save_json(
-        "vocabulary.json",
-        VOCABULARY,
-    )
-
-
-    return True
-
-
-def add_grammar_rule(
-    kind: str,
-    element: str,
-    meaning: str,
-    examples: Optional[
-        List[str]
-    ] = None,
-    note: str = "",
-) -> bool:
-
-    if kind not in (
-        "prefixes",
-        "suffixes",
-        "reduplication",
-    ):
-
-        raise ValueError(
-            "Invalid grammar kind"
-        )
-
-
-    key = (
-        "suffix"
-        if kind == "suffixes"
-        else (
-            "element"
-            if kind == "prefixes"
-            else "pattern"
-        )
-    )
-
-
-    bucket = GRAMMAR.setdefault(
-        kind,
-        [],
-    )
-
-
-    for entry in bucket:
-
-        if (
-            entry.get(
-                key
-            )
-            == element
-        ):
-
-            return False
-
-
-    entry = {
-        key:
-            element,
-
-        "meaning":
-            meaning,
-
-        "examples":
-            examples or [],
+        ),
     }
-
-
-    if note:
-
-        entry["note"] = note
-
-
-    bucket.append(
-        entry
-    )
-
-
-    _save_json(
-        "grammar.json",
-        GRAMMAR,
-    )
-
-
-    return True
-
-
-def add_phrase(
-    standard: str,
-    melimi: str,
-) -> bool:
-
-    for entry in PHRASES:
-
-        if (
-            entry.get(
-                "standard"
-            )
-            == standard
-            and
-            entry.get(
-                "melimi"
-            )
-            == melimi
-        ):
-
-            return False
-
-
-    PHRASES.append(
-        {
-            "standard":
-                standard,
-
-            "melimi":
-                melimi,
-        }
-    )
-
-
-    _save_json(
-        "phrases.json",
-        PHRASES,
-    )
-
-
-    return True
