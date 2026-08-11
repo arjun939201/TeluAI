@@ -7,7 +7,7 @@ from app.config import settings
 async def call_groq(system_prompt: str, history: List[Dict], user_message: str) -> str:
     if not settings.GROQ_TOKEN:
         raise RuntimeError(
-            "GROQ_API_KEY is not set. Copy .env.example to .env and add your free Groq key "
+            "GROQ_TOKEN is not set. Copy .env.example to .env and add your free Groq key "
             "from https://console.groq.com"
         )
 
