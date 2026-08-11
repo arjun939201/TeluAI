@@ -10,6 +10,8 @@ class Settings:
     GROQ_URL: str = "https://api.groq.com/openai/v1/chat/completions"
     MAX_VOCAB_MATCHES: int = int(os.getenv("MAX_VOCAB_MATCHES", "8"))
     MAX_EXAMPLES: int = int(os.getenv("MAX_EXAMPLES", "5"))
+    MAX_GRAMMAR_MATCHES: int = int(os.getenv("MAX_GRAMMAR_MATCHES", "4"))
+    MAX_PHRASES: int = int(os.getenv("MAX_PHRASES", "5"))
 
     DATA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
