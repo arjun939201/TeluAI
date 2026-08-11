@@ -5,7 +5,7 @@ load_dotenv()
 
 
 class Settings:
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_TOKEN: str = os.getenv("GROQ_TOKEN", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
     GROQ_URL: str = "https://api.groq.com/openai/v1/chat/completions"
     MAX_VOCAB_MATCHES: int = int(os.getenv("MAX_VOCAB_MATCHES", "8"))
@@ -16,7 +16,5 @@ class Settings:
 
 settings = Settings()
 
-if not settings.GROQ_API_KEY:
-    # Not raising here so the app can still boot (e.g. for local frontend
-    # testing of non-chat routes) - the /chat call itself will fail clearly.
-    print("WARNING: GROQ_API_KEY is not set. Copy .env.example to .env and add your key.")
+if not settings.GROQ_TOKEN:
+    print("WARNING: GROQ_TOKEN is not set. Add your Groq token to the environment.")
