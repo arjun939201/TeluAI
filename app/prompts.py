@@ -538,3 +538,33 @@ DRAFT:
 
 Return only the corrected answer.
 """
+
+def add_learned_context(
+    system_prompt: str,
+    learned_context: str,
+) -> str:
+
+    if not learned_context:
+        return system_prompt
+
+
+    return (
+        system_prompt
+        + "\n\n"
+        + """
+CORPUS-LEARNED MELIMI USAGE
+
+The following information was learned from actual Melimi texts.
+
+Use it as corpus evidence.
+
+Important:
+- learned usage is evidence, not automatically an official dictionary rule;
+- prefer confirmed vocabulary.json mappings when they conflict;
+- use repeated phrases and variations when they naturally fit;
+- do not invent a new meaning merely because a word appeared once;
+- understand surface variations as possible forms of their lexical base.
+
+"""
+        + learned_context
+    )
