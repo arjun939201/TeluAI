@@ -5,67 +5,57 @@
     "note": "greeting"
   },
   {
-    "standard": "సహాయం",
-    "melimi": "బాసట",
-    "note": "help"
+    "standard": "సాయం",
+    "melimi": "తోడ్పాటు",
+    "note": "help / assistance"
   },
   {
-    "standard": "విషయం",
-    "melimi": "ఎడాటం",
-    "note": "matter/topic"
-  },
-  {
-    "standard": "ఆసక్తికరం",
-    "melimi": "హాళికాను",
-    "note": "interesting"
-  },
-  {
-    "standard": "effect / impact / influence",
+    "standard": "ప్రభావం",
     "melimi": "హత్తరం",
-    "note": "effect"
+    "note": "effect / impact / influence"
   },
   {
-    "standard": "problem",
-    "melimi": "చిక్కు",
-    "note": "problem"
-  },
-  {
-    "standard": "system",
+    "standard": "వ్యవస్థ",
     "melimi": "అమరం",
     "note": "system"
   },
   {
-    "standard": "concept / thought",
+    "standard": "భావం",
     "melimi": "మెదలం",
-    "note": "concept"
+    "note": "concept / thought"
   },
   {
-    "standard": "technology",
+    "standard": "సాంకేతికత",
     "melimi": "బిసెర్మి",
     "note": "technology"
   },
   {
-    "standard": "natural",
+    "standard": "సహజం",
     "melimi": "తనకం",
     "note": "natural"
   },
   {
-    "standard": "clear / clarity",
+    "standard": "స్పష్టం",
     "melimi": "తేట",
     "note": "clear"
   },
   {
-    "standard": "complete",
+    "standard": "సమగ్రం",
+    "melimi": "ఎల్తరం",
+    "note": "comprehensive"
+  },
+  {
+    "standard": "పూర్తి",
     "melimi": "ఐనిండు",
     "note": "complete"
   },
   {
-    "standard": "best",
-    "melimi": "మేలిమి",
-    "note": "best"
+    "standard": "బలం",
+    "melimi": "పోతరం / బలిమి",
+    "note": "strength"
   },
   {
-    "standard": "dangerous",
+    "standard": "ప్రమాదకరం",
     "melimi": "ముప్పుకాను",
     "note": "dangerous"
   },
@@ -75,14 +65,69 @@
     "note": "developer"
   },
   {
-    "standard": "grateful",
+    "standard": "కృతజ్ఞుడు",
     "melimi": "నెనరువాను",
-    "note": "grateful"
+    "note": "grateful person"
+  },
+  {
+    "standard": "అదృష్టవంతుడు",
+    "melimi": "ప్రాయివాను",
+    "note": "fortunate person"
+  },
+  {
+    "standard": "భౌతికము",
+    "melimi": "మైవాను",
+    "note": "physical"
+  },
+  {
+    "standard": "విజేత",
+    "melimi": "గెలువాను",
+    "note": "winner"
+  },
+  {
+    "standard": "ప్రభావవంతమైన",
+    "melimi": "హత్తరకాను",
+    "note": "effective"
+  },
+  {
+    "standard": "ప్రభావశీలమైన",
+    "melimi": "హత్తరమారి",
+    "note": "influential"
   },
   {
     "standard": "Galaxy",
     "melimi": "మిన్వాఁక",
     "note": "galaxy"
+  },
+  {
+    "standard": "Star cluster",
+    "melimi": "మిణుగుత్తి",
+    "note": "star cluster"
+  },
+  {
+    "standard": "Meteor",
+    "melimi": "సిరిక",
+    "note": "meteor"
+  },
+  {
+    "standard": "Comet",
+    "melimi": "తోకజుక్క",
+    "note": "comet"
+  },
+  {
+    "standard": "Asteroid",
+    "melimi": "విన్నరవ",
+    "note": "asteroid"
+  },
+  {
+    "standard": "Milky Way",
+    "melimi": "పాలపుంత / పాలవెల్లి",
+    "note": "milky way"
+  },
+  {
+    "standard": "Solar System",
+    "melimi": "నెసరమరం",
+    "note": "solar system"
   },
   {
     "standard": "Sun",
@@ -93,6 +138,16 @@
     "standard": "Moon",
     "melimi": "జాబిలి",
     "note": "moon"
+  },
+  {
+    "standard": "Mercury",
+    "melimi": "నెలాత",
+    "note": "mercury"
+  },
+  {
+    "standard": "Venus",
+    "melimi": "వేగుపలి",
+    "note": "venus"
   },
   {
     "standard": "Mars",
@@ -115,6 +170,26 @@
     "note": "saturn"
   },
   {
+    "standard": "Rahu",
+    "melimi": "మాతి",
+    "note": "rahu"
+  },
+  {
+    "standard": "Ketu",
+    "melimi": "సీదరం",
+    "note": "ketu"
+  },
+  {
+    "standard": "best",
+    "melimi": "మేలిమి",
+    "note": "best"
+  },
+  {
+    "standard": "problem",
+    "melimi": "చిక్కు",
+    "note": "problem"
+  },
+  {
     "standard": "language",
     "melimi": "నుడి",
     "note": "language"
@@ -135,46 +210,6 @@
     "note": "understanding"
   },
   {
-    "standard": "analysis",
-    "melimi": "విరలింపు",
-    "note": "analysis"
-  },
-  {
-    "standard": "explanation",
-    "melimi": "విడఁబర్పు",
-    "note": "explanation"
-  },
-  {
-    "standard": "opinion",
-    "melimi": "అనుకోలు",
-    "note": "opinion"
-  },
-  {
-    "standard": "intention",
-    "melimi": "గుఱికోలు",
-    "note": "intention"
-  },
-  {
-    "standard": "attention",
-    "melimi": "ఆలకం",
-    "note": "attention"
-  },
-  {
-    "standard": "question",
-    "melimi": "మల్క",
-    "note": "question"
-  },
-  {
-    "standard": "answer",
-    "melimi": "మార్పలుకు",
-    "note": "answer"
-  },
-  {
-    "standard": "friend",
-    "melimi": "నేస్తం",
-    "note": "friend"
-  },
-  {
     "standard": "friendship",
     "melimi": "చెలిమి",
     "note": "friendship"
@@ -186,28 +221,13 @@
   },
   {
     "standard": "happy",
-    "melimi": "అలరాటం / పొంగు / మురుపు",
+    "melimi": "మురుపు",
     "note": "happy"
-  },
-  {
-    "standard": "anger",
-    "melimi": "కినుకు / అలక / అలుక",
-    "note": "anger"
-  },
-  {
-    "standard": "fear",
-    "melimi": "వెఱపు / దడుపు",
-    "note": "fear"
   },
   {
     "standard": "life",
     "melimi": "బ్రదుకు",
     "note": "life"
-  },
-  {
-    "standard": "death",
-    "melimi": "చావు",
-    "note": "death"
   },
   {
     "standard": "fire",
@@ -223,11 +243,6 @@
     "standard": "air",
     "melimi": "గాలి",
     "note": "air"
-  },
-  {
-    "standard": "earth",
-    "melimi": "నేల",
-    "note": "earth"
   },
   {
     "standard": "sky",

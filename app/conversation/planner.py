@@ -1,33 +1,19 @@
+
 from typing import Dict
 
 
-def plan_natural_response(understanding: Dict[str, object]) -> str:
-    intent = str(understanding.get("intent", ""))
+def plan_response(understanding: Dict) -> str:
+    intent = understanding.get("intent", "")
 
-    if intent == "clarification_request":
-        return (
-            "Clarify what the assistant just asked or meant. "
-            "Do not reinterpret the clarification as a new subject."
-        )
-
-    if intent == "agreement":
-        return (
-            "Acknowledge the agreement naturally. Continue only if the "
-            "conversation gives a reason; do not automatically ask another generic question."
-        )
-
-    if intent == "acknowledgement":
-        return (
-            "Treat this as an acknowledgement whose exact meaning depends on context. "
-            "Respond to the previous turn rather than inventing a new topic."
-        )
-
-    if intent == "continue_request":
-        return (
-            "Continue the current topic or explain further. Do not restart the conversation."
-        )
-
-    return (
-        "Answer the user's current meaning in context. Prefer a direct, natural turn "
-        "over a generic conversation starter."
+    plans = {
+        "clarification_request": "Clarify the immediately previous question or statement. Do not invent a new subject.",
+        "agreement": "Acknowledge agreement naturally. Continue the current topic only if it has a natural next step.",
+        "acknowledgement": "Treat the reply as context-dependent acknowledgement and react to the previous turn.",
+        "continue_current_topic": "Continue or explain the current topic. Do not restart with a generic question.",
+        "nothing_or_negative": "Accept the user's response naturally. Do not force an unrelated activity or topic.",
+        "greeting": "Return a natural greeting appropriate to the current tone.",
+    }
+    return plans.get(
+        intent,
+        "Respond directly to the user's meaning and context. Introduce a question only when conversationally useful.",
     )

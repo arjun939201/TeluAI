@@ -5,17 +5,17 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Settings:
-    GROQ_TOKEN: str = os.getenv("GROQ_TOKEN", "").strip()
-    GROQ_URL: str = os.getenv(
-        "GROQ_URL",
-        "https://api.groq.com/openai/v1/chat/completions",
+    groq_token: str = os.getenv("GROQ_TOKEN", "").strip()
+    groq_url: str = os.getenv(
+        "GROQ_URL", "https://api.groq.com/openai/v1/chat/completions"
     ).strip()
-    GROQ_MODEL: str = os.getenv(
-        "GROQ_MODEL",
-        "llama-3.3-70b-versatile",
+    groq_model: str = os.getenv(
+        "GROQ_MODEL", "llama-3.3-70b-versatile"
     ).strip()
-    MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "10"))
-    MAX_CONTEXT_CHARS: int = int(os.getenv("MAX_CONTEXT_CHARS", "7000"))
+    max_history_turns: int = int(os.getenv("MAX_HISTORY_TURNS", "12"))
+    max_context_chars: int = int(os.getenv("MAX_CONTEXT_CHARS", "6500"))
+    max_memory_items: int = int(os.getenv("MAX_MEMORY_ITEMS", "12"))
+    temperature: float = float(os.getenv("GROQ_TEMPERATURE", "0.78"))
 
 
 settings = Settings()

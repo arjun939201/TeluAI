@@ -1,58 +1,61 @@
+
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import Dict, List
 
 
 @dataclass
-class ConversationTurn:
+class Turn:
     role: str
     content: str
 
 
 @dataclass
 class ConversationState:
-    """Small, derived state used to understand the next user turn.
-
-    It is deliberately separate from raw chat history. The state describes
-    what is currently open in the conversation rather than merely repeating
-    previous messages.
-    """
-    topic: Optional[str] = None
-    last_user_intent: Optional[str] = None
-    last_assistant_intent: Optional[str] = None
-    open_question: Optional[str] = None
-    pending_reference: Optional[str] = None
+    topic: str = ""
+    open_question: str = ""
+    last_user_intent: str = ""
+    last_assistant_intent: str = ""
     tone: str = "casual"
-    recent_turns: List[ConversationTurn] = field(default_factory=list)
+    recent: List[Turn] = field(default_factory=list)
 
-    def add_turn(self, role: str, content: str, limit: int = 8) -> None:
-        self.recent_turns.append(ConversationTurn(role, content))
-        self.recent_turns = self.recent_turns[-limit:]
+    def add(self, role: str, content: str, limit: int = 10):
+        self.recent.append(Turn(role, content))
+        self.recent = self.recent[-limit:]
+
+    def last_assistant(self) -> str:
+        for turn in reversed(self.recent):
+            if turn.role == "assistant":
+                return turn.content
+        return ""
+
+    def last_user(self) -> str:
+        for turn in reversed(self.recent):
+            if turn.role == "user":
+                return turn.content
+        return ""
 
     def context_text(self) -> str:
-        lines = [
+        return "\n".join([
             "CONVERSATION STATE:",
-            f"- topic: {self.topic or 'not established'}",
-            f"- last user intent: {self.last_user_intent or 'unknown'}",
-            f"- last assistant intent: {self.last_assistant_intent or 'unknown'}",
-            f"- open question: {self.open_question or 'none'}",
-            f"- pending reference: {self.pending_reference or 'none'}",
+            f"- topic: {self.topic or '(not established)'}",
+            f"- open question: {self.open_question or '(none)'}",
+            f"- last user intent: {self.last_user_intent or '(unknown)'}",
             f"- tone: {self.tone}",
-        ]
-        return "\n".join(lines)
+        ])
 
 
-def infer_open_question(assistant_text: str) -> Optional[str]:
-    """Conservative local detection of an unanswered question.
+def from_history(history: List[Dict]) -> ConversationState:
+    state = ConversationState()
+    for item in (history or [])[-10:]:
+        if not isinstance(item, dict):
+            continue
+        if item.get("role") in {"user", "assistant"} and isinstance(item.get("content"), str):
+            state.add(item["role"], item["content"].strip())
 
-    This is not a full parser. It supplies a useful hint without another
-    LLM/API request.
-    """
-    text = (assistant_text or "").strip()
-    if not text:
-        return None
-
-    question_mark = "?" in text or "？" in text
-    if not question_mark:
-        return None
-
-    return text
+    assistant = state.last_assistant()
+    if assistant and (
+        "?" in assistant or "？" in assistant
+        or any(x in assistant for x in ("ఏంటి", "ఏమి", "ఎలా", "ఎందుకు", "ఎక్కడ", "ఎప్పుడు"))
+    ):
+        state.open_question = assistant
+    return state

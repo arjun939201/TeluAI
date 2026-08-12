@@ -1,1 +1,1 @@
-"""Conversation intelligence layer for TeluAI."""
+"""Conversation intelligence package."""

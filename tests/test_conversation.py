@@ -1,15 +1,19 @@
 
-from app.conversation import TurnState, infer_intent
+from app.conversation.state import ConversationState
+from app.conversation.understanding import infer_intent
 
 
 def test_enti_after_question_is_clarification():
-    state = TurnState(last_assistant="నీవు ఏమైనా ఆలోచిస్తున్నావా?", open_question="నీవు ఏమైనా ఆలోచిస్తున్నావా?")
-    assert infer_intent("enti", state) == "clarification_request"
+    state = ConversationState(
+        open_question="నీవు ఏమైనా ఆలోచిస్తున్నావా?"
+    )
+    result = infer_intent("enti", state)
+    assert result["intent"] == "clarification_request"
 
 
-def test_sare_is_agreement():
-    assert infer_intent("sare", TurnState()) == "agreement"
+def test_sare():
+    assert infer_intent("sare", ConversationState())["intent"] == "agreement"
 
 
-def test_cheppu_continues_current_topic():
-    assert infer_intent("cheppu", TurnState()) == "continue_current_topic"
+def test_cheppu():
+    assert infer_intent("cheppu", ConversationState())["intent"] == "continue_current_topic"

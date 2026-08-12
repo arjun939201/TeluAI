@@ -1,105 +1,98 @@
+
 import re
-from typing import Dict, Optional
+from typing import Dict
 
-from .state import ConversationState
+from app.conversation.state import ConversationState
+from app.linguistics.normalizer import normalize_roman_telugu
 
 
-SHORT_INPUTS = {
-    "enti": {"clarification", "question"},
-    "emiti": {"clarification", "question"},
-    "em": {"clarification", "question"},
-    "haa": {"acknowledgement"},
-    "haaa": {"acknowledgement"},
-    "sare": {"agreement"},
-    "okay": {"agreement"},
-    "ok": {"agreement"},
-    "avunu": {"agreement"},
-    "cheppu": {"request_to_continue"},
-    "inka": {"request_to_continue"},
-    "emledhu": {"negative_or_nothing"},
-    "em ledu": {"negative_or_nothing"},
-    "nothing": {"negative_or_nothing"},
+SHORT_INTENTS = {
+    "hi": "greeting", "hello": "greeting", "hey": "greeting",
+    "హాయ్": "greeting", "హలో": "greeting",
+    "haa": "acknowledgement", "haaa": "acknowledgement", "హా": "acknowledgement",
+    "sare": "agreement", "ok": "agreement", "okay": "agreement", "సరే": "agreement",
+    "avunu": "agreement", "అవును": "agreement",
+    "cheppu": "continue_current_topic", "చెప్పు": "continue_current_topic",
+    "inka": "continue_current_topic", "ఇంకా": "continue_current_topic",
+    "emle": "nothing_or_negative", "emledu": "nothing_or_negative",
+    "emledhu": "nothing_or_negative", "nothing": "nothing_or_negative",
+    "ఏంలేదు": "nothing_or_negative",
 }
 
 
-def _normalized(text: str) -> str:
+def _key(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").strip().lower())
 
 
-def understand_user_turn(
-    user_text: str,
-    state: ConversationState,
-) -> Dict[str, object]:
-    """Interpret the current turn relative to the current conversation.
+def infer_intent(text: str, state: ConversationState) -> Dict:
+    key = _key(text)
+    normalized = normalize_roman_telugu(text)
 
-    Critical rule: short/ambiguous inputs are interpreted with the previous
-    assistant turn and open question, not as isolated dictionary entries.
-    """
-    raw = user_text.strip()
-    key = _normalized(raw)
-
-    candidates = SHORT_INPUTS.get(key, set())
-    previous = state.recent_turns[-1].content if state.recent_turns else ""
-
-    if key in {"enti", "emiti", "em"}:
-        if state.open_question or previous:
+    # Contextual clarification is intentionally checked before generic "what".
+    if key in {"enti", "emiti", "em"} or normalized in {"ఏంటి", "ఏమిటి", "ఏం"}:
+        if state.open_question:
             return {
-                "meaning": "The user is asking for clarification about the previous message/question.",
                 "intent": "clarification_request",
                 "confidence": "high",
-                "candidates": sorted(candidates),
+                "meaning": "The user is asking what the assistant meant by its previous question/message.",
             }
         return {
-            "meaning": "The user is asking 'what?' or asking for clarification.",
-            "intent": "question",
+            "intent": "what_question",
             "confidence": "medium",
-            "candidates": sorted(candidates),
+            "meaning": "The user is asking what something is or what was meant.",
         }
 
-    if key in {"haa", "haaa"}:
+    intent = SHORT_INTENTS.get(key) or SHORT_INTENTS.get(normalized)
+    if intent:
         return {
-            "meaning": "The user is acknowledging/agreeing with the previous turn; exact force depends on context.",
-            "intent": "acknowledgement",
+            "intent": intent,
             "confidence": "medium",
-            "candidates": sorted(candidates),
+            "meaning": "Interpret this conversational move in the current context.",
         }
 
-    if key == "sare":
-        return {
-            "meaning": "The user is accepting or agreeing with the previous turn.",
-            "intent": "agreement",
-            "confidence": "medium",
-            "candidates": sorted(candidates),
-        }
-
-    if key in {"cheppu", "inka"}:
-        return {
-            "meaning": "The user wants the assistant to continue, tell more, or explain further.",
-            "intent": "continue_request",
-            "confidence": "medium",
-            "candidates": sorted(candidates),
-        }
+    low = normalized.lower()
+    if "ఎందుకు" in low:
+        intent = "why_question"
+    elif "ఎలా" in low:
+        intent = "how_question"
+    elif "ఎక్కడ" in low:
+        intent = "where_question"
+    elif "ఎప్పుడు" in low:
+        intent = "when_question"
+    elif "ఎవరు" in low:
+        intent = "who_question"
+    elif "?" in text or "？" in text:
+        intent = "question"
+    elif any(x in low for x in ("ధన్యవాద", "నెనరు")):
+        intent = "gratitude"
+    else:
+        intent = "contextual_statement"
 
     return {
-        "meaning": "Interpret the message from the complete conversation, not from isolated word lookup.",
-        "intent": "contextual_understanding",
-        "confidence": "unknown",
-        "candidates": sorted(candidates),
+        "intent": intent,
+        "confidence": "medium",
+        "meaning": "Interpret the message using the full conversation and linguistic context.",
     }
 
 
-def build_understanding_context(
-    user_text: str,
-    state: ConversationState,
-) -> str:
-    result = understand_user_turn(user_text, state)
-
+def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
+    result = infer_intent(text, state)
     return "\n".join([
-        "CONTEXTUAL USER UNDERSTANDING:",
-        f"- user input: {user_text.strip()}",
-        f"- interpreted meaning: {result['meaning']}",
-        f"- intent: {result['intent']}",
+        "CONTEXTUAL UNDERSTANDING:",
+        f"- user input: {text.strip()}",
+        f"- normalized hint: {linguistic.get('normalized', '')}",
+        f"- sentence force: {linguistic.get('sentence_force', 'unknown')}",
+        f"- question type: {linguistic.get('question_type', 'unknown')}",
+        f"- contextual intent: {result['intent']}",
         f"- confidence: {result['confidence']}",
-        "- IMPORTANT: do not treat a short reply as an independent new topic when it naturally responds to the previous turn.",
-        "- Answer the user's actual conversational move before introducing a new topic.",
+        f"- meaning: {result['meaning']}",
+        f"- previous assistant: {state.last_assistant() or '(none)'}",
+        f"- open question: {state.open_question or '(none)'}",
+        "",
+        "CONVERSATION RULES:",
+        "- Interpret short replies from the previous turn, not as isolated dictionary entries.",
+        "- If the assistant asked a question and the user says enti/emiti/em, normally clarify the previous question.",
+        "- Answer the user's current conversational move before changing topic.",
+        "- Do not ask a generic follow-up after every answer.",
+        "- Do not copy previous assistant wording.",
     ])

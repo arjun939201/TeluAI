@@ -1,20 +1,28 @@
 
 import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.models import ChatRequest, ChatResponse, HealthResponse
-from app.language import normalize_roman_telugu
-from app.conversation import build_state, infer_intent, understanding_context
-from app.knowledge import load_vocabulary, retrieve, format_knowledge, audit_melimi
-from app.prompts import build_system_prompt
+from app.linguistics.normalizer import analyze_input
+from app.linguistics.parser import extract_linguistic_hints
+from app.conversation.state import from_history
+from app.conversation.understanding import infer_intent, build_context
+from app.conversation.planner import plan_response
+from app.memory.manager import extract_memory_candidates, format_memory
+from app.retrieval.knowledge import load_vocabulary, retrieve, format_knowledge
+from app.melimi.grammar import grammar_policy
+from app.melimi.validator import audit_melimi
+from app.prompts import build_prompt
 from app.groq_client import call_groq
+from app.response import clean_response
 
 
-app = FastAPI(title="TeluAI — Natural Standard & Melimi Telugu AI")
+app = FastAPI(title="TeluAI — Standard & Melimi Telugu AI")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,17 +33,16 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
-
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/")
 def home():
-    path = os.path.join(STATIC_DIR, "index.html")
-    if not os.path.exists(path):
-        raise HTTPException(404, "index.html not found")
-    return FileResponse(path)
+    target = os.path.join(STATIC_DIR, "index.html")
+    if not os.path.exists(target):
+        raise HTTPException(404, "Frontend not found.")
+    return FileResponse(target)
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -43,50 +50,78 @@ def health():
     return HealthResponse(
         status="ok",
         service="TeluAI",
-        corpus_entries=len(load_vocabulary()),
+        vocabulary_entries=len(load_vocabulary()),
     )
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
-    message = req.message.strip()
+async def chat(request: ChatRequest):
+    message = request.message.strip()
     if not message:
         raise HTTPException(400, "Message cannot be empty.")
 
-    history = [x.model_dump() for x in req.history]
-    state = build_state(history)
-    intent = infer_intent(message, state)
-    conversation = understanding_context(message, state)
+    history = [turn.model_dump() for turn in request.history]
 
-    # Local retrieval is deliberately compact. The LLM receives knowledge,
-    # not a pile of unrelated data.
-    entries = retrieve(message, limit=18) if req.mode == "melimi" else []
-    knowledge = format_knowledge(entries, max_chars=settings.MAX_CONTEXT_CHARS)
+    state = from_history(history)
+    linguistic = extract_linguistic_hints(message)
+    input_info = analyze_input(message)
+    understanding = infer_intent(message, state)
+    conversation = build_context(message, state, linguistic)
+    plan = plan_response(understanding)
 
-    # Roman-Telugu normalization is a local hint; the original user message
-    # remains the actual message sent to the model.
-    if req.mode == "melimi":
-        conversation += "\n- Roman/normalized hint: " + normalize_roman_telugu(message)
+    candidates = extract_memory_candidates(history, settings.max_memory_items)
+    memory = format_memory(candidates)
 
-    system_prompt = build_system_prompt(
-        mode=req.mode,
-        knowledge=knowledge,
+    knowledge_entries = retrieve(message, limit=24) if request.mode == "melimi" else []
+    knowledge = (
+        format_knowledge(
+            knowledge_entries,
+            max_chars=settings.max_context_chars,
+        )
+        if request.mode == "melimi"
+        else ""
+    )
+
+    linguistic_text = "\n".join([
+        f"- normalized input: {linguistic['normalized']}",
+        f"- tokens: {linguistic['tokens']}",
+        f"- sentence force: {linguistic['sentence_force']}",
+        f"- question type: {linguistic['question_type']}",
+        f"- negation hint: {linguistic['negation_hint']}",
+        f"- first-person hint: {linguistic['first_person_hint']}",
+        f"- second-person hint: {linguistic['second_person_hint']}",
+        f"- Roman/mixed input signals: {input_info}",
+    ])
+
+    prompt = build_prompt(
+        mode=request.mode,
         conversation=conversation,
+        linguistics=linguistic_text,
+        memory=memory,
+        knowledge=knowledge,
+        grammar=grammar_policy() if request.mode == "melimi" else "",
+        plan=plan,
     )
 
     try:
-        reply = await call_groq(system_prompt, history, message)
+        reply = await call_groq(prompt, history, message)
     except RuntimeError as exc:
         raise HTTPException(502, str(exc))
     except Exception as exc:
         raise HTTPException(502, f"AI request failed: {exc}")
 
-    audit = audit_melimi(reply) if req.mode == "melimi" else {}
+    reply = clean_response(reply)
+    audit = audit_melimi(reply) if request.mode == "melimi" else {}
 
     return ChatResponse(
         reply=reply,
-        mode=req.mode,
-        understanding=intent,
-        intent=intent,
+        mode=request.mode,
+        intent=understanding["intent"],
+        understanding={
+            "meaning": understanding["meaning"],
+            "confidence": understanding["confidence"],
+            "linguistics": linguistic,
+            "response_plan": plan,
+        },
         language_audit=audit,
     )
