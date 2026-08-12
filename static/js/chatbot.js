@@ -1,95 +1,251 @@
-const chatContainer = document.getElementById("chatContainer");
-const welcome = document.getElementById("welcome");
-const chatForm = document.getElementById("chatForm");
-const messageInput = document.getElementById("messageInput");
-const sendButton = document.getElementById("sendButton");
+const chatContainer =
+    document.getElementById("chatContainer");
 
-const clearButton = document.getElementById("clearButton");
-const mobileNewChat = document.getElementById("mobileNewChat");
+const welcome =
+    document.getElementById("welcome");
 
-const standardMode = document.getElementById("standardMode");
-const melimiMode = document.getElementById("melimiMode");
-const modelName = document.getElementById("modelName");
+const chatForm =
+    document.getElementById("chatForm");
+
+const messageInput =
+    document.getElementById("messageInput");
+
+const sendButton =
+    document.getElementById("sendButton");
+
+const clearButton =
+    document.getElementById("clearButton");
+
+const mobileNewChat =
+    document.getElementById("mobileNewChat");
+
+const standardMode =
+    document.getElementById("standardMode");
+
+const melimiMode =
+    document.getElementById("melimiMode");
+
+const modelName =
+    document.getElementById("modelName");
+
 
 let mode = "melimi";
+
 let history = [];
+
 let isSending = false;
 
 
-/* =========================
-   MODE
-========================= */
+// ============================================================
+// MODE
+// ============================================================
 
 function setMode(newMode) {
+
+    if (
+        newMode !== "standard" &&
+        newMode !== "melimi"
+    ) {
+        return;
+    }
+
+
+    const changed =
+        mode !== newMode;
+
+
     mode = newMode;
 
-    standardMode.classList.toggle(
-        "active",
-        mode === "standard"
-    );
 
-    melimiMode.classList.toggle(
-        "active",
-        mode === "melimi"
-    );
+    // --------------------------------------------------------
+    // Update buttons
+    // --------------------------------------------------------
+
+    if (standardMode) {
+
+        standardMode.classList.toggle(
+            "active",
+            mode === "standard"
+        );
+
+    }
+
+
+    if (melimiMode) {
+
+        melimiMode.classList.toggle(
+            "active",
+            mode === "melimi"
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Update header / placeholder
+    // --------------------------------------------------------
 
     if (mode === "melimi") {
-        modelName.textContent = "మేలిమి తెలుగు AI";
-        messageInput.placeholder = "మేలిమి తెలుగులో అడుగు...";
+
+        if (modelName) {
+
+            modelName.textContent =
+                "మేలిమి తెలుగు AI";
+
+        }
+
+
+        messageInput.placeholder =
+            "మేలిమి తెలుగులో అడుగు...";
+
     } else {
-        modelName.textContent = "తెలుగు AI";
-        messageInput.placeholder = "తెలుగులో అడుగు...";
+
+        if (modelName) {
+
+            modelName.textContent =
+                "తెలుగు AI";
+
+        }
+
+
+        messageInput.placeholder =
+            "తెలుగులో అడుగు...";
+
     }
+
+
+    // --------------------------------------------------------
+    // IMPORTANT:
+    // A mode change starts a fresh conversation.
+    //
+    // Otherwise Standard-mode history would be sent into
+    // Melimi mode and vice versa.
+    // --------------------------------------------------------
+
+    if (changed) {
+
+        resetChat();
+
+    }
+
 }
 
-standardMode.addEventListener("click", () => {
-    setMode("standard");
-});
 
-melimiMode.addEventListener("click", () => {
-    setMode("melimi");
-});
+// ============================================================
+// MODE BUTTONS
+// ============================================================
+
+if (standardMode) {
+
+    standardMode.addEventListener(
+        "click",
+        function() {
+
+            setMode(
+                "standard"
+            );
+
+        }
+    );
+
+}
 
 
-/* =========================
-   MESSAGE
-========================= */
+if (melimiMode) {
 
-function addMessage(text, role, melimi = false) {
+    melimiMode.addEventListener(
+        "click",
+        function() {
 
-    const wrapper = document.createElement("div");
+            setMode(
+                "melimi"
+            );
 
-    wrapper.className = `message ${role}`;
+        }
+    );
 
-    if (role === "assistant" && melimi) {
-        wrapper.classList.add("melimi");
+}
+
+
+// ============================================================
+// MESSAGE
+// ============================================================
+
+function addMessage(
+    text,
+    role,
+    melimi = false
+) {
+
+    const wrapper =
+        document.createElement(
+            "div"
+        );
+
+
+    wrapper.className =
+        `message ${role}`;
+
+
+    if (
+        role === "assistant" &&
+        melimi
+    ) {
+
+        wrapper.classList.add(
+            "melimi"
+        );
+
     }
 
-    const content = document.createElement("div");
 
-    content.className = "message-content";
+    const content =
+        document.createElement(
+            "div"
+        );
 
-    content.textContent = text;
 
-    wrapper.appendChild(content);
+    content.className =
+        "message-content";
 
-    chatContainer.appendChild(wrapper);
+
+    content.textContent =
+        text;
+
+
+    wrapper.appendChild(
+        content
+    );
+
+
+    chatContainer.appendChild(
+        wrapper
+    );
+
 
     scrollToBottom();
 }
 
 
-/* =========================
-   TYPING
-========================= */
+// ============================================================
+// TYPING
+// ============================================================
 
 function showTyping() {
 
-    const wrapper = document.createElement("div");
+    const wrapper =
+        document.createElement(
+            "div"
+        );
 
-    wrapper.id = "typingIndicator";
 
-    wrapper.className = "typing-message";
+    wrapper.id =
+        "typingIndicator";
+
+
+    wrapper.className =
+        "typing-message";
+
 
     wrapper.innerHTML = `
         <div class="typing">
@@ -99,7 +255,11 @@ function showTyping() {
         </div>
     `;
 
-    chatContainer.appendChild(wrapper);
+
+    chatContainer.appendChild(
+        wrapper
+    );
+
 
     scrollToBottom();
 }
@@ -108,66 +268,102 @@ function showTyping() {
 function removeTyping() {
 
     const typing =
-        document.getElementById("typingIndicator");
+        document.getElementById(
+            "typingIndicator"
+        );
+
 
     if (typing) {
+
         typing.remove();
+
     }
+
 }
 
 
-/* =========================
-   ERROR
-========================= */
+// ============================================================
+// ERROR
+// ============================================================
 
 function addError(text) {
 
-    const wrapper = document.createElement("div");
+    const wrapper =
+        document.createElement(
+            "div"
+        );
 
-    wrapper.className = "error-message";
 
-    const error = document.createElement("div");
+    wrapper.className =
+        "error-message";
 
-    error.className = "error";
 
-    error.textContent = text;
+    const error =
+        document.createElement(
+            "div"
+        );
 
-    wrapper.appendChild(error);
 
-    chatContainer.appendChild(wrapper);
+    error.className =
+        "error";
+
+
+    error.textContent =
+        text;
+
+
+    wrapper.appendChild(
+        error
+    );
+
+
+    chatContainer.appendChild(
+        wrapper
+    );
+
 
     scrollToBottom();
 }
 
 
-/* =========================
-   SCROLL
-========================= */
+// ============================================================
+// SCROLL
+// ============================================================
 
 function scrollToBottom() {
 
-    requestAnimationFrame(() => {
+    requestAnimationFrame(
+        function() {
 
-        chatContainer.scrollTop =
-            chatContainer.scrollHeight;
+            chatContainer.scrollTop =
+                chatContainer.scrollHeight;
 
-    });
+        }
+    );
+
 }
 
 
-/* =========================
-   TEXTAREA RESIZE
-========================= */
+// ============================================================
+// TEXTAREA
+// ============================================================
 
 function resizeInput() {
 
-    messageInput.style.height = "auto";
+    messageInput.style.height =
+        "auto";
+
 
     const height =
-        Math.min(messageInput.scrollHeight, 160);
+        Math.min(
+            messageInput.scrollHeight,
+            160
+        );
+
 
     messageInput.style.height =
         `${height}px`;
+
 }
 
 
@@ -177,40 +373,55 @@ messageInput.addEventListener(
 );
 
 
-/* =========================
-   SEND MESSAGE
-========================= */
+// ============================================================
+// SEND
+// ============================================================
 
 async function sendMessage() {
 
     if (isSending) {
+
         return;
+
     }
+
 
     const text =
         messageInput.value.trim();
 
+
     if (!text) {
+
         return;
+
     }
+
 
     isSending = true;
 
-    sendButton.disabled = true;
 
-    messageInput.value = "";
+    sendButton.disabled =
+        true;
+
+
+    messageInput.value =
+        "";
+
 
     resizeInput();
 
 
-    /* Hide welcome */
-
     if (welcome) {
-        welcome.style.display = "none";
+
+        welcome.style.display =
+            "none";
+
     }
 
 
-    /* Show user message */
+    // --------------------------------------------------------
+    // Show user message
+    // --------------------------------------------------------
 
     addMessage(
         text,
@@ -218,7 +429,9 @@ async function sendMessage() {
     );
 
 
-    /* Keep previous conversation */
+    // --------------------------------------------------------
+    // Copy current history BEFORE adding this turn.
+    // --------------------------------------------------------
 
     const previousHistory =
         [...history];
@@ -230,33 +443,43 @@ async function sendMessage() {
     try {
 
         const response =
-            await fetch("/chat", {
+            await fetch(
+                "/chat",
+                {
 
-                method: "POST",
+                    method: "POST",
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                body: JSON.stringify({
+                    body:
+                        JSON.stringify(
+                            {
 
-                    message: text,
+                                message:
+                                    text,
 
-                    mode: mode,
+                                mode:
+                                    mode,
 
-                    history:
-                        previousHistory
+                                history:
+                                    previousHistory
 
-                })
+                            }
+                        )
 
-            });
+                }
+            );
 
 
         const data =
             await response
                 .json()
-                .catch(() => ({}));
+                .catch(
+                    () => ({})
+                );
 
 
         removeTyping();
@@ -270,6 +493,7 @@ async function sendMessage() {
             );
 
             return;
+
         }
 
 
@@ -284,10 +508,13 @@ async function sendMessage() {
             );
 
             return;
+
         }
 
 
-        /* Show AI response */
+        // ----------------------------------------------------
+        // Show response using CURRENT mode
+        // ----------------------------------------------------
 
         addMessage(
             reply,
@@ -296,46 +523,62 @@ async function sendMessage() {
         );
 
 
-        /* Save conversation */
+        // ----------------------------------------------------
+        // Save current conversation
+        // ----------------------------------------------------
 
-        history.push({
-            role: "user",
-            content: text
-        });
+        history.push(
+            {
+                role: "user",
+                content: text
+            }
+        );
 
-        history.push({
-            role: "assistant",
-            content: reply
-        });
+
+        history.push(
+            {
+                role: "assistant",
+                content: reply
+            }
+        );
 
 
     } catch (error) {
 
         removeTyping();
 
+
         console.error(
             "TeluAI error:",
             error
         );
 
+
         addError(
             "సర్వర్‌ను చేరుకోలేకపోయాము. మళ్లీ ప్రయత్నించు."
         );
 
+
     } finally {
 
-        isSending = false;
+        isSending =
+            false;
 
-        sendButton.disabled = false;
+
+        sendButton.disabled =
+            false;
+
 
         messageInput.focus();
+
     }
+
 }
 
 
-/* =========================
-   SEND BUTTON
-========================= */
+// ============================================================
+// FORM SUBMIT
+// ============================================================
 
 chatForm.addEventListener(
     "submit",
@@ -349,9 +592,9 @@ chatForm.addEventListener(
 );
 
 
-/* =========================
-   ENTER KEY
-========================= */
+// ============================================================
+// ENTER
+// ============================================================
 
 messageInput.addEventListener(
     "keydown",
@@ -365,48 +608,60 @@ messageInput.addEventListener(
             event.preventDefault();
 
             sendMessage();
+
         }
 
     }
 );
 
 
-/* =========================
-   SUGGESTIONS
-========================= */
+// ============================================================
+// SUGGESTIONS
+// ============================================================
 
 document
-    .querySelectorAll(".suggestion")
-    .forEach(button => {
+    .querySelectorAll(
+        ".suggestion"
+    )
+    .forEach(
+        function(button) {
 
-        button.addEventListener(
-            "click",
-            function() {
+            button.addEventListener(
+                "click",
+                function() {
 
-                const text =
-                    this.dataset.message;
+                    const text =
+                        this.dataset.message;
 
-                if (!text) {
-                    return;
+
+                    if (!text) {
+
+                        return;
+
+                    }
+
+
+                    messageInput.value =
+                        text;
+
+
+                    resizeInput();
+
+
+                    sendMessage();
+
                 }
+            );
 
-                messageInput.value = text;
-
-                resizeInput();
-
-                sendMessage();
-
-            }
-        );
-
-    });
+        }
+    );
 
 
-/* =========================
-   NEW CHAT
-========================= */
+// ============================================================
+// RESET CHAT
+// ============================================================
 
-function newChat() {
+function resetChat() {
 
     history = [];
 
@@ -418,41 +673,75 @@ function newChat() {
 
 
     messages.forEach(
-        message => message.remove()
+        function(message) {
+
+            message.remove();
+
+        }
     );
 
 
     if (welcome) {
-        welcome.style.display = "";
+
+        welcome.style.display =
+            "";
+
     }
 
 
-    messageInput.value = "";
+    messageInput.value =
+        "";
+
 
     resizeInput();
 
+
     messageInput.focus();
+
 }
 
 
-clearButton.addEventListener(
-    "click",
-    newChat
+// ============================================================
+// NEW CHAT
+// ============================================================
+
+function newChat() {
+
+    resetChat();
+
+}
+
+
+if (clearButton) {
+
+    clearButton.addEventListener(
+        "click",
+        newChat
+    );
+
+}
+
+
+if (mobileNewChat) {
+
+    mobileNewChat.addEventListener(
+        "click",
+        newChat
+    );
+
+}
+
+
+// ============================================================
+// START
+// ============================================================
+
+setMode(
+    "melimi"
 );
 
-
-mobileNewChat.addEventListener(
-    "click",
-    newChat
-);
-
-
-/* =========================
-   START
-========================= */
-
-setMode("melimi");
 
 resizeInput();
+
 
 messageInput.focus();
