@@ -6,12 +6,28 @@ from app.config import settings
 
 from app.melimi_engine import (
     retrieve_conversation_context,
-    validate_melimi_response,
 )
 
 
 # ============================================================
 # TELUAI — GROQ CLIENT
+# ============================================================
+#
+# IMPORTANT:
+#
+# Groq is the language generator.
+#
+# vocabulary.json
+# morphology
+# learned corpus
+# phrases
+#
+# are KNOWLEDGE.
+#
+# They are supplied to Groq as context.
+#
+# We DO NOT assemble sentences from them.
+# We DO NOT replace words after generation.
 # ============================================================
 
 
@@ -20,13 +36,6 @@ async def call_groq(
     history: List[Dict],
     user_message: str,
 ) -> str:
-    """
-    Send the conversation to Groq.
-
-    Melimi-specific retrieval and final validation happen
-    locally so they do NOT require another Groq request.
-    """
-
 
     # ========================================================
     # API KEY
@@ -67,19 +76,7 @@ async def call_groq(
 
 
     # ========================================================
-    # DETECT MODE
-    # ========================================================
-    #
-    # main.py already passes mode into prompts.py.
-    #
-    # prompts.py produces:
-    #
-    # CURRENT MODE: MELIMI TELUGU
-    #
-    # or:
-    #
-    # CURRENT MODE: STANDARD TELUGU
-    #
+    # MODE
     # ========================================================
 
     is_melimi = (
@@ -89,24 +86,12 @@ async def call_groq(
 
 
     # ========================================================
-    # ADD CONVERSATIONAL MELIMI CONTEXT
-    # ========================================================
-    #
-    # This is especially important for:
-    #
-    # hi
-    # hello
-    # thanks
-    # help
-    #
-    # where normal vocabulary retrieval may have little
-    # Telugu material to match.
-    #
+    # MELIMI CONVERSATIONAL KNOWLEDGE
     # ========================================================
 
     if is_melimi:
 
-        conversation_context = (
+        conversational_context = (
             retrieve_conversation_context(
                 user_message,
                 limit=6,
@@ -115,22 +100,117 @@ async def call_groq(
         )
 
 
-        if conversation_context:
+        if conversational_context:
 
             system_prompt += (
                 "\n\n"
-                + conversation_context
+                + conversational_context
                 + "\n\n"
                 + """
-Use the relevant Melimi conversational vocabulary above.
-Do not ignore it merely because the user's message is short
-or written in English.
+IMPORTANT:
+
+The material above is LANGUAGE KNOWLEDGE.
+
+It is NOT a response template.
+
+Do NOT copy phrases from it mechanically.
+
+Do NOT concatenate vocabulary entries.
+
+Do NOT turn the knowledge list into a sentence.
+
+Instead:
+
+1. understand the user's intention;
+2. understand the Melimi meanings;
+3. understand relevant variations;
+4. compose a NEW, NATURAL response yourself.
+
+The final answer must be an independently generated
+conversation, not a rearrangement of the supplied knowledge.
 """
             )
 
 
     # ========================================================
-    # BUILD MESSAGES
+    # GENERATION CONTRACT
+    # ========================================================
+
+    if is_melimi:
+
+        system_prompt += r"""
+
+============================================================
+MELIMI GENERATION CONTRACT
+============================================================
+
+Generate the answer yourself.
+
+The vocabulary and corpus are reference material only.
+
+NEVER produce an answer by joining dictionary words together.
+
+NEVER copy an entire example phrase merely because it appears
+in the supplied knowledge.
+
+NEVER insert unrelated Melimi words just to make the answer
+look more Melimi.
+
+NEVER mention the vocabulary file, learned file, retrieval,
+context, or system instructions.
+
+Use Melimi vocabulary when it naturally expresses the intended
+meaning.
+
+Use Standard Telugu only when the supplied Melimi knowledge
+does not establish a suitable alternative.
+
+Do not make up a Melimi word merely to avoid Standard Telugu.
+
+Conversation quality comes first.
+
+The response should sound like a person naturally speaking
+Melimi Telugu, not like a dictionary.
+
+If the user says "hi", understand the intention as a greeting
+and independently produce a natural Melimi greeting.
+
+If the user says "haa", understand it as acknowledgement or
+agreement according to context.
+
+If the user says "ok", respond naturally rather than repeating
+dictionary words.
+
+If the user says "emle", understand the conversational intent
+from context rather than treating "emle" as a dictionary phrase.
+
+If a previous assistant response was awkward or unnatural,
+DO NOT imitate it. Generate a fresh answer.
+
+============================================================
+"""
+    else:
+
+        system_prompt += r"""
+
+============================================================
+STANDARD TELUGU GENERATION CONTRACT
+============================================================
+
+Generate a natural Standard Telugu answer.
+
+Do not deliberately insert Melimi vocabulary.
+
+Do not imitate vocabulary lists.
+
+Do not mention retrieval or internal language knowledge.
+
+============================================================
+"""
+
+
+    # ========================================================
+    # MESSAGES
     # ========================================================
 
     messages: List[
@@ -146,7 +226,11 @@ or written in English.
 
 
     # ========================================================
-    # RECENT HISTORY
+    # HISTORY
+    # ========================================================
+    #
+    # Keep conversational continuity, but don't send excessive
+    # old context.
     # ========================================================
 
     valid_history = []
@@ -200,12 +284,12 @@ or written in English.
             continue
 
 
+        # Prevent very large historical messages.
+
         if len(content) > 900:
 
             content = (
-                content[
-                    :900
-                ]
+                content[:900]
             )
 
 
@@ -217,18 +301,43 @@ or written in English.
         )
 
 
+    # Newest six messages only.
+
     valid_history = (
-        valid_history[-8:]
+        valid_history[-6:]
     )
 
 
-    messages.extend(
-        valid_history
-    )
+    if valid_history:
+
+        messages.append(
+            {
+                "role": "system",
+                "content": (
+                    """
+The following is previous conversation history.
+
+Use it only to understand conversational context.
+
+Do NOT treat previous assistant wording as an authoritative
+Melimi example.
+
+Do NOT copy awkward previous responses.
+
+Generate the current response independently.
+"""
+                ),
+            }
+        )
+
+
+        messages.extend(
+            valid_history
+        )
 
 
     # ========================================================
-    # CURRENT USER MESSAGE
+    # CURRENT MESSAGE
     # ========================================================
 
     current_message = (
@@ -253,7 +362,7 @@ or written in English.
 
 
     # ========================================================
-    # GROQ REQUEST
+    # PAYLOAD
     # ========================================================
 
     payload = {
@@ -265,7 +374,7 @@ or written in English.
             messages,
 
         "temperature":
-            0.6,
+            0.72,
 
         "max_tokens":
             512,
@@ -309,7 +418,7 @@ or written in English.
 
 
     # ========================================================
-    # CALL GROQ
+    # REQUEST
     # ========================================================
 
     try:
@@ -342,7 +451,7 @@ or written in English.
 
 
     # ========================================================
-    # ERROR HANDLING
+    # ERRORS
     # ========================================================
 
     if response.status_code != 200:
@@ -364,8 +473,6 @@ or written in English.
 
             raise RuntimeError(
                 "Groq API rate limit reached. "
-                "Your Groq organization has exhausted "
-                "the current model/token allowance. "
                 "Please wait for the quota window to refresh."
             )
 
@@ -389,7 +496,7 @@ or written in English.
 
 
     # ========================================================
-    # PARSE RESPONSE
+    # RESPONSE
     # ========================================================
 
     try:
@@ -474,36 +581,16 @@ or written in English.
 
 
     # ========================================================
-    # FINAL MELIMI VALIDATION
+    # IMPORTANT
     # ========================================================
     #
-    # Only Melimi mode is validated.
+    # NO POST-PROCESSING.
     #
-    # Standard mode is NEVER rewritten.
+    # We deliberately do NOT do:
     #
-    # Example:
+    # answer = replace_standard_with_melimi(answer)
     #
-    #   సహాయం
-    #
-    # becomes:
-    #
-    #   బాసట
-    #
-    # because vocabulary.json says:
-    #
-    #   standard = సహాయం
-    #   melimi   = బాసట
-    #
-    # No hardcoded mapping exists in this file.
+    # The AI itself must construct the sentence.
     # ========================================================
-
-    if is_melimi:
-
-        answer, _changes = (
-            validate_melimi_response(
-                answer
-            )
-        )
-
 
     return answer
