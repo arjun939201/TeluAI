@@ -1,5 +1,6 @@
 
 from app.melimi.index import language_profile, relevant_language_context
+from app.melimi.registry import lexical_inventory
 
 
 def build_language_engine_context(
@@ -77,4 +78,41 @@ LANGUAGE PROFILE:
 
 RELEVANT SUBJECT EVIDENCE:
 {relevant}
+""".strip()
+
+
+def strict_repair_prompt(reply: str, violations: list[dict], max_chars: int = 4200) -> str:
+    inv=lexical_inventory()
+    mappings=[]
+    for v in violations:
+        if v.get("standard"):
+            mappings.append(f"{v['standard']} -> {v.get('melimi','')}")
+        else:
+            mappings.append(f"{v.get('loan','')} -> no registered Melimi form")
+    known="\n".join(f"{k} -> {v}" for k,v in list(inv["standard_to_melimi"].items())[:80])
+    return f"""
+MELIMI FINAL REPAIR — STRICT LANGUAGE GATE
+
+Rewrite the assistant answer below as a NEW natural conversational answer.
+Preserve its meaning, context, tone and conversational function.
+
+Hard constraints:
+- Output only the answer; no explanation.
+- Use Melimi Telugu as the expression system.
+- Do not mechanically substitute words.
+- Do not copy corpus sentences.
+- Do not use a known Standard Telugu/loan lexical form when an established
+  Melimi equivalent is available.
+- Do not invent an unsupported Melimi word merely to avoid a Standard word.
+- If a needed equivalent is genuinely unavailable, preserve grammatical
+  naturalness rather than fabricating.
+
+Detected violations:
+{chr(10).join(mappings)}
+
+Useful established mappings:
+{known}
+
+Original answer:
+{reply[:max_chars]}
 """.strip()

@@ -2,10 +2,8 @@
 import re
 from functools import lru_cache
 from app.melimi.index import build_index
-from app.linguistics.parser import case_variants
 
 TOKEN_RE=re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
-
 FUNCTION_WORDS={
 "నేను","నాకు","నా","నువ్వు","నీ","నీకు","మీరు","మీకు","అతను","ఆమె","వారు",
 "ఇది","అది","ఇవి","అవి","ఏమి","ఏం","ఏంటి","ఎలా","ఎందుకు","ఎక్కడ","ఎప్పుడు",
@@ -18,86 +16,72 @@ FUNCTION_WORDS={
 
 def tokenize(t): return TOKEN_RE.findall(t or "")
 
+def _values(entry, keys):
+    out=[]
+    for k in keys:
+        v=entry.get(k)
+        if isinstance(v,list): out += [str(x).strip() for x in v if str(x).strip()]
+        elif isinstance(v,str) and v.strip(): out.append(v.strip())
+    return out
+
 @lru_cache(maxsize=1)
 def lexical_inventory():
     registered=set(FUNCTION_WORDS)
+    native=set(FUNCTION_WORDS)
     loan=set()
     standard_to_melimi={}
-    native=set()
-
+    melimi_to_standard={}
+    forbidden_standard=set()
     for d in build_index():
-        if d.kind=="vocabulary":
-            for e in d.entries:
-                mel=e.get("melimi")
-                std=e.get("standard") or e.get("standard_or_source")
-                status=str(e.get("status","")).lower()
-                source_type=str(e.get("source_type","")).lower()
-                if isinstance(mel,str) and mel.strip():
-                    registered.add(mel.strip())
-                if isinstance(mel,list):
-                    registered.update(str(x).strip() for x in mel if str(x).strip())
-                if isinstance(std,str) and isinstance(mel,str) and mel.strip():
-                    standard_to_melimi[std.strip()]=mel.strip()
-                if status in {"loan","loanword","foreign","borrowed"} or source_type in {"loan","loanword","foreign","borrowed"}:
-                    if isinstance(std,str): loan.add(std.strip())
-                    if isinstance(mel,str): loan.add(mel.strip())
-                if status in {"native","native_telugu","established_native"} or source_type in {"native","native_telugu"}:
-                    for v in (std,mel):
-                        if isinstance(v,str) and v.strip(): native.add(v.strip())
-
+        if d.kind!='vocabulary': continue
+        for e in d.entries:
+            mel=_values(e,("melimi","word","headword","forms","variants"))
+            std=_values(e,("standard","standard_or_source","source_word"))
+            status=str(e.get("status","")).lower()
+            source_type=str(e.get("source_type","")).lower()
+            registered.update(mel)
+            if status in {"native","native_telugu","established","corpus-supported","derived-by-rule"} or source_type in {"native","native_telugu"}:
+                native.update(mel); native.update(std)
+            for a in std:
+                for b in mel:
+                    standard_to_melimi[a]=b
+                    melimi_to_standard[b]=a
+            if status in {"loan","loanword","borrowed","foreign"} or source_type in {"loan","loanword","borrowed","foreign"}:
+                loan.update(std)
+                # A loanword entry with a Melimi form is already resolved.
+                if not mel:
+                    forbidden_standard.update(std)
+            # An established mapping is a hard lexical preference in Melimi mode.
+            if mel:
+                forbidden_standard.update(std)
     return {
-        "registered":frozenset(registered),
-        "loan":frozenset(loan),
-        "native":frozenset(native),
-        "standard_to_melimi":standard_to_melimi
+      "registered":frozenset(registered),"native":frozenset(native),"loan":frozenset(loan),
+      "standard_to_melimi":standard_to_melimi,"melimi_to_standard":melimi_to_standard,
+      "forbidden_standard":frozenset(forbidden_standard)
     }
 
 def reload_registry(): lexical_inventory.cache_clear()
 
-def _any_in(variants, pool):
-    return any(v in pool for v in variants)
-
-
-def _mapped_equivalent(variants, standard_to_melimi):
-    for v in variants:
-        if v in standard_to_melimi:
-            return standard_to_melimi[v]
-    return ""
-
-
 def audit_response(text):
-    inv=lexical_inventory()
-    out=[]
+    inv=lexical_inventory(); out=[]
     for w in tokenize(text):
-        # Strip common case/plural clitics first (e.g. -లో, -కు, -లు) so
-        # inflected variants of a registered/loan word are still recognized
-        # strictly, instead of only matching the bare dictionary form.
-        variants=case_variants(w)
-        is_loan=_any_in(variants, inv["loan"])
-        is_registered=_any_in(variants, inv["registered"]) or w in FUNCTION_WORDS
-        # Only explicitly known loan/foreign words, or an explicitly mapped
-        # Standard/loan word whose Melimi form is still unregistered, are
-        # red by default. Ordinary Telugu words remain normal.
-        has_melimi_gap=_any_in(variants, inv["standard_to_melimi"]) and not is_registered
-        clickable=is_loan or has_melimi_gap
-        out.append({
-            "word":w,
-            "registered":is_registered,
-            "native":_any_in(variants, inv["native"]) or w in FUNCTION_WORDS,
-            "loan":is_loan,
-            "melimi_gap":has_melimi_gap,
-            "clickable":clickable
-        })
+        is_loan=w in inv["loan"]
+        gap=(w in inv["forbidden_standard"] and w not in inv["registered"])
+        out.append({"word":w,"registered":w in inv["registered"],"native":w in inv["native"],
+                    "loan":is_loan,"melimi_gap":gap,"clickable":is_loan or gap})
     return out
+
+def strict_violations(text):
+    inv=lexical_inventory(); violations=[]
+    for w in tokenize(text):
+        if w in inv["standard_to_melimi"]:
+            violations.append({"standard":w,"melimi":inv["standard_to_melimi"][w]})
+        elif w in inv["loan"] and w not in inv["registered"]:
+            violations.append({"loan":w,"melimi":""})
+    return violations
 
 def analyze_word(word):
     inv=lexical_inventory()
-    variants=case_variants(word)
-    return {
-        "word":word,
-        "registered":_any_in(variants, inv["registered"]),
-        "native":_any_in(variants, inv["native"]),
-        "loan":_any_in(variants, inv["loan"]),
-        "melimi_equivalent":_mapped_equivalent(variants, inv["standard_to_melimi"]),
-        "root_candidate":variants[-1] if variants else word
-    }
+    return {"word":word,"registered":word in inv["registered"],"native":word in inv["native"],
+            "loan":word in inv["loan"],"melimi_equivalent":inv["standard_to_melimi"].get(word,""),
+            "root_candidate":word}

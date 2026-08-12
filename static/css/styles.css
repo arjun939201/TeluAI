@@ -75,3 +75,6 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Te
 .word-result{margin-top:12px;font-size:12px}
 .word-token{cursor:pointer}
 .word-token.unregistered{color:#f06a6a;text-decoration:underline dotted #f06a6a;text-underline-offset:3px}
+
+.add-word-button{width:100%;padding:10px 12px;border:1px solid #3a3a40;border-radius:9px;background:#202024;color:#eee;cursor:pointer;text-align:left;font-family:inherit;font-size:13px}
+.add-word-button:hover{border-color:#d9a441;background:#252529}

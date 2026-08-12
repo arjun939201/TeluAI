@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.github_sync import status as github_status, GitHubSyncError
 from app.models import ChatRequest, ChatResponse, HealthResponse, WordRegistration
 from app.linguistics.normalizer import analyze_input
 from app.linguistics.parser import extract_linguistic_hints
@@ -19,7 +20,7 @@ from app.melimi.grammar import grammar_policy
 from app.melimi.validator import audit_melimi
 from app.melimi.engine import build_language_engine_context
 from app.melimi.index import inventory as subject_inventory
-from app.melimi.registry import audit_response, analyze_word
+from app.melimi.registry import audit_response, analyze_word, strict_violations
 from app.melimi.registration import register_word
 from app.prompts import build_prompt
 from app.groq_client import call_groq
@@ -49,15 +50,6 @@ def home():
     return FileResponse(target)
 
 
-@app.get("/health", response_model=HealthResponse)
-def health():
-    return HealthResponse(
-        status="ok",
-        service="TeluAI",
-        vocabulary_entries=len(load_vocabulary()),
-    )
-
-
 @app.get("/melimi/subject")
 def melimi_subject():
     return subject_inventory()
@@ -68,11 +60,27 @@ def melimi_word(word: str):
     return analyze_word(word)
 
 @app.post("/melimi/register")
-def melimi_register(payload: WordRegistration):
+async def melimi_register(payload: WordRegistration):
     try:
-        return {"ok": True, "entry": register_word(payload.model_dump())}
+        return {"ok": True, **(await register_word(payload.model_dump()))}
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except GitHubSyncError as exc:
+        raise HTTPException(502, str(exc))
+
+
+@app.get("/github/status")
+def github_sync_status():
+    return github_status()
+
+
+@app.get("/health")
+def health():
+    return HealthResponse(
+        status="ok",
+        service="TeluAI",
+        vocabulary_entries=len(load_vocabulary()),
+    )
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -137,6 +145,25 @@ async def chat(request: ChatRequest):
         raise HTTPException(502, f"AI request failed: {exc}")
 
     reply = clean_response(reply)
+    if request.mode == "melimi":
+        # Deterministic lexical gate. A repair call is made only when the model
+        # violates an established subject mapping; ordinary Telugu is not penalized.
+        for _ in range(max(0, settings.melimi_repair_attempts)):
+            violations = strict_violations(reply)
+            if not violations:
+                break
+            repair_prompt = build_language_engine_context(
+                user_message=message,
+                conversation_context=conversation,
+                linguistic_analysis=linguistic_text,
+                response_plan=plan,
+                max_profile_chars=4200,
+                max_relevant_chars=4200,
+            ) + "\n\n" + __import__("app.melimi.engine", fromlist=["strict_repair_prompt"]).strict_repair_prompt(reply, violations)
+            try:
+                reply = clean_response(await call_groq(repair_prompt, history, message))
+            except Exception:
+                break
     audit = audit_melimi(reply) if request.mode == "melimi" else {}
 
     return ChatResponse(
