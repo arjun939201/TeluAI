@@ -17,8 +17,8 @@ from app.memory.manager import extract_memory_candidates, format_memory
 from app.retrieval.knowledge import load_vocabulary, retrieve, format_knowledge
 from app.melimi.grammar import grammar_policy
 from app.melimi.validator import audit_melimi
-from app.melimi.engine import build_melimi_engine_context
-from app.melimi.subject import subject_inventory
+from app.melimi.engine import build_language_engine_context
+from app.melimi.index import inventory as subject_inventory
 from app.prompts import build_prompt
 from app.groq_client import call_groq
 from app.response import clean_response
@@ -80,15 +80,10 @@ async def chat(request: ChatRequest):
     candidates = extract_memory_candidates(history, settings.max_memory_items)
     memory = format_memory(candidates)
 
-    knowledge_entries = retrieve(message, limit=24) if request.mode == "melimi" else []
-    knowledge = (
-        format_knowledge(
-            knowledge_entries,
-            max_chars=settings.max_context_chars,
-        )
-        if request.mode == "melimi"
-        else ""
-    )
+    # Melimi subject retrieval is handled by the dedicated language engine.
+    # Do not separately stuff the legacy vocabulary retrieval into the prompt.
+    knowledge_entries = []
+    knowledge = ""
 
     linguistic_text = "\n".join([
         f"- normalized input: {linguistic['normalized']}",
@@ -103,7 +98,7 @@ async def chat(request: ChatRequest):
 
     melimi_engine = ""
     if request.mode == "melimi":
-        melimi_engine = build_melimi_engine_context(
+        melimi_engine = build_language_engine_context(
             user_message=message,
             conversation_context=conversation,
             linguistic_analysis=linguistic_text,

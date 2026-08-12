@@ -243,3 +243,62 @@ KEEP IT. This ZIP contains the development seed from the previous package becaus
 the connector cannot download the full corpus into the build environment.
 
 Before replacing a repository wholesale, preserve your existing full corpus.
+
+
+## V6 language-subject architecture
+
+The Melimi folder is now treated as a **language subject**, not a collection of
+retrieval files.
+
+At startup, TeluAI builds a local index of every supported file in:
+
+```text
+melimi_telugu/
+  vocabulary/
+  grammar/
+  word_formation/
+  syntax/
+  examples/
+  prose/
+  rules/
+```
+
+For a Melimi request, the engine sends Groq two compact layers:
+
+1. a cached language profile containing the most important grammar/rules;
+2. query-specific subject evidence selected from the complete subject index.
+
+This keeps the whole corpus out of every API request while still making the
+corpus the source of language knowledge.
+
+The generation contract is:
+
+```text
+conversation understanding
+        ↓
+response meaning
+        ↓
+Melimi language selection
+        ↓
+subject grammar + vocabulary + usage
+        ↓
+original Melimi generation
+        ↓
+silent Melimi audit
+```
+
+The system is deliberately prevented from using corpus sentences as canned
+answers.
+
+### Add the full corpus
+
+Copy your real Melimi language files into `melimi_telugu/` while preserving
+their original content. Then run:
+
+```bash
+python scripts/check_melimi_subject.py
+pytest -q
+python scripts/check_project.py
+```
+
+The `/melimi/subject` endpoint reports what the running service actually indexed.

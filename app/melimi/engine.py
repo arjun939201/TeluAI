@@ -1,57 +1,67 @@
 
-from typing import Dict
-
-from app.melimi.subject import build_subject_context
-from app.melimi.validator import audit_melimi
+from app.melimi.index import language_profile, relevant_language_context
 
 
-def build_melimi_engine_context(
+def build_language_engine_context(
+    *,
     user_message: str,
     conversation_context: str,
     linguistic_analysis: str,
     response_plan: str,
+    max_profile_chars: int = 6200,
+    max_relevant_chars: int = 6200,
 ) -> str:
-    subject = build_subject_context(user_message, limit=14, max_chars=9000)
+    profile = language_profile(max_chars=max_profile_chars)
+    relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
 
     return f"""
-MELIMI TELUGU LANGUAGE ENGINE
+MELIMI TELUGU LANGUAGE ENGINE — EXECUTION CONTRACT
 
-You are not merely translating or replacing words. Treat Melimi Telugu as the
-chosen language system for this conversation.
+You are conversing with the user, not translating a document.
 
-PHASE A — UNDERSTAND
-- Determine what the user means in context.
-- Determine the conversational act: greeting, answer, clarification, question,
-  request, acknowledgement, emotion, continuation, etc.
-- Analyze Telugu/Roman-Telugu linguistic clues before choosing words.
-- A short input can depend completely on the previous assistant turn.
+The user has selected MELIMI TELUGU. Therefore Melimi Telugu is the target
+language of the response. The source language may be Standard Telugu, Roman
+Telugu, mixed Telugu, English, or a short conversational fragment.
 
-PHASE B — PLAN MEANING
-- Decide what a natural assistant would communicate in response.
-- Preserve person, number, tense/aspect where relevant, grammatical relations,
-  politeness/tone and conversational continuity.
-- Do not select vocabulary until the intended response meaning is clear.
+STEP 1 — UNDERSTAND THE USER
+Use the conversation, not only the current string.
+Determine the user's intended conversational act and meaning.
+A short expression such as "enti" can mean "what?" in isolation but can mean
+"what did you mean?" when it follows an assistant question.
 
-PHASE C — EXPRESS IN MELIMI
-- Use Melimi Telugu as the expression system.
-- Prefer established Melimi forms from the subject corpus.
-- Use grammar, morphology and word-formation rules from the subject corpus.
-- Do not translate a Standard Telugu answer and then perform word substitution.
-- Do not copy an example sentence from the corpus.
-- Do not invent a Melimi word just to eliminate a Standard/loan word.
-- If an exact Melimi expression is unavailable, preserve natural meaning rather
-  than fabricating an unsupported form.
+STEP 2 — DETERMINE THE RESPONSE MEANING
+Decide what a natural Telugu-speaking assistant should communicate next.
+Do this before choosing Melimi words.
 
-PHASE D — SELF-AUDIT
-Before output, silently check:
-1. Does this answer actually answer the user's current meaning?
-2. Did I accidentally answer a different question?
-3. Did I reuse a corpus sentence?
-4. Did I mechanically substitute words?
-5. Where an established Melimi expression exists, did I prefer it?
-6. Is the sentence grammatically coherent?
-7. Did I accidentally fall back to generic Standard Telugu?
-8. Is the result natural enough to be used as actual conversation?
+STEP 3 — SELECT MELIMI AS THE LANGUAGE
+Use the Melimi Telugu subject below as the linguistic authority.
+Prefer established lexical forms and established grammatical/derivational rules.
+Use actual corpus usage as evidence.
+
+STEP 4 — GENERATE
+Generate an original response in Melimi Telugu.
+Do NOT:
+- copy a sentence from the corpus;
+- retrieve a sentence and lightly edit it;
+- translate a Standard Telugu sentence and perform find/replace;
+- replace words mechanically;
+- invent unsupported Melimi vocabulary simply to remove a Standard word;
+- fall back to generic Standard Telugu because it is easier.
+
+STEP 5 — FINAL SILENT AUDIT
+Check:
+A. Did I answer what the user actually meant?
+B. Does the response continue this conversation naturally?
+C. Is Melimi Telugu the dominant expression system?
+D. Are established Melimi forms used where appropriate?
+E. Did I accidentally use a corpus sentence as a response?
+F. Did I invent a form and present it as established?
+G. Did I retain unnecessary Standard/loan vocabulary despite an established
+   Melimi alternative?
+H. Is the grammar coherent?
+
+If evidence is insufficient for a word, preserve meaning and naturalness rather
+than fabricating a word. Never mention this audit to the user.
 
 CONVERSATION:
 {conversation_context}
@@ -62,9 +72,9 @@ LINGUISTIC ANALYSIS:
 RESPONSE PLAN:
 {response_plan}
 
-{subject}
+LANGUAGE PROFILE:
+{profile}
+
+RELEVANT SUBJECT EVIDENCE:
+{relevant}
 """.strip()
-
-
-def audit_generated(text: str) -> Dict:
-    return audit_melimi(text)
