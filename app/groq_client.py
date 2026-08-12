@@ -4,10 +4,16 @@ import httpx
 
 from app.config import settings
 
+from app.melimi_engine import (
+    retrieve_conversation_context,
+    validate_melimi_response,
+)
+
 
 # ============================================================
 # TELUAI — GROQ CLIENT
 # ============================================================
+
 
 async def call_groq(
     system_prompt: str,
@@ -15,15 +21,10 @@ async def call_groq(
     user_message: str,
 ) -> str:
     """
-    Send a compact Melimi Telugu conversation to Groq.
+    Send the conversation to Groq.
 
-    TeluAI's language intelligence comes from:
-    - app/prompts.py
-    - app/vocab.py
-    - app/morphology.py
-    - app/learner.py
-
-    This file handles only the Groq API communication.
+    Melimi-specific retrieval and final validation happen
+    locally so they do NOT require another Groq request.
     """
 
 
@@ -40,7 +41,7 @@ async def call_groq(
 
 
     # ========================================================
-    # VALIDATE SYSTEM PROMPT
+    # SYSTEM PROMPT
     # ========================================================
 
     if not isinstance(
@@ -66,25 +67,86 @@ async def call_groq(
 
 
     # ========================================================
+    # DETECT MODE
+    # ========================================================
+    #
+    # main.py already passes mode into prompts.py.
+    #
+    # prompts.py produces:
+    #
+    # CURRENT MODE: MELIMI TELUGU
+    #
+    # or:
+    #
+    # CURRENT MODE: STANDARD TELUGU
+    #
+    # ========================================================
+
+    is_melimi = (
+        "CURRENT MODE: MELIMI TELUGU"
+        in system_prompt
+    )
+
+
+    # ========================================================
+    # ADD CONVERSATIONAL MELIMI CONTEXT
+    # ========================================================
+    #
+    # This is especially important for:
+    #
+    # hi
+    # hello
+    # thanks
+    # help
+    #
+    # where normal vocabulary retrieval may have little
+    # Telugu material to match.
+    #
+    # ========================================================
+
+    if is_melimi:
+
+        conversation_context = (
+            retrieve_conversation_context(
+                user_message,
+                limit=6,
+                max_chars=1400,
+            )
+        )
+
+
+        if conversation_context:
+
+            system_prompt += (
+                "\n\n"
+                + conversation_context
+                + "\n\n"
+                + """
+Use the relevant Melimi conversational vocabulary above.
+Do not ignore it merely because the user's message is short
+or written in English.
+"""
+            )
+
+
+    # ========================================================
     # BUILD MESSAGES
     # ========================================================
 
-    messages: List[Dict[str, str]] = [
+    messages: List[
+        Dict[str, str]
+    ] = [
+
         {
             "role": "system",
             "content": system_prompt,
         }
+
     ]
 
 
     # ========================================================
-    # RECENT HISTORY ONLY
-    # ========================================================
-    #
-    # main.py already limits history.
-    # This is an additional safety layer.
-    #
-    # Keep the newest 8 messages.
+    # RECENT HISTORY
     # ========================================================
 
     valid_history = []
@@ -105,6 +167,7 @@ async def call_groq(
         role = item.get(
             "role"
         )
+
 
         content = item.get(
             "content"
@@ -136,11 +199,6 @@ async def call_groq(
 
             continue
 
-
-        # Safety limit for old messages.
-        #
-        # The current user message is not subject to
-        # this particular history limit.
 
         if len(content) > 900:
 
@@ -197,24 +255,24 @@ async def call_groq(
     # ========================================================
     # GROQ REQUEST
     # ========================================================
-    #
-    # 512 output tokens is enough for normal conversational
-    # answers and substantially reduces output-side usage.
-    #
-    # The important Melimi knowledge is provided as INPUT
-    # context by main.py/prompts.py.
-    # ========================================================
 
     payload = {
-        "model": settings.GROQ_MODEL,
 
-        "messages": messages,
+        "model":
+            settings.GROQ_MODEL,
 
-        "temperature": 0.6,
+        "messages":
+            messages,
 
-        "max_tokens": 512,
+        "temperature":
+            0.6,
 
-        "top_p": 0.9,
+        "max_tokens":
+            512,
+
+        "top_p":
+            0.9,
+
     }
 
 
@@ -223,10 +281,13 @@ async def call_groq(
     # ========================================================
 
     headers = {
-        "Authorization": (
-            f"Bearer {settings.GROQ_TOKEN}"
-        ),
-        "Content-Type": "application/json",
+
+        "Authorization":
+            f"Bearer {settings.GROQ_TOKEN}",
+
+        "Content-Type":
+            "application/json",
+
     }
 
 
@@ -235,10 +296,15 @@ async def call_groq(
     # ========================================================
 
     timeout = httpx.Timeout(
+
         connect=10.0,
+
         read=60.0,
+
         write=30.0,
+
         pool=10.0,
+
     )
 
 
@@ -253,9 +319,13 @@ async def call_groq(
         ) as client:
 
             response = await client.post(
+
                 settings.GROQ_URL,
+
                 json=payload,
+
                 headers=headers,
+
             )
 
     except httpx.TimeoutException as exc:
@@ -290,24 +360,15 @@ async def call_groq(
             )
 
 
-        # ----------------------------------------------------
-        # RATE LIMIT
-        # ----------------------------------------------------
-
         if response.status_code == 429:
 
             raise RuntimeError(
                 "Groq API rate limit reached. "
                 "Your Groq organization has exhausted "
                 "the current model/token allowance. "
-                "Please wait for the quota window to refresh "
-                "or use a model with available quota."
+                "Please wait for the quota window to refresh."
             )
 
-
-        # ----------------------------------------------------
-        # AUTHENTICATION
-        # ----------------------------------------------------
 
         if response.status_code in {
             401,
@@ -319,10 +380,6 @@ async def call_groq(
                 "Check GROQ_TOKEN in Render environment variables."
             )
 
-
-        # ----------------------------------------------------
-        # OTHER API ERRORS
-        # ----------------------------------------------------
 
         raise RuntimeError(
             f"Groq API error "
@@ -413,6 +470,39 @@ async def call_groq(
 
         raise RuntimeError(
             "Groq returned an empty response."
+        )
+
+
+    # ========================================================
+    # FINAL MELIMI VALIDATION
+    # ========================================================
+    #
+    # Only Melimi mode is validated.
+    #
+    # Standard mode is NEVER rewritten.
+    #
+    # Example:
+    #
+    #   సహాయం
+    #
+    # becomes:
+    #
+    #   బాసట
+    #
+    # because vocabulary.json says:
+    #
+    #   standard = సహాయం
+    #   melimi   = బాసట
+    #
+    # No hardcoded mapping exists in this file.
+    # ========================================================
+
+    if is_melimi:
+
+        answer, _changes = (
+            validate_melimi_response(
+                answer
+            )
         )
 
 
