@@ -161,6 +161,39 @@ Start:
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
+## Melimi Telugu is now a language subject
+
+The `melimi_telugu/` directory is the dedicated language subject. The engine
+reads vocabulary, grammar, word formation, syntax, examples, prose and rules
+from this subject instead of treating a single vocabulary JSON as the language.
+
+The mode switch changes the **expression language** used by the response engine:
+
+```text
+Standard mode:
+meaning -> Standard Telugu
+
+Melimi mode:
+meaning -> Melimi language subject -> Melimi expression -> Melimi audit
+```
+
+The subject loader supports Markdown, text, JSON and CSV. Structured vocabulary
+entries and unstructured grammar/prose are both indexed.
+
+For a repository containing your existing full corpus:
+
+```bash
+python scripts/import_existing_corpus.py
+python scripts/check_melimi_subject.py
+```
+
+For the real project, put your complete authoritative Melimi language material
+inside `melimi_telugu/`. The application should not silently replace it with
+small seed data.
+
+The old UI remains unchanged; this release changes the language architecture
+underneath it.
+
 ## Next major linguistic work
 
 The architecture is ready for deeper:

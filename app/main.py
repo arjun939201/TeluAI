@@ -17,6 +17,8 @@ from app.memory.manager import extract_memory_candidates, format_memory
 from app.retrieval.knowledge import load_vocabulary, retrieve, format_knowledge
 from app.melimi.grammar import grammar_policy
 from app.melimi.validator import audit_melimi
+from app.melimi.engine import build_melimi_engine_context
+from app.melimi.subject import subject_inventory
 from app.prompts import build_prompt
 from app.groq_client import call_groq
 from app.response import clean_response
@@ -46,6 +48,12 @@ def home():
 
 
 @app.get("/health", response_model=HealthResponse)
+@app.get("/melimi/subject")
+def melimi_subject():
+    return subject_inventory()
+
+
+@app.get("/health")
 def health():
     return HealthResponse(
         status="ok",
@@ -93,6 +101,15 @@ async def chat(request: ChatRequest):
         f"- Roman/mixed input signals: {input_info}",
     ])
 
+    melimi_engine = ""
+    if request.mode == "melimi":
+        melimi_engine = build_melimi_engine_context(
+            user_message=message,
+            conversation_context=conversation,
+            linguistic_analysis=linguistic_text,
+            response_plan=plan,
+        )
+
     prompt = build_prompt(
         mode=request.mode,
         conversation=conversation,
@@ -101,6 +118,7 @@ async def chat(request: ChatRequest):
         knowledge=knowledge,
         grammar=grammar_policy() if request.mode == "melimi" else "",
         plan=plan,
+        melimi_engine=melimi_engine,
     )
 
     try:
