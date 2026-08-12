@@ -1,21 +1,23 @@
 import json
 import os
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 
 # ============================================================
-# TELUAI MELIMI ENGINE
+# TELUAI MELIMI KNOWLEDGE RETRIEVER
 # ============================================================
 #
-# This module provides:
+# IMPORTANT:
 #
-# 1. Relevant Melimi vocabulary for conversational inputs
-# 2. Standard → Melimi output validation
+# This module NEVER generates sentences.
+# This module NEVER rewrites the AI response.
+# This module NEVER replaces words in the AI response.
 #
-# vocabulary.json remains the authority.
+# It only finds relevant Melimi knowledge and gives that
+# knowledge to the language model.
 #
-# No Melimi words are invented here.
+# vocabulary.json remains authoritative.
 # ============================================================
 
 
@@ -34,7 +36,7 @@ VOCABULARY_FILE = os.path.join(
 
 
 # ============================================================
-# TOKENIZATION
+# TEXT HELPERS
 # ============================================================
 
 WORD_RE = re.compile(
@@ -56,10 +58,6 @@ def normalize(
     )
 
 
-# ============================================================
-# SPLIT STANDARD / MELIMI ALTERNATIVES
-# ============================================================
-
 def split_forms(
     value: Any,
 ) -> List[str]:
@@ -74,20 +72,19 @@ def split_forms(
         list,
     ):
 
-        raw = value
+        values = value
 
     else:
 
-        raw = re.split(
-            r"\s*(?:,|/|;|\||\s+లేదా\s+)\s*",
+        values = re.split(
+            r"\s*(?:,|/|;|\|)\s*",
             str(value),
-            flags=re.IGNORECASE,
         )
 
 
     return [
         normalize(item)
-        for item in raw
+        for item in values
         if normalize(item)
     ]
 
@@ -96,7 +93,7 @@ def split_forms(
 # LOAD VOCABULARY
 # ============================================================
 
-def _load_vocabulary() -> List[Dict[str, Any]]:
+def load_vocabulary() -> List[Dict[str, Any]]:
 
     if not os.path.exists(
         VOCABULARY_FILE
@@ -145,6 +142,8 @@ def _load_vocabulary() -> List[Dict[str, Any]]:
         for key in (
             "vocabulary",
             "words",
+            "entries",
+            "data",
         ):
 
             value = data.get(
@@ -169,42 +168,35 @@ def _load_vocabulary() -> List[Dict[str, Any]]:
     return []
 
 
-VOCABULARY = _load_vocabulary()
+VOCABULARY = load_vocabulary()
 
 
 # ============================================================
-# COMMON CONVERSATIONAL INTENTS
+# COMMON CONVERSATIONAL HINTS
 # ============================================================
 #
-# These are ONLY retrieval hints.
+# These are ONLY search hints.
 #
-# They are not Melimi vocabulary.
-#
-# The actual Melimi answer must come from vocabulary.json
-# and the Melimi system rules.
+# They are NOT response templates.
 # ============================================================
 
-INTENT_HINTS = {
+CONVERSATION_HINTS = {
 
     "hi": {
         "greeting",
         "hello",
         "greet",
+        "నమస్కారం",
     },
 
     "hello": {
         "greeting",
         "hello",
         "greet",
+        "నమస్కారం",
     },
 
     "hey": {
-        "greeting",
-        "hello",
-        "greet",
-    },
-
-    "hiya": {
         "greeting",
         "hello",
         "greet",
@@ -214,29 +206,38 @@ INTENT_HINTS = {
         "thanks",
         "thank",
         "gratitude",
+        "నెనరు",
     },
 
     "thank": {
         "thanks",
         "thank",
         "gratitude",
+        "నెనరు",
     },
 
     "thankyou": {
         "thanks",
         "thank",
         "gratitude",
-    },
-
-    "welcome": {
-        "welcome",
-        "greeting",
+        "నెనరు",
     },
 
     "help": {
         "help",
         "assistance",
         "support",
+        "బాసట",
+    },
+
+    "ok": {
+        "okay",
+        "agreement",
+    },
+
+    "okay": {
+        "okay",
+        "agreement",
     },
 
     "yes": {
@@ -247,21 +248,6 @@ INTENT_HINTS = {
     "no": {
         "no",
         "negation",
-    },
-
-    "okay": {
-        "okay",
-        "agreement",
-    },
-
-    "ok": {
-        "okay",
-        "agreement",
-    },
-
-    "good": {
-        "good",
-        "well",
     },
 
     "morning": {
@@ -279,14 +265,14 @@ INTENT_HINTS = {
 
 
 # ============================================================
-# SEARCHABLE ENTRY TEXT
+# SEARCHABLE TEXT
 # ============================================================
 
-def _search_text(
+def entry_search_text(
     entry: Dict[str, Any],
 ) -> str:
 
-    fields = []
+    values = []
 
 
     for key in (
@@ -300,9 +286,10 @@ def _search_text(
         "description",
         "example",
         "examples",
+        "tags",
+        "category",
         "related",
         "synonyms",
-        "tags",
     ):
 
         value = entry.get(
@@ -316,7 +303,7 @@ def _search_text(
             list,
         ):
 
-            fields.extend(
+            values.extend(
                 str(item)
                 for item in value
             )
@@ -326,49 +313,49 @@ def _search_text(
             dict,
         ):
 
-            fields.extend(
+            values.extend(
                 str(item)
                 for item in value.values()
             )
 
         else:
 
-            fields.append(
+            values.append(
                 str(value)
             )
 
 
     return normalize(
-        " ".join(fields)
+        " ".join(values)
     )
 
 
 # ============================================================
-# CONTAINS
+# WORD MATCH
 # ============================================================
 
-def _contains(
+def contains_form(
     text: str,
-    phrase: str,
+    form: str,
 ) -> bool:
 
     text = normalize(
         text
     )
 
-    phrase = normalize(
-        phrase
+    form = normalize(
+        form
     )
 
 
-    if not text or not phrase:
+    if not text or not form:
 
         return False
 
 
-    if " " in phrase:
+    if " " in form:
 
-        return phrase in text
+        return form in text
 
 
     words = {
@@ -379,11 +366,11 @@ def _contains(
     }
 
 
-    return phrase in words
+    return form in words
 
 
 # ============================================================
-# CONVERSATION CONTEXT
+# RETRIEVE CONVERSATIONAL KNOWLEDGE
 # ============================================================
 
 def retrieve_conversation_context(
@@ -392,18 +379,12 @@ def retrieve_conversation_context(
     max_chars: int = 1400,
 ) -> str:
     """
-    Retrieve a small amount of relevant vocabulary for
-    common conversational messages.
+    Retrieve relevant Melimi knowledge.
 
-    Example:
+    IMPORTANT:
+    The returned material is KNOWLEDGE, not a response template.
 
-        hi
-        ↓
-        greeting
-        ↓
-        vocabulary.json
-        ↓
-        relevant Melimi greeting
+    Groq must independently construct the final sentence.
     """
 
     query = normalize(
@@ -430,27 +411,21 @@ def retrieve_conversation_context(
     for word in query_words:
 
         hints.update(
-            INTENT_HINTS.get(
+            CONVERSATION_HINTS.get(
                 word,
                 set(),
             )
         )
 
 
-    scored: List[
-        Tuple[
-            int,
-            int,
-            Dict[str, Any],
-        ]
-    ] = []
+    scored = []
 
 
     for index, entry in enumerate(
         VOCABULARY
     ):
 
-        standard = split_forms(
+        standard_forms = split_forms(
             entry.get(
                 "standard",
                 "",
@@ -458,7 +433,7 @@ def retrieve_conversation_context(
         )
 
 
-        melimi = split_forms(
+        melimi_forms = split_forms(
             entry.get(
                 "melimi",
                 "",
@@ -466,7 +441,7 @@ def retrieve_conversation_context(
         )
 
 
-        search = _search_text(
+        search_text = entry_search_text(
             entry
         )
 
@@ -475,15 +450,15 @@ def retrieve_conversation_context(
 
 
         # ----------------------------------------------------
-        # Exact vocabulary match
+        # Direct user-word match
         # ----------------------------------------------------
 
         for form in (
-            standard
-            + melimi
+            standard_forms
+            + melimi_forms
         ):
 
-            if _contains(
+            if contains_form(
                 query,
                 form,
             ):
@@ -492,31 +467,28 @@ def retrieve_conversation_context(
 
 
         # ----------------------------------------------------
-        # Query words in entry
-        # ----------------------------------------------------
-
-        for word in query_words:
-
-            if _contains(
-                search,
-                word,
-            ):
-
-                score += 30
-
-
-        # ----------------------------------------------------
-        # Intent hints
+        # Conversational intent
         # ----------------------------------------------------
 
         for hint in hints:
 
-            if hint in search:
+            if hint in search_text:
 
                 score += 100
 
 
-        if score:
+        # ----------------------------------------------------
+        # Query-word overlap
+        # ----------------------------------------------------
+
+        for word in query_words:
+
+            if word in search_text:
+
+                score += 25
+
+
+        if score > 0:
 
             scored.append(
                 (
@@ -536,7 +508,7 @@ def retrieve_conversation_context(
 
 
     lines = [
-        "RELEVANT MELIMI CONVERSATION VOCABULARY:"
+        "RELEVANT MELIMI KNOWLEDGE:"
     ]
 
 
@@ -544,8 +516,8 @@ def retrieve_conversation_context(
 
 
     for (
-        _,
-        _,
+        _score,
+        _index,
         entry,
     ) in scored:
 
@@ -565,26 +537,12 @@ def retrieve_conversation_context(
         ).strip()
 
 
-        marker = (
-            standard,
-            melimi,
-        )
-
-
-        if marker in seen:
-
-            continue
-
-
-        seen.add(
-            marker
-        )
-
-
-        line = (
-            f"- {standard}"
-            f" → {melimi}"
-        )
+        note = str(
+            entry.get(
+                "note",
+                "",
+            )
+        ).strip()
 
 
         meaning = str(
@@ -601,12 +559,35 @@ def retrieve_conversation_context(
         ).strip()
 
 
-        note = str(
-            entry.get(
-                "note",
-                "",
-            )
-        ).strip()
+        identity = (
+            standard,
+            melimi,
+            note,
+        )
+
+
+        if identity in seen:
+
+            continue
+
+
+        seen.add(
+            identity
+        )
+
+
+        if not (
+            standard
+            or melimi
+        ):
+
+            continue
+
+
+        line = (
+            f"- standard: {standard}"
+            f" | melimi: {melimi}"
+        )
 
 
         if meaning:
@@ -615,7 +596,8 @@ def retrieve_conversation_context(
                 f" | meaning: {meaning}"
             )
 
-        elif note:
+
+        if note:
 
             line += (
                 f" | note: {note}"
@@ -631,8 +613,14 @@ def retrieve_conversation_context(
             len(
                 "\n".join(lines)
             ) >= max_chars
-            or
-            len(lines) - 1 >= limit
+        ):
+
+            break
+
+
+        if (
+            len(lines) - 1
+            >= limit
         ):
 
             break
@@ -648,210 +636,3 @@ def retrieve_conversation_context(
     )[
         :max_chars
     ]
-
-
-# ============================================================
-# WHOLE-WORD / WHOLE-PHRASE PATTERN
-# ============================================================
-
-def _replacement_pattern(
-    form: str,
-) -> re.Pattern:
-
-    escaped = re.escape(
-        form.strip()
-    )
-
-
-    return re.compile(
-        rf"(?<![\u0C00-\u0C7FA-Za-z])"
-        rf"{escaped}"
-        rf"(?![\u0C00-\u0C7FA-Za-z])",
-        re.IGNORECASE,
-    )
-
-
-# ============================================================
-# MELIMI OUTPUT VALIDATOR
-# ============================================================
-
-def validate_melimi_response(
-    response: str,
-    max_replacements: int = 20,
-) -> Tuple[
-    str,
-    List[Dict[str, str]],
-]:
-    """
-    Validate a generated Melimi response against the
-    authoritative vocabulary.
-
-    Example:
-
-        సహాయం
-            ↓
-        vocabulary.json
-            ↓
-        బాసట
-
-    No hardcoded word mappings are used.
-    """
-
-    if not response:
-
-        return (
-            response,
-            [],
-        )
-
-
-    candidates = []
-
-
-    for index, entry in enumerate(
-        VOCABULARY
-    ):
-
-        standards = split_forms(
-            entry.get(
-                "standard",
-                "",
-            )
-        )
-
-
-        melimis = split_forms(
-            entry.get(
-                "melimi",
-                "",
-            )
-        )
-
-
-        if not standards:
-
-            continue
-
-
-        if not melimis:
-
-            continue
-
-
-        # First Melimi form is the primary form.
-
-        melimi = melimis[0]
-
-
-        for standard in standards:
-
-            if not standard:
-
-                continue
-
-
-            if standard == melimi:
-
-                continue
-
-
-            candidates.append(
-                (
-                    len(standard),
-                    index,
-                    standard,
-                    melimi,
-                )
-            )
-
-
-    # Longest first.
-    #
-    # This prevents:
-    #
-    # phrase containing word
-    #
-    # from being destroyed by a shorter match.
-
-    candidates.sort(
-        key=lambda item: (
-            -item[0],
-            item[1],
-        )
-    )
-
-
-    result = response
-
-
-    changes: List[
-        Dict[str, str]
-    ] = []
-
-
-    for (
-        _,
-        _,
-        standard,
-        melimi,
-    ) in candidates:
-
-        if len(changes) >= max_replacements:
-
-            break
-
-
-        pattern = _replacement_pattern(
-            standard
-        )
-
-
-        if not pattern.search(
-            result
-        ):
-
-            continue
-
-
-        # If the Melimi equivalent is already present,
-        # do not unnecessarily modify the answer.
-
-        melimi_pattern = (
-            _replacement_pattern(
-                melimi
-            )
-        )
-
-
-        if melimi_pattern.search(
-            result
-        ):
-
-            continue
-
-
-        new_result, count = (
-            pattern.subn(
-                melimi,
-                result,
-            )
-        )
-
-
-        if count:
-
-            changes.append(
-                {
-                    "standard": standard,
-                    "melimi": melimi,
-                }
-            )
-
-
-            result = new_result
-
-
-    return (
-        result,
-        changes,
-    )
