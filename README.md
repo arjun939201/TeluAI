@@ -302,3 +302,9 @@ python scripts/check_project.py
 ```
 
 The `/melimi/subject` endpoint reports what the running service actually indexed.
+\n## Wiki-style language development
+
+Melimi responses now expose lexical gaps directly in chat:
+registered words are normal; unregistered lexical words are red and clickable.
+The user can enter root, meaning, word type, Melimi equivalent and formation
+rule, then register the word into the Git-tracked language subject.

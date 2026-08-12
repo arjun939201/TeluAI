@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.models import ChatRequest, ChatResponse, HealthResponse
+from app.models import ChatRequest, ChatResponse, HealthResponse, WordRegistration
 from app.linguistics.normalizer import analyze_input
 from app.linguistics.parser import extract_linguistic_hints
 from app.conversation.state import from_history
@@ -19,6 +19,8 @@ from app.melimi.grammar import grammar_policy
 from app.melimi.validator import audit_melimi
 from app.melimi.engine import build_language_engine_context
 from app.melimi.index import inventory as subject_inventory
+from app.melimi.registry import audit_response, analyze_word
+from app.melimi.registration import register_word
 from app.prompts import build_prompt
 from app.groq_client import call_groq
 from app.response import clean_response
@@ -52,6 +54,17 @@ def home():
 def melimi_subject():
     return subject_inventory()
 
+
+@app.get("/melimi/word/{word}")
+def melimi_word(word: str):
+    return analyze_word(word)
+
+@app.post("/melimi/register")
+def melimi_register(payload: WordRegistration):
+    try:
+        return {"ok": True, "entry": register_word(payload.model_dump())}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
 
 @app.get("/health")
 def health():
@@ -137,4 +150,5 @@ async def chat(request: ChatRequest):
             "response_plan": plan,
         },
         language_audit=audit,
+        word_audit=audit_response(reply) if request.mode == "melimi" else [],
     )

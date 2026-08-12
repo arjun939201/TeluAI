@@ -21,17 +21,24 @@ function setMode(newMode){
 standardMode.addEventListener("click",()=>setMode("standard"));
 melimiMode.addEventListener("click",()=>setMode("melimi"));
 
-function addMessage(text,role,melimi=false){
-    const wrapper=document.createElement("div");
-    wrapper.className=`message ${role}`;
-    if(role==="assistant"&&melimi)wrapper.classList.add("melimi");
-    const content=document.createElement("div");
-    content.className="message-content";
-    content.textContent=text;
-    wrapper.appendChild(content);
-    chatContainer.appendChild(wrapper);
-    scrollToBottom();
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+function renderMelimiText(text,audit){
+ const map=new Map((audit||[]).map(x=>[x.word,x]));
+ return String(text).split(/([\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*)/g).map(part=>{
+  const x=map.get(part); if(!x)return escapeHtml(part);
+  return `<span class="word-token${x.clickable?" unregistered":""}" data-word="${escapeHtml(part)}">${escapeHtml(part)}</span>`;
+ }).join("");
 }
+function addMessage(text,role,melimi=false,audit=[]){
+ const wrapper=document.createElement("div");wrapper.className=`message ${role}`;
+ if(role==="assistant"&&melimi)wrapper.classList.add("melimi");
+ const content=document.createElement("div");content.className="message-content";
+ if(role==="assistant"&&melimi){content.innerHTML=renderMelimiText(text,audit);
+  content.querySelectorAll(".word-token").forEach(x=>x.onclick=()=>openWordModal(x.dataset.word));
+ }else content.textContent=text;
+ wrapper.appendChild(content);chatContainer.appendChild(wrapper);scrollToBottom();
+}
+
 function showTyping(){
     const wrapper=document.createElement("div");
     wrapper.id="typingIndicator";wrapper.className="typing-message";
@@ -63,7 +70,7 @@ async function sendMessage(){
         removeTyping();
         if(!response.ok){addError(data.detail||`సర్వర్ లోపం: ${response.status}`);return}
         if(!data.reply){addError("AI నుండి సమాధానం రాలేదు.");return}
-        addMessage(data.reply,"assistant",mode==="melimi");
+        addMessage(data.reply,"assistant",mode==="melimi",data.word_audit||[]);
         history.push({role:"user",content:text});
         history.push({role:"assistant",content:data.reply});
     }catch(error){
@@ -85,3 +92,29 @@ function newChat(){
 clearButton.addEventListener("click",newChat);
 mobileNewChat.addEventListener("click",newChat);
 setMode("melimi");resizeInput();messageInput.focus();
+
+const wordModal=document.getElementById("wordModal"),backdrop=document.getElementById("wordModalBackdrop");
+const selectedWord=document.getElementById("selectedWord"),wordStatus=document.getElementById("wordStatus");
+const wordRoot=document.getElementById("wordRoot"),wordMeaning=document.getElementById("wordMeaning");
+const wordPos=document.getElementById("wordPos"),wordMelimi=document.getElementById("wordMelimi");
+const wordFormation=document.getElementById("wordFormation"),wordResult=document.getElementById("wordResult");
+function closeWordModal(){wordModal.classList.add("hidden")}
+document.getElementById("closeWordModal")?.addEventListener("click",closeWordModal);
+document.getElementById("cancelWord")?.addEventListener("click",closeWordModal);
+backdrop?.addEventListener("click",closeWordModal);
+async function openWordModal(word){
+ selectedWord.textContent=word;wordRoot.value=word;wordMeaning.value="";wordPos.value="";
+ wordMelimi.value="";wordFormation.value="";wordResult.textContent="";
+ wordStatus.textContent="Unregistered word — enter its Melimi equivalent.";
+ wordModal.classList.remove("hidden");wordMelimi.focus();
+}
+document.getElementById("registerWord")?.addEventListener("click",async()=>{
+ const payload={word:selectedWord.textContent,root:wordRoot.value,meaning:wordMeaning.value,
+ part_of_speech:wordPos.value,melimi_equivalent:wordMelimi.value,formation:wordFormation.value};
+ if(!payload.melimi_equivalent.trim()){wordResult.style.color="#ef9999";wordResult.textContent="Enter the Melimi word.";return}
+ try{const r=await fetch("/melimi/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+ const d=await r.json();if(!r.ok)throw Error(d.detail||"Registration failed");
+ wordResult.textContent="Registered in the Melimi language subject.";setTimeout(closeWordModal,700);
+ }catch(e){wordResult.style.color="#ef9999";wordResult.textContent=e.message}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeWordModal()});

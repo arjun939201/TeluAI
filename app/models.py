@@ -14,12 +14,22 @@ class ChatRequest(BaseModel):
     history: List[ChatTurn] = Field(default_factory=list)
 
 
+class WordRegistration(BaseModel):
+    word: str
+    melimi_equivalent: str
+    root: str = ""
+    meaning: str = ""
+    part_of_speech: str = ""
+    formation: str = ""
+
+
 class ChatResponse(BaseModel):
     reply: str
     mode: str
     intent: str
     understanding: Dict = Field(default_factory=dict)
     language_audit: Dict = Field(default_factory=dict)
+    word_audit: List[Dict] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):

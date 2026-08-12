@@ -112,5 +112,17 @@
     </main>
 </div>
 <script src="/static/js/chatbot.js"></script>
-</body>
+<div id="wordModal" class="word-modal hidden">
+<div class="word-modal-backdrop" id="wordModalBackdrop"></div><div class="word-card">
+<button id="closeWordModal" class="word-close" type="button">×</button>
+<div class="word-kicker">Melimi Telugu language subject</div><h2 id="selectedWord">పదం</h2>
+<div id="wordStatus" class="word-status"></div><div class="word-analysis">
+<label>Root / మూలపలుకు<input id="wordRoot"></label>
+<label>Meaning / తెల్లం<input id="wordMeaning"></label>
+<label>Word type<input id="wordPos" placeholder="noun / verb / adjective"></label>
+<label>Melimi Telugu word<input id="wordMelimi" placeholder="మేలిమి పలుకు"></label>
+<label>Formation rule<input id="wordFormation" placeholder="optional"></label></div>
+<div class="word-actions"><button id="cancelWord" class="secondary-action" type="button">Cancel</button>
+<button id="registerWord" class="primary-action" type="button">Register Melimi word</button></div>
+<div id="wordResult" class="word-result"></div></div></div></body>
 </html>
