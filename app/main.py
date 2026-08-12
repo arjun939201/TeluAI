@@ -1,51 +1,20 @@
-import os
 
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.learner import (
-    learn_text,
-    build_learned_context,
-)
-
-from app.models import (
-    ChatRequest,
-    ChatResponse,
-)
-
-from app.vocab import (
-    retrieve_vocab,
-    retrieve_context,
-    VOCABULARY,
-)
-
-from app.morphology import (
-    analyze_text,
-)
-
-from app.prompts import (
-    build_system_prompt,
-)
-
-from app.groq_client import (
-    call_groq,
-)
+from app.config import settings
+from app.models import ChatRequest, ChatResponse, HealthResponse
+from app.language import normalize_roman_telugu
+from app.conversation import build_state, infer_intent, understanding_context
+from app.knowledge import load_vocabulary, retrieve, format_knowledge, audit_melimi
+from app.prompts import build_system_prompt
+from app.groq_client import call_groq
 
 
-# ============================================================
-# APP
-# ============================================================
-
-app = FastAPI(
-    title="TeluAI - Melimi Telugu AI"
-)
-
-
-# ============================================================
-# CORS
-# ============================================================
+app = FastAPI(title="TeluAI — Natural Standard & Melimi Telugu AI")
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,804 +23,70 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ============================================================
-# PATHS
-# ============================================================
-
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
-
-STATIC_DIR = os.path.join(
-    BASE_DIR,
-    "static",
-)
-
-
-# ============================================================
-# STATIC
-# ============================================================
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    app.mount(
-        "/static",
-        StaticFiles(
-            directory=STATIC_DIR
-        ),
-        name="static",
-    )
-
-
-# ============================================================
-# HOME
-# ============================================================
 
 @app.get("/")
-def serve_index():
-
-    index_file = os.path.join(
-        STATIC_DIR,
-        "index.html",
-    )
-
-    if not os.path.exists(index_file):
-
-        raise HTTPException(
-            status_code=404,
-            detail="index.html not found.",
-        )
-
-    return FileResponse(
-        index_file
-    )
+def home():
+    path = os.path.join(STATIC_DIR, "index.html")
+    if not os.path.exists(path):
+        raise HTTPException(404, "index.html not found")
+    return FileResponse(path)
 
 
-# ============================================================
-# HEALTH
-# ============================================================
-
-@app.get("/health")
+@app.get("/health", response_model=HealthResponse)
 def health():
-
-    return {
-        "status": "ok",
-        "service": "TeluAI",
-        "language": "Melimi Telugu",
-    }
-
-
-# ============================================================
-# CHAT
-# ============================================================
-
-@app.post(
-    "/chat",
-    response_model=ChatResponse,
-)
-async def chat(
-    req: ChatRequest,
-):
-
-    message = (
-        req.message
-        or ""
-    ).strip()
+    return HealthResponse(
+        status="ok",
+        service="TeluAI",
+        corpus_entries=len(load_vocabulary()),
+    )
 
 
+@app.post("/chat", response_model=ChatResponse)
+async def chat(req: ChatRequest):
+    message = req.message.strip()
     if not message:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Message cannot be empty.",
-        )
-
-
-    mode = req.mode
-
-
-    # ========================================================
-    # VOCABULARY
-    # ========================================================
-
-    try:
-
-        vocab_matches = retrieve_vocab(
-            message,
-            limit=5,
-        )
-
-    except TypeError:
-
-        try:
-
-            vocab_matches = retrieve_vocab(
-                message
-            )
-
-        except Exception:
-
-            vocab_matches = []
-
-    except Exception:
-
-        vocab_matches = []
-
-
-    # ========================================================
-    # VOCABULARY CONTEXT
-    # ========================================================
-
-    vocabulary_context = ""
-
-    try:
-
-        context = retrieve_context(
-            message
-        )
-
-        if isinstance(
-            context,
-            dict,
-        ):
-
-            vocabulary_context = str(
-                context.get(
-                    "text",
-                    "",
-                )
-            )
-
-        elif context:
-
-            vocabulary_context = str(
-                context
-            )
-
-    except Exception:
-
-        vocabulary_context = ""
-
-
-    # ========================================================
-    # LIMIT VOCABULARY
-    # ========================================================
-
-    MAX_VOCAB_CHARS = 2200
-
-    vocabulary_context = (
-        vocabulary_context[
-            :MAX_VOCAB_CHARS
-        ]
-    )
-
-
-    if not vocabulary_context:
-
-        vocabulary_context = (
-            _format_vocabulary(
-                vocab_matches,
-                max_chars=2200,
-            )
-        )
-
-
-    # ========================================================
-    # MORPHOLOGY
-    # ========================================================
-
-    morphology_context = []
-
-
-    if mode == "melimi":
-
-        try:
-
-            morphology_context = analyze_text(
-                message,
-                VOCABULARY,
-            )
-
-        except Exception:
-
-            morphology_context = []
-
-
-    morphology_text = (
-        _format_morphology(
-            morphology_context,
-            max_chars=1800,
-        )
-    )
-
-
-    if morphology_text:
-
-        if vocabulary_context:
-
-            vocabulary_context += (
-                "\n\n"
-                + morphology_text
-            )
-
-        else:
-
-            vocabulary_context = (
-                morphology_text
-            )
-
-
-    # ========================================================
-    # LEARNED CORPUS
-    # ========================================================
-
-    learned_context = ""
-
-
-    if mode == "melimi":
-
-        try:
-
-            learned_context = (
-                build_learned_context(
-                    message,
-                    limit=4,
-                    max_chars=1800,
-                )
-            )
-
-        except TypeError:
-
-            try:
-
-                learned_context = (
-                    build_learned_context(
-                        message
-                    )
-                )
-
-            except Exception:
-
-                learned_context = ""
-
-        except Exception:
-
-            learned_context = ""
-
-
-    learned_context = (
-        learned_context[
-            :1800
-        ]
-    )
-
-
-    # ========================================================
-    # SYSTEM PROMPT
-    # ========================================================
-    #
-    # IMPORTANT:
-    # req.mode is now actually passed.
-    # ========================================================
+        raise HTTPException(400, "Message cannot be empty.")
+
+    history = [x.model_dump() for x in req.history]
+    state = build_state(history)
+    intent = infer_intent(message, state)
+    conversation = understanding_context(message, state)
+
+    # Local retrieval is deliberately compact. The LLM receives knowledge,
+    # not a pile of unrelated data.
+    entries = retrieve(message, limit=18) if req.mode == "melimi" else []
+    knowledge = format_knowledge(entries, max_chars=settings.MAX_CONTEXT_CHARS)
+
+    # Roman-Telugu normalization is a local hint; the original user message
+    # remains the actual message sent to the model.
+    if req.mode == "melimi":
+        conversation += "\n- Roman/normalized hint: " + normalize_roman_telugu(message)
 
     system_prompt = build_system_prompt(
-        vocabulary_context=vocabulary_context,
-        learned_context=learned_context,
-        mode=mode,
+        mode=req.mode,
+        knowledge=knowledge,
+        conversation=conversation,
     )
-
-
-    # ========================================================
-    # HISTORY
-    # ========================================================
-
-    history = []
-
-    raw_history = (
-        req.history or []
-    )
-
-
-    raw_history = raw_history[
-        -8:
-    ]
-
-
-    for turn in raw_history:
-
-        try:
-
-            item = turn.model_dump()
-
-        except AttributeError:
-
-            if isinstance(
-                turn,
-                dict,
-            ):
-
-                item = turn
-
-            else:
-
-                continue
-
-
-        role = item.get(
-            "role"
-        )
-
-        content = item.get(
-            "content"
-        )
-
-
-        if role not in {
-            "user",
-            "assistant",
-        }:
-
-            continue
-
-
-        if not isinstance(
-            content,
-            str,
-        ):
-
-            continue
-
-
-        content = (
-            content.strip()
-        )
-
-
-        if not content:
-
-            continue
-
-
-        content = content[
-            :900
-        ]
-
-
-        history.append(
-            {
-                "role": role,
-                "content": content,
-            }
-        )
-
-
-    # ========================================================
-    # GROQ
-    # ========================================================
 
     try:
-
-        reply = await call_groq(
-            system_prompt,
-            history,
-            message,
-        )
-
+        reply = await call_groq(system_prompt, history, message)
     except RuntimeError as exc:
-
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        )
-
+        raise HTTPException(502, str(exc))
     except Exception as exc:
+        raise HTTPException(502, f"AI request failed: {exc}")
 
-        raise HTTPException(
-            status_code=502,
-            detail=(
-                "AI request failed: "
-                + str(exc)
-            ),
-        )
-
-
-    reply = str(
-        reply or ""
-    ).strip()
-
-
-    if not reply:
-
-        raise HTTPException(
-            status_code=502,
-            detail="AI returned an empty response.",
-        )
-
-
-    # ========================================================
-    # MATCHED VOCAB
-    # ========================================================
-
-    matched_vocab = []
-
-
-    for entry in (
-        vocab_matches or []
-    ):
-
-        if not isinstance(
-            entry,
-            dict,
-        ):
-
-            continue
-
-
-        standard = str(
-            entry.get(
-                "standard",
-                "",
-            )
-        ).strip()
-
-
-        melimi = str(
-            entry.get(
-                "melimi",
-                "",
-            )
-        ).strip()
-
-
-        if standard:
-
-            matched_vocab.append(
-                standard
-            )
-
-        elif melimi:
-
-            matched_vocab.append(
-                melimi
-            )
-
-
-    # ========================================================
-    # ROOT CANDIDATES
-    # ========================================================
-
-    root_candidates = (
-        _get_morphology_surfaces(
-            morphology_context
-        )
-    )
-
+    audit = audit_melimi(reply) if req.mode == "melimi" else {}
 
     return ChatResponse(
-
         reply=reply,
-
-        mode=mode,
-
-        matched_vocab=matched_vocab,
-
-        matched_grammar_suffixes=[],
-
-        matched_grammar_prefixes=[],
-
-        root_candidates=root_candidates,
+        mode=req.mode,
+        understanding=intent,
+        intent=intent,
+        language_audit=audit,
     )
-
-
-# ============================================================
-# VOCABULARY FORMATTER
-# ============================================================
-
-def _format_vocabulary(
-    entries,
-    max_chars=2200,
-):
-
-    if not entries:
-
-        return ""
-
-
-    lines = [
-        "RELEVANT MELIMI VOCABULARY:"
-    ]
-
-
-    for entry in (
-        entries or []
-    ):
-
-        if not isinstance(
-            entry,
-            dict,
-        ):
-
-            continue
-
-
-        standard = str(
-            entry.get(
-                "standard",
-                "",
-            )
-        ).strip()
-
-
-        melimi = str(
-            entry.get(
-                "melimi",
-                "",
-            )
-        ).strip()
-
-
-        note = str(
-            entry.get(
-                "note",
-                "",
-            )
-        ).strip()
-
-
-        meaning = str(
-            entry.get(
-                "meaning",
-                entry.get(
-                    "definition",
-                    entry.get(
-                        "english",
-                        "",
-                    ),
-                ),
-            )
-        ).strip()
-
-
-        if not (
-            standard
-            or melimi
-        ):
-
-            continue
-
-
-        line = (
-            f"- {standard}"
-            f" → {melimi}"
-        )
-
-
-        if meaning:
-
-            line += (
-                f" | meaning: {meaning}"
-            )
-
-
-        if note:
-
-            line += (
-                f" | note: {note}"
-            )
-
-
-        lines.append(
-            line
-        )
-
-
-        if len(
-            "\n".join(lines)
-        ) >= max_chars:
-
-            break
-
-
-    return "\n".join(
-        lines
-    )[
-        :max_chars
-    ]
-
-
-# ============================================================
-# MORPHOLOGY FORMATTER
-# ============================================================
-
-def _format_morphology(
-    morphology_context,
-    max_chars=1800,
-):
-
-    if not morphology_context:
-
-        return ""
-
-
-    lines = [
-        "RELEVANT MELIMI WORD VARIATIONS:"
-    ]
-
-
-    for item in (
-        morphology_context or []
-    ):
-
-        if not isinstance(
-            item,
-            dict,
-        ):
-
-            continue
-
-
-        surface = str(
-            item.get(
-                "surface",
-                "",
-            )
-        ).strip()
-
-
-        matches = item.get(
-            "matches",
-            [],
-        )
-
-
-        if not surface:
-
-            continue
-
-
-        line = (
-            f"- {surface}"
-        )
-
-
-        bases = []
-
-
-        for entry in (
-            matches or []
-        ):
-
-            if not isinstance(
-                entry,
-                dict,
-            ):
-
-                continue
-
-
-            melimi = str(
-                entry.get(
-                    "melimi",
-                    "",
-                )
-            ).strip()
-
-
-            if melimi:
-
-                bases.append(
-                    melimi
-                )
-
-
-        if bases:
-
-            line += (
-                " → "
-                + ", ".join(
-                    bases[:3]
-                )
-            )
-
-
-        lines.append(
-            line
-        )
-
-
-        if len(
-            "\n".join(lines)
-        ) >= max_chars:
-
-            break
-
-
-    return "\n".join(
-        lines
-    )[
-        :max_chars
-    ]
-
-
-# ============================================================
-# MORPHOLOGY SURFACES
-# ============================================================
-
-def _get_morphology_surfaces(
-    morphology_context,
-):
-
-    result = []
-
-
-    for item in (
-        morphology_context or []
-    ):
-
-        if not isinstance(
-            item,
-            dict,
-        ):
-
-            continue
-
-
-        surface = str(
-            item.get(
-                "surface",
-                "",
-            )
-        ).strip()
-
-
-        if surface:
-
-            result.append(
-                surface
-            )
-
-
-    return result
-
-
-# ============================================================
-# LEARNING
-# ============================================================
-
-@app.post(
-    "/learn/text",
-)
-def learn_melimi_text(
-    text: str,
-    document_id: str = "user_text",
-):
-
-    text = (
-        text or ""
-    ).strip()
-
-
-    if not text:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Text cannot be empty.",
-        )
-
-
-    try:
-
-        return learn_text(
-            text=text,
-            document_id=document_id,
-        )
-
-    except Exception as exc:
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(exc),
-        )

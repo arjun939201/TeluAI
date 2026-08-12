@@ -1,98 +1,115 @@
-# Melimi Telugu Chatbot
+# TeluAI — Advanced Natural Standard & Melimi Telugu AI
 
-A FastAPI backend that chats in either **Standard Telugu** or **Melimi Telugu**,
-toggled per request. Uses Groq's free API (Llama models) for generation, and
-your own vocabulary/grammar data to steer the style.
+## What changed
 
-## How it works
+This version is a conceptual rewrite around **language understanding and
+natural conversation**, not phrase substitution.
 
-1. You keep your Melimi Telugu vocabulary + example sentence pairs in
-   `data/vocabulary.json` and `data/examples.json`.
-2. On every chat request, `app/vocab.py` pulls the vocab entries whose
-   standard-Telugu word appears in the user's message (simple keyword match,
-   no paid embedding API needed).
-3. `app/prompts.py` builds a system prompt: base persona + a handful of
-   few-shot example pairs + the retrieved vocab, so the model learns the
-   *style* (word choice, honorific register) rather than just swapping words.
-4. `app/groq_client.py` calls Groq's free chat completions endpoint.
-5. `app/main.py` exposes `POST /chat` which the toggle-enabled frontend in
-   `static/index.html` calls.
+### Standard Telugu mode
+- Natural Standard Telugu generation.
+- Melimi knowledge is not injected into normal chat.
+- No deliberate Melimi vocabulary leakage.
 
-## Local setup
+### Melimi Telugu mode
+- Strict Melimi expression policy.
+- Meaning is understood before language expression.
+- Approved Melimi vocabulary is treated as linguistic knowledge.
+- Word-formation knowledge can guide generation.
+- The model is instructed to internally audit and revise its answer.
+- It must not copy dictionary/corpus sentences.
+- It must not blindly replace words.
+- It should use a Melimi form whenever an appropriate established form exists.
+- It should not invent a word just to avoid a loanword.
+
+### Conversation intelligence
+The system separates:
+1. language normalization
+2. conversation state
+3. contextual intent
+4. response planning
+5. language generation
+6. Melimi language policy
+7. local language audit
+
+Short messages are context-sensitive.
+
+Example:
+
+Assistant: `నీవు ఏమైనా ఆలోచిస్తున్నావా?`
+User: `enti`
+
+The system marks this as a clarification request rather than interpreting
+`enti` as an isolated new question.
+
+### Avoiding "file-copy AI"
+Vocabulary and corpus entries are **evidence**, not response templates.
+The prompt explicitly tells the model to:
+- understand;
+- reason;
+- compose;
+- self-check;
+- revise;
+- answer.
+
+It must not stitch retrieved words or copy corpus phrases.
+
+## Architecture
+
+```text
+User
+ ↓
+Input normalization
+ ↓
+Conversation state
+ ↓
+Contextual understanding
+ ↓
+Intent
+ ↓
+Relevant linguistic retrieval
+ ↓
+Natural response generation
+ ↓
+Melimi self-audit (inside the same model call)
+ ↓
+Response
+```
+
+The design deliberately avoids an extra Groq call for every message.
+
+## Corpus
+
+The original repository's large `data/vocabulary.json` is preserved by
+`scripts/ensure_corpus.py`.
+
+If the JSON is already present, it is never overwritten.
+
+If the package is deployed without the large JSON, the script restores it from:
+
+`https://raw.githubusercontent.com/arjun939201/TeluAI/main/data/vocabulary.json`
+
+For a permanent standalone copy, run the script once while online and keep
+the resulting `data/vocabulary.json` before uploading.
+
+## Run
 
 ```bash
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env            # then paste your Groq key into .env
+python scripts/ensure_corpus.py
+pytest -q
 uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8000 to use the test chat UI, or POST to
-`http://localhost:8000/chat` directly:
+Set:
 
-```bash
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "ఏవైనా హాళికాను నిక్కువాలు చెప్పు", "mode": "melimi", "history": []}'
+```text
+GROQ_TOKEN=your_key
+GROQ_MODEL=llama-3.3-70b-versatile
 ```
 
-## Get a free Groq API key
+## Important
 
-1. Go to https://console.groq.com
-2. Sign up with email or Google (no credit card)
-3. Create an API key and put it in `.env` as `GROQ_API_KEY`
-
-Free tier: ~14,400 requests/day, 30 requests/min on most models. Plenty for a
-personal project. Default model is `llama-3.1-8b-instant` (fast, generous
-limits) — change `GROQ_MODEL` in `.env` if you want a bigger model like
-`llama-3.3-70b-versatile`.
-
-## Deploy to Render (free)
-
-1. Push this folder to a new GitHub repo
-2. On https://render.com, "New +" → "Web Service" → connect the repo
-3. Render will read `render.yaml` automatically, or set manually:
-   - Build command: `pip install -r requirements.txt`
-   - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-4. Add environment variable `GROQ_API_KEY` in the Render dashboard (Settings
-   → Environment) — never commit your real key to GitHub
-5. Deploy. Free tier spins down after inactivity, so the first request after
-   idle takes ~30s to wake up.
-
-## Folder structure
-
-```
-melimi-telugu-bot/
-├── app/
-│   ├── __init__.py
-│   ├── main.py          # FastAPI app + /chat endpoint
-│   ├── config.py         # env var loading
-│   ├── models.py         # request/response schemas
-│   ├── groq_client.py    # Groq API wrapper
-│   ├── vocab.py           # vocabulary loading + retrieval
-│   └── prompts.py         # system prompt construction
-├── data/
-│   ├── vocabulary.json    # standard <-> melimi word pairs (edit/extend this)
-│   └── examples.json      # full-sentence few-shot pairs (edit/extend this)
-├── static/
-│   └── index.html         # simple test UI with mode toggle
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── render.yaml
-```
-
-## Extending your data
-
-- `data/vocabulary.json`: add entries as
-  `{"standard": "సాయం", "melimi": "తోడ్పాటు", "note": "help/assistance"}`
-- `data/examples.json`: add full conversational pairs as
-  `{"standard": "...", "melimi": "..."}` — these matter more than the word
-  list for teaching the model tone and grammar shifts, since Melimi Telugu
-  isn't 1:1 word substitution.
-
-Larger vocab/grammar files (thousands of entries) will slow down naive
-keyword matching. If you get there, swap `vocab.py`'s `retrieve()` function
-for a simple SQLite `LIKE` query or a local (free) embedding search — no
-need to change anything else.
+This is a major architectural direction. The quality of Melimi generation
+still depends on the quality and coverage of the authoritative Melimi corpus.
+The system is designed so that adding better corpus/grammar knowledge improves
+the language engine rather than turning the chatbot into a phrase lookup bot.
