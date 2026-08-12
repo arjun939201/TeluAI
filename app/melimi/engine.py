@@ -1,3 +1,4 @@
+from app.melimi.firewall import subject_lexicon
 
 from app.melimi.index import language_profile, relevant_language_context
 from app.melimi.registry import lexical_inventory
@@ -13,9 +14,14 @@ def build_language_engine_context(
     max_relevant_chars: int = 6200,
 ) -> str:
     profile = language_profile(max_chars=max_profile_chars)
+    lexicon = subject_lexicon()
+    mapping_lines = ["FILE-AUTHORITATIVE LEXICON — THESE MAPPINGS ARE MANDATORY:"]
+    for source, preferred in sorted(lexicon["preferred"].items()):
+        mapping_lines.append(f"- {source} => {preferred}")
+    file_authority = "\n".join(mapping_lines)[:7000]
     relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
 
-    return f"""
+    return f"""\n{file_authority}\n
 MELIMI TELUGU LANGUAGE ENGINE — EXECUTION CONTRACT
 
 You are conversing with the user, not translating a document.
