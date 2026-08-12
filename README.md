@@ -1,5 +1,7 @@
 # TeluAI
 
+> **UI preservation:** This release restores the original TeluAI dark chat interface (sidebar, mode switch, welcome screen, suggestions, composer, responsive layout). The UI is intentionally kept separate from the language-engineering work.
+
 **TeluAI is an AI-powered Telugu conversational web application with two
 language modes: Standard Telugu and strict Melimi Telugu.**
 
@@ -182,3 +184,29 @@ The architecture is ready for deeper:
 The goal is to make TeluAI understand **language and conversation**, then use
 Melimi as a real language-expression system rather than a word-replacement
 layer.
+
+
+## Release principle
+
+The frontend is preserved from the earlier working TeluAI interface. New work is
+concentrated in language and conversation intelligence.
+
+Do not redesign the UI as part of language-engine changes unless explicitly requested.
+
+## Melimi quality principle
+
+Melimi mode must not be implemented as a handful of word substitutions. It must
+understand the conversational meaning first and then compose the response under
+Melimi lexical and grammatical constraints.
+
+The model is allowed to keep a word only when an appropriate established Melimi
+equivalent is unavailable; it must not invent unsupported vocabulary merely to
+make a response look "pure".
+
+## Corpus safety
+
+If you already have the full `data/vocabulary.json` in your GitHub repository,
+KEEP IT. This ZIP contains the development seed from the previous package because
+the connector cannot download the full corpus into the build environment.
+
+Before replacing a repository wholesale, preserve your existing full corpus.

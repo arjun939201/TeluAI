@@ -27,7 +27,7 @@ STRICT RULES:
 3. Prefer established Melimi Telugu wherever an appropriate form exists.
 4. In Melimi mode, maximize Melimi vocabulary and avoid unnecessary Standard
    Telugu/loan vocabulary.
-5. Use established Melimi morphology and word-formation rules when supported.
+5. Use established Melimi morphology, derivation and word-formation rules when supported.
 6. Do not invent a Melimi word merely to remove a loanword.
 7. Do not blindly find-and-replace words.
 8. Do not copy vocabulary examples, phrases or corpus sentences as answers.
