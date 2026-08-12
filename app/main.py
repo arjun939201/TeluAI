@@ -72,7 +72,7 @@ STATIC_DIR = os.path.join(
 
 
 # ============================================================
-# STATIC FILES
+# STATIC
 # ============================================================
 
 if os.path.isdir(STATIC_DIR):
@@ -141,6 +141,7 @@ async def chat(
         or ""
     ).strip()
 
+
     if not message:
 
         raise HTTPException(
@@ -149,14 +150,11 @@ async def chat(
         )
 
 
+    mode = req.mode
+
+
     # ========================================================
-    # AUTHORITATIVE VOCABULARY
-    # ========================================================
-    #
-    # IMPORTANT:
-    # Never send the whole vocabulary.json to Groq.
-    #
-    # Only retrieve a small number of relevant entries.
+    # VOCABULARY
     # ========================================================
 
     try:
@@ -219,29 +217,17 @@ async def chat(
 
 
     # ========================================================
-    # HARD LIMIT VOCABULARY CONTEXT
-    # ========================================================
-    #
-    # Even if retrieve_context() returns a large amount of
-    # text, do not send all of it to Groq.
+    # LIMIT VOCABULARY
     # ========================================================
 
     MAX_VOCAB_CHARS = 2200
 
-    if len(
-        vocabulary_context
-    ) > MAX_VOCAB_CHARS:
+    vocabulary_context = (
+        vocabulary_context[
+            :MAX_VOCAB_CHARS
+        ]
+    )
 
-        vocabulary_context = (
-            vocabulary_context[
-                :MAX_VOCAB_CHARS
-            ]
-        )
-
-
-    # ========================================================
-    # FALLBACK VOCABULARY
-    # ========================================================
 
     if not vocabulary_context:
 
@@ -256,15 +242,11 @@ async def chat(
     # ========================================================
     # MORPHOLOGY
     # ========================================================
-    #
-    # Analyze only the user's current message.
-    #
-    # Do NOT send the entire morphology database.
-    # ========================================================
 
     morphology_context = []
 
-    if req.mode == "melimi":
+
+    if mode == "melimi":
 
         try:
 
@@ -305,17 +287,11 @@ async def chat(
     # ========================================================
     # LEARNED CORPUS
     # ========================================================
-    #
-    # Only retrieve a SMALL relevant portion.
-    #
-    # The corpus itself can contain thousands of words.
-    # That does NOT mean thousands of words should be sent
-    # to Groq on every request.
-    # ========================================================
 
     learned_context = ""
 
-    if req.mode == "melimi":
+
+    if mode == "melimi":
 
         try:
 
@@ -346,58 +322,30 @@ async def chat(
             learned_context = ""
 
 
-    # ========================================================
-    # FINAL LEARNED-CONTEXT LIMIT
-    # ========================================================
-
-    MAX_LEARNED_CHARS = 1800
-
-    if len(
-        learned_context
-    ) > MAX_LEARNED_CHARS:
-
-        learned_context = (
-            learned_context[
-                :MAX_LEARNED_CHARS
-            ]
-        )
+    learned_context = (
+        learned_context[
+            :1800
+        ]
+    )
 
 
     # ========================================================
     # SYSTEM PROMPT
     # ========================================================
+    #
+    # IMPORTANT:
+    # req.mode is now actually passed.
+    # ========================================================
 
     system_prompt = build_system_prompt(
-        vocabulary_context=(
-            vocabulary_context
-        ),
-        learned_context=(
-            learned_context
-        ),
+        vocabulary_context=vocabulary_context,
+        learned_context=learned_context,
+        mode=mode,
     )
 
 
     # ========================================================
-    # LIMIT SYSTEM PROMPT
-    # ========================================================
-    #
-    # The actual Melimi rules remain in prompts.py.
-    # This prevents accidental runaway context from the
-    # retrieved material.
-    #
-    # We do NOT truncate the system prompt itself here because
-    # doing so could cut an instruction in the middle.
-    # ========================================================
-
-
-    # ========================================================
-    # CONVERSATION HISTORY
-    # ========================================================
-    #
-    # Only send the most recent 4 turns.
-    #
-    # Old conversations are expensive and usually unnecessary
-    # for understanding the current question.
+    # HISTORY
     # ========================================================
 
     history = []
@@ -406,8 +354,6 @@ async def chat(
         req.history or []
     )
 
-    # Keep only the newest 8 messages
-    # = roughly 4 user/assistant exchanges.
 
     raw_history = raw_history[
         -8:
@@ -469,16 +415,9 @@ async def chat(
             continue
 
 
-        # Prevent a very long old message from consuming
-        # the entire context window.
-
-        if len(content) > 900:
-
-            content = (
-                content[
-                    :900
-                ]
-            )
+        content = content[
+            :900
+        ]
 
 
         history.append(
@@ -519,10 +458,6 @@ async def chat(
         )
 
 
-    # ========================================================
-    # RESPONSE
-    # ========================================================
-
     reply = str(
         reply or ""
     ).strip()
@@ -532,14 +467,12 @@ async def chat(
 
         raise HTTPException(
             status_code=502,
-            detail=(
-                "AI returned an empty response."
-            ),
+            detail="AI returned an empty response.",
         )
 
 
     # ========================================================
-    # MATCHED VOCABULARY
+    # MATCHED VOCAB
     # ========================================================
 
     matched_vocab = []
@@ -587,7 +520,7 @@ async def chat(
 
 
     # ========================================================
-    # MORPHOLOGICAL SURFACES
+    # ROOT CANDIDATES
     # ========================================================
 
     root_candidates = (
@@ -597,27 +530,19 @@ async def chat(
     )
 
 
-    # ========================================================
-    # RETURN
-    # ========================================================
-
     return ChatResponse(
 
         reply=reply,
 
-        mode=req.mode,
+        mode=mode,
 
-        matched_vocab=(
-            matched_vocab
-        ),
+        matched_vocab=matched_vocab,
 
         matched_grammar_suffixes=[],
 
         matched_grammar_prefixes=[],
 
-        root_candidates=(
-            root_candidates
-        ),
+        root_candidates=root_candidates,
     )
 
 
@@ -640,7 +565,9 @@ def _format_vocabulary(
     ]
 
 
-    for entry in entries:
+    for entry in (
+        entries or []
+    ):
 
         if not isinstance(
             entry,
@@ -705,16 +632,14 @@ def _format_vocabulary(
         if meaning:
 
             line += (
-                f" | meaning: "
-                f"{meaning}"
+                f" | meaning: {meaning}"
             )
 
 
         if note:
 
             line += (
-                f" | note: "
-                f"{note}"
+                f" | note: {note}"
             )
 
 
@@ -723,24 +648,16 @@ def _format_vocabulary(
         )
 
 
-        current = "\n".join(
-            lines
-        )
-
-
         if len(
-            current
+            "\n".join(lines)
         ) >= max_chars:
 
             break
 
 
-    result = "\n".join(
+    return "\n".join(
         lines
-    )
-
-
-    return result[
+    )[
         :max_chars
     ]
 
@@ -845,13 +762,8 @@ def _format_morphology(
         )
 
 
-        current = "\n".join(
-            lines
-        )
-
-
         if len(
-            current
+            "\n".join(lines)
         ) >= max_chars:
 
             break
@@ -906,7 +818,7 @@ def _get_morphology_surfaces(
 
 
 # ============================================================
-# LEARN TEXT
+# LEARNING
 # ============================================================
 
 @app.post(
@@ -932,12 +844,10 @@ def learn_melimi_text(
 
     try:
 
-        result = learn_text(
+        return learn_text(
             text=text,
             document_id=document_id,
         )
-
-        return result
 
     except Exception as exc:
 
