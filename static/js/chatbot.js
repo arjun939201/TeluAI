@@ -25,12 +25,13 @@ function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":
 function renderMelimiText(text,audit){
  const map=new Map((audit||[]).map(x=>[x.word,x]));
  return String(text).split(/([\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*)/g).map(part=>{
-  const x=map.get(part); if(!x)return escapeHtml(part);
-  const cls=x.clickable?"word-token unregistered":"word-token";
-  const title=x.loan?"Loan/foreign word — click to teach Melimi":(x.melimi_gap?"Melimi equivalent needed — click to teach":"Melimi word");
-  return `<span class="${cls}" data-word="${escapeHtml(part)}" title="${title}">${escapeHtml(part)}</span>`;
+   const x=map.get(part);
+   if(!x || !x.clickable) return escapeHtml(part);
+   const title=x.unresolved_loan?"Unregistered loan word — click to teach Melimi":"Melimi equivalent needed — click to teach";
+   return `<span class="word-token unregistered" data-word="${escapeHtml(part)}" title="${title}">${escapeHtml(part)}</span>`;
  }).join("");
 }
+
 function addMessage(text,role,melimi=false,audit=[]){
  const wrapper=document.createElement("div");wrapper.className=`message ${role}`;
  if(role==="assistant"&&melimi)wrapper.classList.add("melimi");
@@ -96,16 +97,29 @@ setMode("melimi");resizeInput();messageInput.focus();
 
 
 function modalElements(){return {modal:document.getElementById("wordModal"),word:document.getElementById("selectedWord"),status:document.getElementById("wordStatus"),root:document.getElementById("wordRoot"),meaning:document.getElementById("wordMeaning"),pos:document.getElementById("wordPos"),melimi:document.getElementById("wordMelimi"),formation:document.getElementById("wordFormation"),result:document.getElementById("wordResult"),register:document.getElementById("registerWord")}}
-function closeWordModal(){const x=modalElements();x.modal?.classList.add("hidden")}
+function closeWordModal(){
+ const x=modalElements();
+ if(!x.modal)return;
+ x.modal.classList.add("hidden");
+ x.modal.hidden=true;
+ x.modal.setAttribute("aria-hidden","true");
+}
 async function openWordModal(word=""){
  const x=modalElements();if(!x.modal)return;
  x.word.textContent=word||"కొత్త మేలిమి పదం";x.root.value=word||"";x.meaning.value="";x.pos.value="";x.melimi.value="";x.formation.value="";x.result.textContent="";x.register.disabled=false;
- x.status.textContent=word?"Loan/foreign word or Melimi gap — enter the verified Melimi Telugu form.":"Add a user-verified Melimi Telugu word.";x.status.style.color="#d9a441";x.modal.classList.remove("hidden");
+ x.status.textContent=word?"Loan/foreign word or Melimi gap — enter the verified Melimi Telugu form.":"Add a user-verified Melimi Telugu word.";
+ x.status.style.color="#d9a441";
+ x.modal.hidden=false;
+ x.modal.removeAttribute("aria-hidden");
+ x.modal.classList.remove("hidden");
  if(word){try{const r=await fetch("/melimi/word/"+encodeURIComponent(word));const d=await r.json();if(d.melimi_equivalent)x.melimi.value=d.melimi_equivalent;if(d.root_candidate)x.root.value=d.root_candidate;if(d.loan)x.status.textContent="Known loan/foreign word — supply its Melimi Telugu equivalent.";}catch(e){}}
  setTimeout(()=>x.melimi.focus(),50)
 }
-document.addEventListener("click",e=>{const token=e.target.closest?.(".word-token.unregistered");if(token){e.preventDefault();e.stopPropagation();openWordModal(token.dataset.word||token.textContent.trim())}})
-document.getElementById("addWordButton")?.addEventListener("click",()=>openWordModal())
+document.addEventListener("click",e=>{
+ const token=e.target.closest?.(".word-token.unregistered");
+ if(token){e.preventDefault();e.stopPropagation();openWordModal(token.dataset.word||token.textContent.trim())}
+})
+document.getElementById("addWordButton")?.addEventListener("click",e=>{e.preventDefault();openWordModal()})
 document.getElementById("closeWordModal")?.addEventListener("click",closeWordModal)
 document.getElementById("cancelWord")?.addEventListener("click",closeWordModal)
 document.getElementById("wordModalBackdrop")?.addEventListener("click",closeWordModal)
