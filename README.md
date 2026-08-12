@@ -323,3 +323,18 @@ Red/clickable marking is now reserved for:
    is missing from the registry.
 
 This prevents the UI from treating the entire Telugu language as unregistered.
+
+## v10 strict Melimi + GitHub teaching
+
+### Two independent language modes
+- Standard mode uses natural Standard Telugu and does not run Melimi lexical constraints.
+- Melimi mode uses the Melimi language subject, conversation state, relevant corpus retrieval, grammar/word-formation rules, and a deterministic lexical gate.
+
+### Strict Melimi gate
+Known Standard→Melimi mappings and explicitly classified loanwords are checked after generation. If a known Melimi equivalent was available but the model used the Standard/loan form, TeluAI performs a bounded repair generation. Ordinary Telugu words that merely are absent from the corpus are not marked or banned.
+
+### Wiki-style teaching
+The sidebar now has `＋ మేలిమి పదం జోడించు`. A red word in Melimi mode opens the same registration dialog. Submit commits the user-verified record directly to the configured GitHub language file.
+
+### Render environment variables
+Set the variables from `.env.example`. `GITHUB_TOKEN` must be a GitHub token with repository Contents read/write permission. The token is server-side only and is never sent to the browser.
