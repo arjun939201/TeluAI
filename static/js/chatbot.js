@@ -22,21 +22,31 @@ standardMode.addEventListener("click",()=>setMode("standard"));
 melimiMode.addEventListener("click",()=>setMode("melimi"));
 
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+function escapeHtml(v){
+    return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
 function renderMelimiText(text,audit){
- const map=new Map((audit||[]).map(x=>[x.word,x]));
- return String(text).split(/([\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*)/g).map(part=>{
-  const x=map.get(part); if(!x)return escapeHtml(part);
-  return `<span class="word-token${x.clickable?" unregistered":""}" data-word="${escapeHtml(part)}">${escapeHtml(part)}</span>`;
- }).join("");
+    const map=new Map((audit||[]).map(x=>[x.word,x]));
+    return String(text).split(/([\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*)/g).map(part=>{
+        const x=map.get(part);
+        if(!x) return escapeHtml(part);
+        const cls=x.clickable ? "word-token unregistered" : "word-token";
+        const title=x.loan ? "Loan/foreign word — click to teach Melimi" :
+                    (x.melimi_gap ? "Melimi equivalent needed — click to teach" : "Melimi word");
+        return `<span class="${cls}" data-word="${escapeHtml(part)}" title="${title}">${escapeHtml(part)}</span>`;
+    }).join("");
 }
 function addMessage(text,role,melimi=false,audit=[]){
- const wrapper=document.createElement("div");wrapper.className=`message ${role}`;
- if(role==="assistant"&&melimi)wrapper.classList.add("melimi");
- const content=document.createElement("div");content.className="message-content";
- if(role==="assistant"&&melimi){content.innerHTML=renderMelimiText(text,audit);
-  content.querySelectorAll(".word-token").forEach(x=>x.onclick=()=>openWordModal(x.dataset.word));
- }else content.textContent=text;
- wrapper.appendChild(content);chatContainer.appendChild(wrapper);scrollToBottom();
+    const wrapper=document.createElement("div");
+    wrapper.className=`message ${role}`;
+    if(role==="assistant"&&melimi) wrapper.classList.add("melimi");
+    const content=document.createElement("div");
+    content.className="message-content";
+    if(role==="assistant"&&melimi) content.innerHTML=renderMelimiText(text,audit);
+    else content.textContent=text;
+    wrapper.appendChild(content);
+    chatContainer.appendChild(wrapper);
+    scrollToBottom();
 }
 
 function showTyping(){
@@ -93,28 +103,107 @@ clearButton.addEventListener("click",newChat);
 mobileNewChat.addEventListener("click",newChat);
 setMode("melimi");resizeInput();messageInput.focus();
 
-const wordModal=document.getElementById("wordModal"),backdrop=document.getElementById("wordModalBackdrop");
-const selectedWord=document.getElementById("selectedWord"),wordStatus=document.getElementById("wordStatus");
-const wordRoot=document.getElementById("wordRoot"),wordMeaning=document.getElementById("wordMeaning");
-const wordPos=document.getElementById("wordPos"),wordMelimi=document.getElementById("wordMelimi");
-const wordFormation=document.getElementById("wordFormation"),wordResult=document.getElementById("wordResult");
-function closeWordModal(){wordModal.classList.add("hidden")}
+
+/* v9: delegated click handler. This works for newly-created chat messages too. */
+document.addEventListener("click", function(event){
+    const token=event.target.closest(".word-token.unregistered");
+    if(token){
+        event.preventDefault();
+        event.stopPropagation();
+        openWordModal(token.dataset.word || token.textContent.trim());
+    }
+});
+
+function getWordModal(){
+    return {
+        modal:document.getElementById("wordModal"),
+        word:document.getElementById("selectedWord"),
+        status:document.getElementById("wordStatus"),
+        root:document.getElementById("wordRoot"),
+        meaning:document.getElementById("wordMeaning"),
+        pos:document.getElementById("wordPos"),
+        melimi:document.getElementById("wordMelimi"),
+        formation:document.getElementById("wordFormation"),
+        result:document.getElementById("wordResult"),
+        register:document.getElementById("registerWord")
+    };
+}
+function closeWordModal(){
+    const x=getWordModal();
+    if(x.modal) x.modal.classList.add("hidden");
+}
+async function openWordModal(word){
+    const x=getWordModal();
+    if(!x.modal) return;
+    x.word.textContent=word;
+    x.root.value=word;
+    x.meaning.value="";
+    x.pos.value="";
+    x.melimi.value="";
+    x.formation.value="";
+    x.result.textContent="";
+    x.result.style.color="#8ed9a0";
+    x.status.textContent="Checking the Melimi language subject...";
+    x.status.style.color="#f0b95b";
+    x.modal.classList.remove("hidden");
+    try{
+        const response=await fetch("/melimi/word/"+encodeURIComponent(word));
+        const data=await response.json();
+        if(data.registered){
+            x.status.textContent="Already registered in the Melimi language subject.";
+            x.status.style.color="#8ed9a0";
+        }else if(data.loan){
+            x.status.textContent="Loan/foreign word — teach its Melimi Telugu equivalent.";
+            x.status.style.color="#f06a6a";
+        }else{
+            x.status.textContent="Melimi equivalent needed — teach the language subject.";
+            x.status.style.color="#f0b95b";
+        }
+    }catch(error){
+        x.status.textContent="Teach its Melimi Telugu equivalent.";
+    }
+    setTimeout(()=>x.melimi && x.melimi.focus(),50);
+}
 document.getElementById("closeWordModal")?.addEventListener("click",closeWordModal);
 document.getElementById("cancelWord")?.addEventListener("click",closeWordModal);
-backdrop?.addEventListener("click",closeWordModal);
-async function openWordModal(word){
- selectedWord.textContent=word;wordRoot.value=word;wordMeaning.value="";wordPos.value="";
- wordMelimi.value="";wordFormation.value="";wordResult.textContent="";
- wordStatus.textContent="Unregistered word — enter its Melimi equivalent.";
- wordModal.classList.remove("hidden");wordMelimi.focus();
-}
-document.getElementById("registerWord")?.addEventListener("click",async()=>{
- const payload={word:selectedWord.textContent,root:wordRoot.value,meaning:wordMeaning.value,
- part_of_speech:wordPos.value,melimi_equivalent:wordMelimi.value,formation:wordFormation.value};
- if(!payload.melimi_equivalent.trim()){wordResult.style.color="#ef9999";wordResult.textContent="Enter the Melimi word.";return}
- try{const r=await fetch("/melimi/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
- const d=await r.json();if(!r.ok)throw Error(d.detail||"Registration failed");
- wordResult.textContent="Registered in the Melimi language subject.";setTimeout(closeWordModal,700);
- }catch(e){wordResult.style.color="#ef9999";wordResult.textContent=e.message}
+document.getElementById("wordModalBackdrop")?.addEventListener("click",closeWordModal);
+document.addEventListener("keydown",event=>{
+    if(event.key==="Escape") closeWordModal();
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeWordModal()});
+document.getElementById("registerWord")?.addEventListener("click",async()=>{
+    const x=getWordModal();
+    const payload={
+        word:x.word.textContent.trim(),
+        root:x.root.value.trim(),
+        meaning:x.meaning.value.trim(),
+        part_of_speech:x.pos.value.trim(),
+        melimi_equivalent:x.melimi.value.trim(),
+        formation:x.formation.value.trim()
+    };
+    if(!payload.melimi_equivalent){
+        x.result.style.color="#ef7777";
+        x.result.textContent="Enter the Melimi Telugu word first.";
+        x.melimi.focus();
+        return;
+    }
+    x.register.disabled=true;
+    x.result.style.color="#aaa";
+    x.result.textContent="Registering...";
+    try{
+        const response=await fetch("/melimi/register",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(payload)
+        });
+        const data=await response.json();
+        if(!response.ok) throw new Error(data.detail || "Registration failed");
+        x.result.style.color="#8ed9a0";
+        x.result.textContent="Registered. It is now part of the local Melimi language subject.";
+        setTimeout(closeWordModal,700);
+    }catch(error){
+        x.result.style.color="#ef7777";
+        x.result.textContent=error.message || "Could not register the word.";
+    }finally{
+        x.register.disabled=false;
+    }
+});

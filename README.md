@@ -308,3 +308,18 @@ Melimi responses now expose lexical gaps directly in chat:
 registered words are normal; unregistered lexical words are red and clickable.
 The user can enter root, meaning, word type, Melimi equivalent and formation
 rule, then register the word into the Git-tracked language subject.
+
+
+## Smart word marking
+
+The wiki-style marking was refined. Missing from the Melimi vocabulary does NOT
+mean "loanword". Ordinary Telugu words such as `ఏమిటి` and `అనుకుంటున్నారు`
+remain normal.
+
+Red/clickable marking is now reserved for:
+1. words explicitly classified as loan/loanword/borrowed/foreign in the language
+   subject; or
+2. an explicitly registered Standard->Melimi mapping whose Melimi equivalent
+   is missing from the registry.
+
+This prevents the UI from treating the entire Telugu language as unregistered.

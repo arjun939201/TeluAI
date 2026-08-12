@@ -56,3 +56,22 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Te
 .word-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.word-actions button{border-radius:8px;padding:9px 13px;cursor:pointer}
 .secondary-action{background:#242428;border:1px solid #36363b;color:#ddd}.primary-action{background:#d9a441;border:0;color:#111;font-weight:650}
 .word-result{margin-top:12px;font-size:12px;color:#8ed9a0}
+
+/* v9: clickable loanword registration modal */
+.word-modal{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px}
+.word-modal.hidden{display:none !important}
+.word-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.74);backdrop-filter:blur(4px)}
+.word-card{position:relative;z-index:2;width:min(560px,calc(100vw - 32px));max-height:90vh;overflow:auto;background:#171719;border:1px solid #3b3b40;border-radius:16px;padding:22px;box-shadow:0 24px 100px rgba(0,0,0,.65)}
+.word-close{position:absolute;right:10px;top:8px;width:34px;height:34px;border:0;background:transparent;color:#aaa;font-size:25px;cursor:pointer}
+.word-kicker{font-size:11px;color:#d9a441;margin-bottom:5px}
+.word-status{font-size:12px;color:#f06a6a;margin-bottom:15px}
+.word-analysis{display:grid;gap:10px}
+.word-analysis label{display:grid;gap:5px;font-size:12px;color:#aaa}
+.word-analysis input{box-sizing:border-box;width:100%;padding:10px;border:1px solid #33343a;border-radius:8px;background:#101011;color:#eee}
+.word-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px}
+.word-actions button{padding:9px 13px;border-radius:8px;cursor:pointer}
+.secondary-action{background:#252529;border:1px solid #38383d;color:#ddd}
+.primary-action{background:#d9a441;border:1px solid #d9a441;color:#111;font-weight:650}
+.word-result{margin-top:12px;font-size:12px}
+.word-token{cursor:pointer}
+.word-token.unregistered{color:#f06a6a;text-decoration:underline dotted #f06a6a;text-underline-offset:3px}
