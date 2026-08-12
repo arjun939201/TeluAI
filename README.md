@@ -338,3 +338,24 @@ The sidebar now has `＋ మేలిమి పదం జోడించు`. A 
 
 ### Render environment variables
 Set the variables from `.env.example`. `GITHUB_TOKEN` must be a GitHub token with repository Contents read/write permission. The token is server-side only and is never sent to the browser.
+
+
+## Strict file-content authority
+
+Melimi mode now treats the vocabulary files as an enforceable lexical
+specification. Every explicit Standard/source -> Melimi mapping is loaded into
+a file-derived lexical firewall. The mapping is supplied to generation, checked
+after generation, regenerated if violated, and protected by a final exact
+replacement barrier derived from the files.
+
+Example:
+
+```text
+సహాయం -> బాసట
+```
+
+If a model produces `సహాయం` in Melimi mode, that output cannot pass the final
+Melimi gate.
+
+This is intentionally different from marking every unknown Telugu word as a
+loanword. Only explicit file evidence creates a lexical constraint.
