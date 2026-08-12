@@ -21,7 +21,6 @@ function setMode(newMode){
 standardMode.addEventListener("click",()=>setMode("standard"));
 melimiMode.addEventListener("click",()=>setMode("melimi"));
 
-function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function escapeHtml(v){
     return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
@@ -117,7 +116,8 @@ document.addEventListener("click", function(event){
 function getWordModal(){
     return {
         modal:document.getElementById("wordModal"),
-        word:document.getElementById("selectedWord"),
+        title:document.getElementById("wordModalTitle"),
+        source:document.getElementById("wordSource"),
         status:document.getElementById("wordStatus"),
         root:document.getElementById("wordRoot"),
         meaning:document.getElementById("wordMeaning"),
@@ -132,20 +132,15 @@ function closeWordModal(){
     const x=getWordModal();
     if(x.modal) x.modal.classList.add("hidden");
 }
-async function openWordModal(word){
+async function checkWordStatus(word){
     const x=getWordModal();
-    if(!x.modal) return;
-    x.word.textContent=word;
-    x.root.value=word;
-    x.meaning.value="";
-    x.pos.value="";
-    x.melimi.value="";
-    x.formation.value="";
-    x.result.textContent="";
-    x.result.style.color="#8ed9a0";
+    if(!word){
+        x.status.textContent="Type any Telugu or loan word to register its Melimi Telugu equivalent.";
+        x.status.style.color="#aaa";
+        return;
+    }
     x.status.textContent="Checking the Melimi language subject...";
     x.status.style.color="#f0b95b";
-    x.modal.classList.remove("hidden");
     try{
         const response=await fetch("/melimi/word/"+encodeURIComponent(word));
         const data=await response.json();
@@ -159,27 +154,57 @@ async function openWordModal(word){
             x.status.textContent="Melimi equivalent needed — teach the language subject.";
             x.status.style.color="#f0b95b";
         }
+        if(data.melimi_equivalent && !x.melimi.value) x.melimi.value=data.melimi_equivalent;
     }catch(error){
         x.status.textContent="Teach its Melimi Telugu equivalent.";
     }
-    setTimeout(()=>x.melimi && x.melimi.focus(),50);
+}
+async function openWordModal(word){
+    const x=getWordModal();
+    if(!x.modal) return;
+    word=(word||"").trim();
+    x.title.textContent=word?"పదం నమోదు":"కొత్త పదం చేర్చు";
+    x.source.value=word;
+    x.root.value=word;
+    x.meaning.value="";
+    x.pos.value="";
+    x.melimi.value="";
+    x.formation.value="";
+    x.result.textContent="";
+    x.result.style.color="#8ed9a0";
+    x.modal.classList.remove("hidden");
+    await checkWordStatus(word);
+    setTimeout(()=>{ (word?x.melimi:x.source)?.focus(); },50);
 }
 document.getElementById("closeWordModal")?.addEventListener("click",closeWordModal);
 document.getElementById("cancelWord")?.addEventListener("click",closeWordModal);
 document.getElementById("wordModalBackdrop")?.addEventListener("click",closeWordModal);
+document.getElementById("addWordButton")?.addEventListener("click",()=>openWordModal(""));
 document.addEventListener("keydown",event=>{
     if(event.key==="Escape") closeWordModal();
+});
+document.getElementById("wordSource")?.addEventListener("blur",()=>{
+    const x=getWordModal();
+    const w=x.source.value.trim();
+    if(!x.root.value.trim()) x.root.value=w;
+    checkWordStatus(w);
 });
 document.getElementById("registerWord")?.addEventListener("click",async()=>{
     const x=getWordModal();
     const payload={
-        word:x.word.textContent.trim(),
+        word:x.source.value.trim(),
         root:x.root.value.trim(),
         meaning:x.meaning.value.trim(),
         part_of_speech:x.pos.value.trim(),
         melimi_equivalent:x.melimi.value.trim(),
         formation:x.formation.value.trim()
     };
+    if(!payload.word){
+        x.result.style.color="#ef7777";
+        x.result.textContent="Enter the Telugu/loan word first.";
+        x.source.focus();
+        return;
+    }
     if(!payload.melimi_equivalent){
         x.result.style.color="#ef7777";
         x.result.textContent="Enter the Melimi Telugu word first.";

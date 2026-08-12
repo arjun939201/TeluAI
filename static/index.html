@@ -35,6 +35,13 @@
         </div>
 
         <div class="sidebar-section">
+            <button id="addWordButton" class="new-chat-button" type="button">
+                <span class="plus">＋</span>
+                పదం చేర్చు (Add word)
+            </button>
+        </div>
+
+        <div class="sidebar-section">
             <div class="section-title">ఈనాడు</div>
             <div id="chatHistory" class="chat-history">
                 <div class="chat-item active">
@@ -115,8 +122,9 @@
 <div id="wordModal" class="word-modal hidden">
 <div class="word-modal-backdrop" id="wordModalBackdrop"></div><div class="word-card">
 <button id="closeWordModal" class="word-close" type="button">×</button>
-<div class="word-kicker">Melimi Telugu language subject</div><h2 id="selectedWord">పదం</h2>
+<div class="word-kicker">Melimi Telugu language subject</div><h2 id="wordModalTitle">పదం నమోదు</h2>
 <div id="wordStatus" class="word-status"></div><div class="word-analysis">
+<label>Word / పదం<input id="wordSource" placeholder="పదాన్ని టైప్ చేయండి"></label>
 <label>Root / మూలపలుకు<input id="wordRoot"></label>
 <label>Meaning / తెల్లం<input id="wordMeaning"></label>
 <label>Word type<input id="wordPos" placeholder="noun / verb / adjective"></label>

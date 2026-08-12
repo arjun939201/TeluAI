@@ -55,15 +55,23 @@ def extract_linguistic_hints(text: str) -> Dict:
     }
 
 
+# Common Telugu case/postposition clitics (vibhakti) and the plural marker.
+# Telugu is agglutinative: these attach directly to a word with no space,
+# so exact-string vocabulary lookups miss every inflected form unless the
+# clitic is stripped first. This list is intentionally conservative (real
+# vibhakti/postposition endings only) to avoid mis-stripping unrelated words.
+CASE_SUFFIXES = sorted({
+    "లతో", "లలో", "లకు", "లను", "లని", "లపై", "నుంచి", "నుండి",
+    "యొక్క", "వరకు", "వైపు", "తోపాటు", "మీదుగా",
+    "తో", "లో", "లు", "ను", "ని", "కు", "కి", "గా", "లా",
+    "పై", "మీద", "కింద", "కోసం", "వల్ల", "చేత", "వద్ద", "మధ్య", "గురించి",
+}, key=len, reverse=True)
+
+
 def analyze_word_surface(word: str) -> Dict:
     # Lightweight morphological clues. It deliberately avoids claiming
     # a full grammatical parse when evidence is insufficient.
-    suffixes = [
-        "లతో", "లలో", "లకు", "లను", "లని", "లపై", "నుంచి", "నుండి",
-        "యొక్క", "తో", "లో", "లు", "ను", "ని", "కు", "కి", "గా",
-        "పై", "కోసం", "వల్ల", "మధ్య", "గురించి",
-    ]
-    for suffix in sorted(suffixes, key=len, reverse=True):
+    for suffix in CASE_SUFFIXES:
         if word.endswith(suffix) and len(word) > len(suffix) + 1:
             return {
                 "surface": word,
@@ -71,3 +79,30 @@ def analyze_word_surface(word: str) -> Dict:
                 "case_or_suffix_hint": suffix,
             }
     return {"surface": word, "base_candidate": word, "case_or_suffix_hint": None}
+
+
+def case_variants(word: str) -> List[str]:
+    """Return the surface form plus any case/plural-stripped base form(s).
+
+    Used to match an inflected word (e.g. with -లో/-కు/-లు attached) back to
+    its uninflected vocabulary entry, so registered/loan-word status applies
+    strictly across grammatical cases and variations, not only bare forms.
+    """
+    word = (word or "").strip()
+    if not word:
+        return []
+    variants = [word]
+    surface = word
+    # Peel iteratively: a word can carry more than one clitic, e.g. plural + case.
+    for _ in range(2):
+        hint = analyze_word_surface(surface)
+        base = hint["base_candidate"]
+        if base == surface:
+            break
+        variants.append(base)
+        surface = base
+    seen = []
+    for v in variants:
+        if v not in seen:
+            seen.append(v)
+    return seen

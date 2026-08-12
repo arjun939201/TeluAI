@@ -2,6 +2,7 @@
 import re
 from functools import lru_cache
 from app.melimi.index import build_index
+from app.linguistics.parser import case_variants
 
 TOKEN_RE=re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 
@@ -53,19 +54,36 @@ def lexical_inventory():
 
 def reload_registry(): lexical_inventory.cache_clear()
 
+def _any_in(variants, pool):
+    return any(v in pool for v in variants)
+
+
+def _mapped_equivalent(variants, standard_to_melimi):
+    for v in variants:
+        if v in standard_to_melimi:
+            return standard_to_melimi[v]
+    return ""
+
+
 def audit_response(text):
     inv=lexical_inventory()
     out=[]
     for w in tokenize(text):
-        # Only explicitly known loan/foreign words are red by default.
-        # Ordinary Telugu words and grammatical words remain normal.
-        is_loan=w in inv["loan"]
-        has_melimi_gap=w in inv["standard_to_melimi"] and w not in inv["registered"]
+        # Strip common case/plural clitics first (e.g. -లో, -కు, -లు) so
+        # inflected variants of a registered/loan word are still recognized
+        # strictly, instead of only matching the bare dictionary form.
+        variants=case_variants(w)
+        is_loan=_any_in(variants, inv["loan"])
+        is_registered=_any_in(variants, inv["registered"]) or w in FUNCTION_WORDS
+        # Only explicitly known loan/foreign words, or an explicitly mapped
+        # Standard/loan word whose Melimi form is still unregistered, are
+        # red by default. Ordinary Telugu words remain normal.
+        has_melimi_gap=_any_in(variants, inv["standard_to_melimi"]) and not is_registered
         clickable=is_loan or has_melimi_gap
         out.append({
             "word":w,
-            "registered":w in inv["registered"],
-            "native":w in inv["native"] or w in FUNCTION_WORDS,
+            "registered":is_registered,
+            "native":_any_in(variants, inv["native"]) or w in FUNCTION_WORDS,
             "loan":is_loan,
             "melimi_gap":has_melimi_gap,
             "clickable":clickable
@@ -74,11 +92,12 @@ def audit_response(text):
 
 def analyze_word(word):
     inv=lexical_inventory()
+    variants=case_variants(word)
     return {
         "word":word,
-        "registered":word in inv["registered"],
-        "native":word in inv["native"],
-        "loan":word in inv["loan"],
-        "melimi_equivalent":inv["standard_to_melimi"].get(word,""),
-        "root_candidate":word
+        "registered":_any_in(variants, inv["registered"]),
+        "native":_any_in(variants, inv["native"]),
+        "loan":_any_in(variants, inv["loan"]),
+        "melimi_equivalent":_mapped_equivalent(variants, inv["standard_to_melimi"]),
+        "root_candidate":variants[-1] if variants else word
     }

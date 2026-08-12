@@ -50,6 +50,14 @@ def home():
 
 
 @app.get("/health", response_model=HealthResponse)
+def health():
+    return HealthResponse(
+        status="ok",
+        service="TeluAI",
+        vocabulary_entries=len(load_vocabulary()),
+    )
+
+
 @app.get("/melimi/subject")
 def melimi_subject():
     return subject_inventory()
@@ -65,14 +73,6 @@ def melimi_register(payload: WordRegistration):
         return {"ok": True, "entry": register_word(payload.model_dump())}
     except ValueError as exc:
         raise HTTPException(400, str(exc))
-
-@app.get("/health")
-def health():
-    return HealthResponse(
-        status="ok",
-        service="TeluAI",
-        vocabulary_entries=len(load_vocabulary()),
-    )
 
 
 @app.post("/chat", response_model=ChatResponse)
