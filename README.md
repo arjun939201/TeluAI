@@ -359,3 +359,7 @@ Melimi gate.
 
 This is intentionally different from marking every unknown Telugu word as a
 loanword. Only explicit file evidence creates a lexical constraint.
+
+## v13: one-Groq architecture
+
+Melimi lexical validation and repair are local. A chat turn makes one Groq generation request at most. Explicit mappings such as `సహాయం -> బాసట` are enforced without another Groq call.

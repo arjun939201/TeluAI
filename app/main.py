@@ -22,6 +22,7 @@ from app.melimi.engine import build_language_engine_context
 from app.melimi.index import inventory as subject_inventory
 from app.melimi.registry import audit_response, analyze_word, strict_violations
 from app.melimi.firewall import lexical_violations, deterministic_repair, reload_firewall
+from app.melimi.local_repair import validate, repair
 from app.melimi.registration import register_word
 from app.prompts import build_prompt
 from app.groq_client import call_groq
@@ -147,42 +148,9 @@ async def chat(request: ChatRequest):
 
     reply = clean_response(reply)
     if request.mode == "melimi":
-        # FILE-CONTENT AUTHORITY GATE:
-        # 1) find exact Standard/source vocabulary present in the authoritative files;
-        # 2) ask the model to regenerate naturally;
-        # 3) if it still violates the file contract, apply the exact file-derived
-        #    lexical safety net as the final deterministic barrier.
-        for _ in range(max(0, settings.melimi_repair_attempts)):
-            violations = lexical_violations(reply)
-            if not violations:
-                break
-            repair_prompt = build_language_engine_context(
-                user_message=message,
-                conversation_context=conversation,
-                linguistic_analysis=linguistic_text,
-                response_plan=plan,
-                max_profile_chars=6200,
-                max_relevant_chars=6200,
-            )
-            repair_prompt += "\n\nSTRICT FILE-CONTENT VIOLATION:\n"
-            repair_prompt += "\n".join(
-                f"- MUST NOT output: {v['source']} ; REQUIRED Melimi form: {v['preferred']}"
-                for v in violations
-            )
-            repair_prompt += "\nRewrite the whole answer naturally. Output only the answer."
-            try:
-                candidate=clean_response(await call_groq(repair_prompt, history, message))
-                if candidate:
-                    reply=candidate
-            except Exception:
-                break
-
-        # Hard final barrier: no exact Standard/source term from an explicit
-        # vocabulary mapping may survive in Melimi mode.
-        reply=deterministic_repair(reply)
-
-        # Refresh caches after any subject registration in the same process.
-        reload_firewall()
+        # ONE-GROQ ARCHITECTURE: validation/repair is entirely local.
+        # Never regenerate through Groq for a lexical violation.
+        reply = deterministic_repair(reply)
 
     audit = audit_melimi(reply) if request.mode == "melimi" else {}
 
