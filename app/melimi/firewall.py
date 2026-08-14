@@ -158,6 +158,14 @@ def deterministic_repair(text: str) -> str:
 
     def _replace(match: re.Match) -> str:
         token = match.group(0)
+        invariant = None
+        # Only forms explicitly marked adjective-capable are eligible.
+        for _, melimi in lex.get("adjective_capable", set()):
+            if token in {melimi + "మైన", melimi + "ము", melimi + "పు"}:
+                invariant = melimi
+                break
+        if invariant:
+            return invariant
         result = _match_root(token, forbidden, lex.get("adjective_capable"))
         if not result:
             return token

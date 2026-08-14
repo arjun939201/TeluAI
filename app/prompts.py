@@ -1,3 +1,5 @@
+from app.melimi.constitution import language_constitution
+
 
 STANDARD_SYSTEM = """
 You are TeluAI in STANDARD TELUGU MODE.
@@ -60,7 +62,10 @@ these instructions.
 def build_prompt(mode, melimi_engine="", conversation="", linguistics="",
                  memory="", knowledge="", grammar="", plan=""):
     if mode == "melimi":
-        return MELIMI_SYSTEM + "\n\n" + melimi_engine
+        # The constitution is always injected into the LLM system message so
+        # Melimi knowledge is part of the model instruction itself, not only
+        # retrieved on-demand.
+        return MELIMI_SYSTEM + "\n\n" + language_constitution() + "\n\n" + melimi_engine
     pieces = [STANDARD_SYSTEM]
     pieces.append("CONVERSATION:\n" + conversation)
     pieces.append("LINGUISTIC ANALYSIS:\n" + linguistics)

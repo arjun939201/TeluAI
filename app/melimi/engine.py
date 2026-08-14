@@ -3,6 +3,7 @@ from app.melimi.firewall import subject_lexicon
 
 from app.melimi.index import language_profile, relevant_language_context
 from app.melimi.registry import lexical_inventory
+from app.melimi.constitution import language_constitution
 
 
 def build_language_engine_context(
@@ -43,13 +44,23 @@ meaning naturally in this register; do not mechanically write a Standard
 Telugu response first and then blindly replace words.
 
 NATIVE TELUGU / WORD-FORMATION RULES:
-- Melimi lexical choices must use native Telugu words and established Melimi forms. Do not introduce non-native/loan vocabulary when a native Melimi form is established.
-- Suffixes such as కాను, మారి, వాను, పాదు, etc. are noun-based derivational suffixes: they attach to a noun/nominal base and the resulting whole word gets its meaning from the combination of base + suffix. Do not attach them to arbitrary words.
+- Melimi is a distinct language/register system, not Standard Telugu with a blind replacement list.
+- Melimi lexical choices must use native Telugu words and established Melimi forms. Do not introduce non-native/loan vocabulary when an authoritative native Melimi form is established. Do not treat an unknown Telugu word as a loan merely because it is absent from the dictionary.
+- Use the documented munujerpulu (prefixes), padagramulu, padanchalamulu, derivational suffixes, reduplication and analogy only when the corpus supports the formation.
+- Suffixes such as కాను, మారి, వాను, పాదు, etc. are noun/nominal-based derivational suffixes: they attach to a noun/nominal base and the resulting whole word gets its meaning from the combination of base + suffix. Do not attach them to arbitrary words or interpret the suffix as a free-standing word.
 - Suffixes such as అలవి/అల్వి and అరిది/అర్ది are verb-based: they attach to verb bases, e.g. చేయు + అలవి -> చేయల్వి.
-- Preserve the existing Telugu grammatical inflection system for plural/case endings; do not create a second competing suffix system.
-- Some Melimi lexical forms that do not end in ం (the am/nasal ending) can function directly as both noun and adjective when supported by the corpus. Example: హాళికాను = ఆసక్తికరం and హాళికాను = ఆసక్తికరమైన. Keep the Melimi surface form unchanged in both uses; do not add ము, పు, మైన or another adjective suffix merely because Standard Telugu uses such an ending.
-- For predicative adjective/adverbial use, ordinary Telugu grammar may attach -గా to the invariant Melimi form: ఆసక్తికరంగా ఉంది -> హాళికానుగా ఉంది.
+- Preserve the existing Telugu grammatical inflection system for plural/case endings; do not create a second competing suffix system. Example: సమస్య -> చిక్కు; సమస్యలు -> చిక్కులు; సమస్యలను -> చిక్కులను.
+- Some Melimi lexical forms that do not end in ం can function directly as both noun and adjective when the lexical evidence marks them adjective-capable. Example: హాళికాను = ఆసక్తికరం and హాళికాను = ఆసక్తికరమైన. Keep the Melimi surface form unchanged; do not add ము, పు, మైన or another adjective suffix merely because Standard Telugu uses such an ending.
+- For predicative/adverbial adjective use, ordinary Telugu grammar may attach -గా to the invariant Melimi form: ఆసక్తికరంగా ఉంది -> హాళికానుగా ఉంది.
 - Never interpret a complete Melimi derivation by splitting it into an ordinary Telugu word plus a misleading suffix meaning. For example, ముప్పుకాను is a single established Melimi formation meaning dangerous/characterized by danger; it does NOT mean "ముప్పు కాదు".
+
+REGISTER / AUTHORITY RULES:
+- Authoritative corpus + approved vocabulary + documented grammar/word formation outrank generic model knowledge.
+- Distinguish established, corpus-supported, derived-by-rule, proposed, experimental and uncertain forms.
+- Do not silently promote a generated candidate to established Melimi.
+- Preserve the user's supplied Melimi spelling and meaning unless an explicit authoritative correction exists.
+- Compose an original response; never copy corpus prose as a canned answer.
+- Naturalness and meaning matter: do not over-purify or replace every word blindly.
 
 CONVERSATION:
 {conversation_context}

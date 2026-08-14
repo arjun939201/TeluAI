@@ -363,3 +363,11 @@ loanword. Only explicit file evidence creates a lexical constraint.
 ## v13: one-Groq architecture
 
 Melimi lexical validation and repair are local. A chat turn makes one Groq generation request at most. Explicit mappings such as `సహాయం -> బాసట` are enforced without another Groq call.
+
+## Melimi language authority layer
+
+The current language engine includes a structured Melimi requirements profile,
+munujerpulu, padagramulu, derivational suffix classes, technical terminology,
+subject/matter terminology, register policy, provenance policy and evaluation
+seeds under `melimi_telugu/`. The complete checklist is in
+`melimi_telugu/rules/complete_language_requirements.md`.

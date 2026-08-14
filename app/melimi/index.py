@@ -189,9 +189,11 @@ def language_profile(max_chars: int = 6500) -> str:
     parts = [
         "MELIMI TELUGU — AUTHORITATIVE LANGUAGE SUBJECT",
         "The corpus is language knowledge, not a phrase bank.",
-        _compact_docs("rules", 1800),
-        _compact_docs("grammar", 1800),
-        _compact_docs("word_formation", 1800),
+        "Treat Melimi Telugu as a distinct register/language system; Standard Telugu and Mixed Telugu are not interchangeable with Melimi.",
+        _compact_docs("rules", 2600),
+        _compact_docs("grammar", 1600),
+        _compact_docs("word_formation", 2200),
+        _compact_docs("vocabulary", 1400),
         _compact_docs("syntax", 900),
     ]
     return "\n\n".join(x for x in parts if x)[:max_chars]
