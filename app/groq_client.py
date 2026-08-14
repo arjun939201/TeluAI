@@ -8,6 +8,10 @@ from app.config import settings
 
 
 def _messages(system_prompt: str, history: List[Dict], user_message: str) -> List[Dict]:
+    # Telugu can consume more model tokens per character than English. Keep a
+    # conservative character budget before the request reaches Groq.
+    system_prompt = (system_prompt or "")[:settings.MAX_SYSTEM_CHARS]
+    user_message = (user_message or "")[:settings.MAX_USER_CHARS]
     messages = [{"role": "system", "content": system_prompt}]
     per_turn_cap = settings.max_history_chars_per_turn
     for item in (history or [])[-settings.max_history_turns:]:
@@ -48,6 +52,8 @@ async def call_groq(system_prompt: str, history: List[Dict], user_message: str) 
         raise RuntimeError(f"Unable to connect to Groq API: {exc}") from exc
 
     if response.status_code != 200:
+        if response.status_code == 413:
+            raise RuntimeError("Groq request is too large for the current TPM/model limit. The app has already reduced context; shorten the user message or lower the model/context limits.")
         if response.status_code == 429:
             raise RuntimeError(_rate_limit_message(response))
         if response.status_code in (401, 403):
@@ -70,27 +76,33 @@ async def call_groq(system_prompt: str, history: List[Dict], user_message: str) 
     return answer
 
 
+def _duration_seconds(value: str | None) -> float | None:
+    if not value:
+        return None
+    value = value.strip()
+    # Groq may return seconds ("34s"), milliseconds ("1ms"), or a compact
+    # duration such as "1m20s". Convert everything to seconds for users.
+    total = 0.0
+    matched = False
+    for num, unit in re.findall(r"([0-9]+(?:\.[0-9]+)?)(ms|h|m|s)", value):
+        matched = True
+        n = float(num)
+        total += n / 1000 if unit == "ms" else n * {"s":1,"m":60,"h":3600}[unit]
+    if matched:
+        return total
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 def _rate_limit_message(response: httpx.Response) -> str:
-    """Surface Groq's own rate-limit headers so the real cause (RPM vs TPM vs
-    daily) and wait time are visible instead of a generic 429 message."""
     h = response.headers
     retry_after = h.get("retry-after")
-    remaining_requests = h.get("x-ratelimit-remaining-requests")
-    remaining_tokens = h.get("x-ratelimit-remaining-tokens")
     reset_requests = h.get("x-ratelimit-reset-requests")
     reset_tokens = h.get("x-ratelimit-reset-tokens")
-
-    parts = ["Groq API rate limit reached."]
-    if remaining_requests is not None:
-        parts.append(f"requests remaining: {remaining_requests} (resets in {reset_requests or '?'})")
-    if remaining_tokens is not None:
-        parts.append(f"tokens remaining: {remaining_tokens} (resets in {reset_tokens or '?'})")
-    if retry_after:
-        parts.append(f"retry after {retry_after}s")
-    if not (remaining_requests or remaining_tokens or retry_after):
-        parts.append(
-            "This is usually the free-tier per-minute token budget (as low as "
-            "6,000-12,000 TPM on llama-3.3-70b-versatile), not the daily quota. "
-            "Wait about a minute and try again, or shorten the conversation."
-        )
-    return " ".join(parts)
+    wait = _duration_seconds(retry_after) or _duration_seconds(reset_tokens) or _duration_seconds(reset_requests)
+    if wait is not None:
+        wait_text = f"{max(1, round(wait))} seconds" if wait < 60 else f"{round(wait/60, 1)} minutes"
+        return f"Groq is temporarily rate-limited. Please try again in about {wait_text}."
+    return "Groq is temporarily rate-limited. Please wait a short time and try again."

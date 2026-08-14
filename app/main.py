@@ -178,6 +178,11 @@ async def chat(request: ChatRequest):
         # ONE-GROQ ARCHITECTURE: validation/repair is entirely local.
         # Never regenerate through Groq for a lexical violation.
         reply = deterministic_repair(reply)
+        # Apply the maintained inflection/adjective regression layer as a
+        # second, narrow safety net. It only contains explicitly established
+        # paradigms and does not perform arbitrary word replacement.
+        from melimi_morphology import repair_known_forms
+        reply = repair_known_forms(reply)
 
     audit = audit_melimi(reply) if request.mode == "melimi" else {}
 

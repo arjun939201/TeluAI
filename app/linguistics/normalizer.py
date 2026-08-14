@@ -19,6 +19,10 @@ ROMAN_TELUGU = {
     "baaunnanu": "బాగున్నాను", "baagunnanu": "బాగున్నాను",
     "thanks": "ధన్యవాదాలు", "thankyou": "ధన్యవాదాలు",
     "cinemas": "సినిమాలు", "cinema": "సినిమా",
+    "gurinchi": "గురించి", "gurinche": "గురించే",
+    "rayu": "వ్రాయు", "raayi": "వ్రాయి", "rayandi": "వ్రాయండి",
+    "cheppu": "చెప్పు", "cheppandi": "చెప్పండి",
+    "melimi": "మేలిమి", "telugu": "తెలుగు",
     "thank you": "ధన్యవాదాలు",
 }
 
