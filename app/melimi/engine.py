@@ -10,7 +10,7 @@ from app.melimi.index import language_profile, relevant_language_context
 from app.melimi.registry import lexical_inventory
 
 
-def _relevant_mappings(user_message: str, limit: int = 18) -> str:
+def _relevant_mappings(user_message: str, limit: int = 12) -> str:
     lexicon = subject_lexicon()
     preferred = lexicon.get("preferred", {})
     text = user_message or ""
@@ -20,7 +20,7 @@ def _relevant_mappings(user_message: str, limit: int = 18) -> str:
             hits.append((source, target))
     # Keep common high-value mappings available even when the exact source is
     # not in the current sentence; retrieval/profile remains the main source.
-    for source in ("సమస్య", "సహాయం", "వ్యవస్థ", "సాంకేతికత", "ఆసక్తికరమైన"):
+    for source in ("సమస్య", "సహాయం", "వ్యవస్థ", "సాంకేతికత", "ఆసక్తికరమైన", "సినిమా"):
         if source in preferred and (source, preferred[source]) not in hits:
             hits.append((source, preferred[source]))
     hits = hits[:limit]
@@ -39,7 +39,7 @@ def build_language_engine_context(
     profile = language_profile(max_chars=max_profile_chars)
     relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
     mappings = _relevant_mappings(user_message)
-    return f"""MELIMI TURN EVIDENCE\n\nRelevant authoritative mappings:\n{mappings}\n\nConversation context:\n{conversation_context[:1400]}\n\nLinguistic analysis:\n{linguistic_analysis[:1200]}\n\nResponse plan:\n{response_plan[:700]}\n\nLanguage profile evidence:\n{profile}\n\nRelevant corpus evidence:\n{relevant}""".strip()
+    return f"""MELIMI TURN EVIDENCE\n\nRelevant authoritative mappings:\n{mappings}\n\nConversation context:\n{conversation_context[:700]}\n\nLinguistic analysis:\n{linguistic_analysis[:700]}\n\nResponse plan:\n{response_plan[:450]}\n\nLanguage profile evidence:\n{profile}\n\nRelevant corpus evidence:\n{relevant}""".strip()
 
 
 def strict_repair_prompt(reply: str, violations: list[dict], max_chars: int = 4200) -> str:

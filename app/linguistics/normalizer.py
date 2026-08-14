@@ -18,6 +18,7 @@ ROMAN_TELUGU = {
     "baaunna": "బాగున్నా", "baagunna": "బాగున్నా",
     "baaunnanu": "బాగున్నాను", "baagunnanu": "బాగున్నాను",
     "thanks": "ధన్యవాదాలు", "thankyou": "ధన్యవాదాలు",
+    "cinemas": "సినిమాలు", "cinema": "సినిమా",
     "thank you": "ధన్యవాదాలు",
 }
 
