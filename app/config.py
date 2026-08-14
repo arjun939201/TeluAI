@@ -23,6 +23,8 @@ class Settings:
     melimi_profile_chars: int = int(os.getenv("MELIMI_PROFILE_CHARS", "350"))
     melimi_relevant_chars: int = int(os.getenv("MELIMI_RELEVANT_CHARS", "650"))
     max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "300"))
+    max_system_chars: int = int(os.getenv("MAX_SYSTEM_CHARS", "7600"))
+    max_user_chars: int = int(os.getenv("MAX_USER_CHARS", "5000"))
     temperature: float = float(os.getenv("GROQ_TEMPERATURE", "0.70"))
     database_url: str = os.getenv("DATABASE_URL", "").strip()
     melimi_repair_attempts: int = int(os.getenv("MELIMI_REPAIR_ATTEMPTS", "2"))
@@ -37,8 +39,3 @@ class Settings:
 
 settings = Settings()
 
-
-# Keep the LLM request comfortably below tight TPM limits. These are character
-# budgets because exact tokenizer counts vary by model, especially for Telugu.
-MAX_SYSTEM_CHARS = int(os.getenv("MAX_SYSTEM_CHARS", "7600"))
-MAX_USER_CHARS = int(os.getenv("MAX_USER_CHARS", "5000"))

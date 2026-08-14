@@ -10,8 +10,8 @@ from app.config import settings
 def _messages(system_prompt: str, history: List[Dict], user_message: str) -> List[Dict]:
     # Telugu can consume more model tokens per character than English. Keep a
     # conservative character budget before the request reaches Groq.
-    system_prompt = (system_prompt or "")[:settings.MAX_SYSTEM_CHARS]
-    user_message = (user_message or "")[:settings.MAX_USER_CHARS]
+    system_prompt = (system_prompt or "")[:settings.max_system_chars]
+    user_message = (user_message or "")[:settings.max_user_chars]
     messages = [{"role": "system", "content": system_prompt}]
     per_turn_cap = settings.max_history_chars_per_turn
     for item in (history or [])[-settings.max_history_turns:]:
