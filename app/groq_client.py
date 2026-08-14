@@ -1,9 +1,16 @@
-from typing import Dict, List
+from typing import Dict, List, NamedTuple
 import asyncio
 import httpx
 import re
 
 from app.config import settings
+
+
+class GroqCompletion(NamedTuple):
+    text: str
+    truncated: bool  # True only when the provider stopped due to the output
+                      # token limit (finish_reason == "length"), never guessed
+                      # from string length/content.
 
 
 def _messages(system_prompt: str, history: List[Dict], user_message: str) -> List[Dict]:
@@ -57,7 +64,7 @@ def _rate_limit_message(response: httpx.Response) -> str:
     return "Groq is temporarily rate-limited. Please wait a short time and try again."
 
 
-async def call_groq(system_prompt: str, history: List[Dict], user_message: str) -> str:
+async def call_groq(system_prompt: str, history: List[Dict], user_message: str) -> GroqCompletion:
     if not settings.groq_token:
         raise RuntimeError("GROQ_TOKEN is not set.")
 
@@ -87,13 +94,19 @@ async def call_groq(system_prompt: str, history: List[Dict], user_message: str) 
             if response.status_code == 200:
                 try:
                     data = response.json()
-                    answer = data["choices"][0]["message"]["content"]
+                    choice = data["choices"][0]
+                    answer = choice["message"]["content"]
+                    finish_reason = choice.get("finish_reason")
                 except Exception as exc:
                     raise RuntimeError("Groq returned an invalid response.") from exc
                 answer = str(answer or "").strip()
                 if not answer:
                     raise RuntimeError("Groq returned an empty response.")
-                return answer
+                # Never silently drop the fact that a reply was cut short.
+                # finish_reason == "length" means the provider stopped
+                # because it hit max_tokens, not because the answer was
+                # actually complete.
+                return GroqCompletion(text=answer, truncated=(finish_reason == "length"))
 
             if response.status_code == 429:
                 wait = _rate_limit_wait(response)

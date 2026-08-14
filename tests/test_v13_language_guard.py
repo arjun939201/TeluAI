@@ -24,6 +24,10 @@ def test_adjective_leakage_is_repaired():
 
 
 def test_low_groq_budget_defaults():
-    assert settings.max_system_chars <= 5000
+    # max_response_tokens was previously capped at 220 to protect the Groq
+    # free-tier TPM budget, but that caused real replies to be cut off
+    # mid-word (see tests/test_response_completion.py). Input-side context
+    # stays small; only the output budget was raised.
+    assert settings.max_system_chars <= 4200
     assert settings.max_user_chars <= 2400
-    assert settings.max_response_tokens <= 220
+    assert settings.max_response_tokens >= 500

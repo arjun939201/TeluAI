@@ -31,12 +31,18 @@ function renderMelimiText(text,audit){
   return `<span class="${cls}" data-word="${escapeHtml(part)}" title="${title}">${escapeHtml(part)}</span>`;
  }).join("");
 }
-function addMessage(text,role,melimi=false,audit=[]){
+function addMessage(text,role,melimi=false,audit=[],truncated=false){
  const wrapper=document.createElement("div");wrapper.className=`message ${role}`;
  if(role==="assistant"&&melimi)wrapper.classList.add("melimi");
  const content=document.createElement("div");content.className="message-content";
  content.innerHTML=role==="assistant"&&melimi?renderMelimiText(text,audit):escapeHtml(text);
- wrapper.appendChild(content);chatContainer.appendChild(wrapper);scrollToBottom();
+ wrapper.appendChild(content);
+ if(role==="assistant"&&truncated){
+  const note=document.createElement("div");note.className="truncated-note";
+  note.textContent="సమాధానం మధ్యలో ఆగిపోయింది — కొనసాగించడానికి \u201cఇంకా\u201d అని పంపండి.";
+  wrapper.appendChild(note);
+ }
+ chatContainer.appendChild(wrapper);scrollToBottom();
 }
 
 function showTyping(){
@@ -70,7 +76,7 @@ async function sendMessage(){
         removeTyping();
         if(!response.ok){addError(data.detail||`సర్వర్ లోపం: ${response.status}`);return}
         if(!data.reply){addError("AI నుండి సమాధానం రాలేదు.");return}
-        addMessage(data.reply,"assistant",mode==="melimi",data.word_audit||[]);
+        addMessage(data.reply,"assistant",mode==="melimi",data.word_audit||[],!!data.truncated);
         history.push({role:"user",content:text});
         history.push({role:"assistant",content:data.reply});
     }catch(error){

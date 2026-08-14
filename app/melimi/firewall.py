@@ -63,6 +63,51 @@ def reload_firewall():
     subject_lexicon.cache_clear()
 
 
+# The genuine plural/oblique-plural markers that require ం -> ా sandhi on an
+# ం-final Melimi root. NOTE: this is a closed, explicit set — it must NOT be
+# approximated as "starts with ల", because లో (locative "in") and లోని
+# ("within") also start with ల by coincidence but are singular, unrelated
+# suffixes that attach to an ం-final root unchanged (తెఱాటంలో, not
+# తెఱాటాలో).
+_PLURAL_OBLIQUE_SUFFIXES = {"లు", "లను", "లకు", "లతో", "లలో", "లని", "లపై", "లకై", "ల"}
+
+
+def _reconstruct(melimi_root: str, suffix: str) -> str:
+    """Reattach a Standard-Telugu-derived suffix onto a Melimi root, applying
+    the same regular Telugu sandhi an "ం"-final noun requires — instead of
+    blindly concatenating, which produces invalid forms like తెఱాటంలు.
+
+    This is a general rule keyed only on whether the MELIMI root ends in the
+    anusvara "ం", not a per-word lookup table:
+
+    - no suffix               -> root unchanged                (తెఱాటం)
+    - plural/oblique-plural   -> root[:-1] + "ా" + suffix       (తెఱాటాలు, తెఱాటాలను, తెఱాటాల, తెఱాటాలకు, ...)
+      (the closed set of plural markers: లు, లను, లకు, లతో, లలో, ల, లని, లపై, లకై —
+       NOT లో/లోని, which are singular and attach unchanged)
+    - singular accusative     -> root[:-1] + "ాన్ని"             (తెఱాటాన్ని)
+      (ను or ని directly on the singular root)
+    - singular dative         -> root[:-1] + "ానికి"             (తెఱాటానికి)
+      (కు or కి directly on the singular root)
+    - anything else (తో, లో, పై, గా, నుంచి, నుండి, కోసం, వల్ల,
+      మధ్య, గురించి, యొక్క, తోటి, ...) attaches directly without sandhi,
+      exactly as it does on any other ం-final Telugu noun
+      (తెఱాటంతో, తెఱాటంలో, ...).
+
+    Roots that do NOT end in "ం" are unaffected and simply concatenate, as
+    before.
+    """
+    if not suffix or not melimi_root.endswith("ం"):
+        return melimi_root + suffix
+    stem = melimi_root[:-1]
+    if suffix in _PLURAL_OBLIQUE_SUFFIXES:
+        return stem + "ా" + suffix
+    if suffix in ("ను", "ని"):
+        return stem + "ాన్ని"
+    if suffix in ("కు", "కి"):
+        return stem + "ానికి"
+    return melimi_root + suffix
+
+
 def _match_root(token: str, forbidden: dict, adjective_capable=None):
     """Decompose a surface Telugu token into (root, suffix) against the
     authoritative Standard->Melimi root mapping.
@@ -144,13 +189,14 @@ def lexical_violations(text: str):
         if not match:
             continue
         root, suffix, melimi_root = match
-        key = (token, melimi_root + suffix)
+        preferred = _reconstruct(melimi_root, suffix)
+        key = (token, preferred)
         if key in seen:
             continue
         seen.add(key)
         found.append({
             "source": token,
-            "preferred": melimi_root + suffix,
+            "preferred": preferred,
             "root": root,
             "suffix": suffix,
         })
@@ -191,6 +237,6 @@ def deterministic_repair(text: str) -> str:
         if not result:
             return token
         root, suffix, melimi_root = result
-        return melimi_root + suffix
+        return _reconstruct(melimi_root, suffix)
 
     return TOKEN_RE.sub(_replace, text)

@@ -171,24 +171,30 @@ async def chat(request: ChatRequest):
     # the authoritative contract. This both improves exactness and prevents a
     # trivial FAQ from consuming Groq quota.
     reply = local_answer(message, request.mode)
+    truncated = False
     if reply is None:
         try:
-            reply = await call_groq(prompt, history, message)
+            completion = await call_groq(prompt, history, message)
         except RuntimeError as exc:
             raise HTTPException(502, str(exc))
         except Exception as exc:
             raise HTTPException(502, f"AI request failed: {exc}")
+        reply = completion.text
+        truncated = completion.truncated
 
     reply = clean_response(reply)
     if request.mode == "melimi":
         # ONE-GROQ ARCHITECTURE: validation/repair is entirely local.
         # Never regenerate through Groq for a lexical violation.
+        #
+        # The lexical firewall itself is root-aware: it derives Standard
+        # Telugu roots from suffixed surface forms and reconstructs the
+        # correct Melimi inflection (including "ం"-final noun sandhi, e.g.
+        # సినిమాలు -> తెఱాటాలు) generally, from the authoritative vocabulary
+        # files. It intentionally does not rely on the older
+        # melimi_morphology.repair_known_forms per-word hardcoded table —
+        # that module is kept only for its own standalone regression tests.
         reply = deterministic_repair(reply)
-        # Apply the maintained inflection/adjective regression layer as a
-        # second, narrow safety net. It only contains explicitly established
-        # paradigms and does not perform arbitrary word replacement.
-        from melimi_morphology import repair_known_forms
-        reply = repair_known_forms(reply)
 
     audit = audit_melimi(reply) if request.mode == "melimi" else {}
 
@@ -204,4 +210,5 @@ async def chat(request: ChatRequest):
         },
         language_audit=audit,
         word_audit=audit_response(reply) if request.mode == "melimi" else [],
+        truncated=truncated,
     )
