@@ -130,5 +130,11 @@
     "melimi": "చిక్కు",
     "status": "established",
     "note": "problem"
+  },
+  {
+    "standard": "సమస్య",
+    "melimi": "చిక్కు",
+    "status": "established",
+    "note": "problem (native Telugu synonym of the loanword 'problem')"
   }
 ]
