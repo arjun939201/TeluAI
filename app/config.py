@@ -22,7 +22,7 @@ class Settings:
     max_memory_items: int = int(os.getenv("MAX_MEMORY_ITEMS", "6"))
     melimi_profile_chars: int = int(os.getenv("MELIMI_PROFILE_CHARS", "900"))
     melimi_relevant_chars: int = int(os.getenv("MELIMI_RELEVANT_CHARS", "1200"))
-    max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "400"))
+    max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "700"))
     temperature: float = float(os.getenv("GROQ_TEMPERATURE", "0.70"))
     melimi_repair_attempts: int = int(os.getenv("MELIMI_REPAIR_ATTEMPTS", "2"))
     github_token: str = os.getenv("GITHUB_TOKEN", "").strip()

@@ -4,6 +4,7 @@ import re
 from functools import lru_cache
 from app.melimi.index import build_index
 from app.morphology import CASE_SUFFIXES_BY_LENGTH
+from app.melimi.grammar import is_non_am_ending_melimi
 
 TOKEN_RE = re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 
@@ -27,6 +28,7 @@ def subject_lexicon():
     forbidden = {}
     preferred = {}
     registered = set()
+    adjective_capable = set()
     for doc in build_index():
         if doc.kind != "vocabulary":
             continue
@@ -43,17 +45,24 @@ def subject_lexicon():
             # additional standard-side variants (synonyms) all map to it.
             m = melimis[0]
             registered.add(m)
+            if entry.get("adjective_invariant") is True or (
+                isinstance(entry.get("functions"), list)
+                and "adjective" in [str(x).strip().lower() for x in entry.get("functions", [])]
+                and is_non_am_ending_melimi(m)
+            ):
+                for s in standards:
+                    adjective_capable.add((s, m))
             for s in standards:
                 forbidden[s] = m
                 preferred[s] = m
-    return {"forbidden": forbidden, "preferred": preferred, "registered": registered}
+    return {"forbidden": forbidden, "preferred": preferred, "registered": registered, "adjective_capable": adjective_capable}
 
 
 def reload_firewall():
     subject_lexicon.cache_clear()
 
 
-def _match_root(token: str, forbidden: dict):
+def _match_root(token: str, forbidden: dict, adjective_capable=None):
     """Decompose a surface Telugu token into (root, suffix) against the
     authoritative Standard->Melimi root mapping.
 
@@ -77,6 +86,20 @@ def _match_root(token: str, forbidden: dict):
         root = token[: -len(suffix)]
         if root and root in forbidden:
             return root, suffix, forbidden[root]
+
+    # 3) Attributive adjective surface form.  A Standard Telugu adjective
+    #    such as ఆసక్తికరమైన is related to the dictionary headword ఆసక్తికరం.
+    #    When that headword maps to a Melimi form that belongs to the
+    #    non-"am"/non-ం ending class, the Melimi form itself can serve as the
+    #    adjective without adding -మైన/-ము/-పు.  This is deliberately
+    #    conservative: only a real registered headword is considered.
+    if token.endswith("మైన") and len(token) > 3:
+        headword = token[:-3] + "ం"
+        if headword in forbidden:
+            melimi_root = forbidden[headword]
+            capable = adjective_capable or set()
+            if (headword, melimi_root) in capable and is_non_am_ending_melimi(melimi_root):
+                return headword, "", melimi_root
     return None
 
 
@@ -86,7 +109,7 @@ def lexical_violations(text: str):
     found = []
     seen = set()
     for token in TOKEN_RE.findall(text or ""):
-        match = _match_root(token, forbidden)
+        match = _match_root(token, forbidden, lex.get("adjective_capable"))
         if not match:
             continue
         root, suffix, melimi_root = match
@@ -122,7 +145,7 @@ def deterministic_repair(text: str) -> str:
 
     def _replace(match: re.Match) -> str:
         token = match.group(0)
-        result = _match_root(token, forbidden)
+        result = _match_root(token, forbidden, lex.get("adjective_capable"))
         if not result:
             return token
         root, suffix, melimi_root = result
