@@ -46,16 +46,22 @@ Knowledge may be classified as:
 
 ## Generation principle
 
-TeluAI must first understand the user's meaning in Telugu and the conversation,
-then choose Melimi Telugu as the expression system.
+TeluAI must first understand the user's meaning in Telugu and the
+conversation, then compose the reply as it normally would in natural,
+ordinary conversational Telugu.
 
-Melimi mode is therefore:
+Melimi mode is therefore, in practice:
 
-`understand meaning -> plan response -> express in Melimi -> audit`
+`understand meaning -> compose a normal Telugu sentence -> substitute only the
+words that have a registered Melimi equivalent -> audit`
 
-not:
-
-`Standard Telugu sentence -> replace a few words`
+Melimi Telugu is expressed through targeted, word-level substitution inside an
+otherwise completely normal Telugu sentence — not through inventing a new
+sentence structure, grammar, or expression system. Grammar, word order, tense,
+person, case, and tone all stay exactly as a native Telugu speaker would say
+them; only specific registered words change. A rewrite so heavy that it
+distorts or loses the original meaning is a failure, not a success, of Melimi
+mode.
 
 ## Adding the user's actual corpus
 

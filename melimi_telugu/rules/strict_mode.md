@@ -6,7 +6,9 @@ Pipeline:
 1. Detect conversational meaning and intent from the full turn history.
 2. Retrieve relevant Melimi subject evidence.
 3. Build a compact grammar/word-formation language profile.
-4. Generate an original response in Melimi.
+4. Generate an original response in ordinary, natural conversational Telugu,
+   then substitute only the specific words that have a registered Melimi
+   equivalent, keeping grammar and suffixes intact.
 5. Run a deterministic lexical gate against established Standard→Melimi mappings and known loanwords.
 6. If a violation is found, perform up to the configured repair attempts.
 7. Run the final audit and expose only the response to the user.
