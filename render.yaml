@@ -8,8 +8,8 @@ services:
       - key: GROQ_TOKEN
         sync: false
       - key: GROQ_MODEL
-        value: llama-3.1-8b-instant
-      # Groq's free tier for llama-3.1-8b-instant is roughly 30 RPM /
+        value: llama-3.3-70b-versatile
+      # Groq's free tier for llama-3.3-70b-versatile is roughly 30 RPM /
       # 6,000-12,000 TPM. The app now sends a much smaller prompt per turn
       # by default, but if you still hit 429s frequently, either:
       #  1) switch GROQ_MODEL to llama-3.1-8b-instant (far higher free-tier

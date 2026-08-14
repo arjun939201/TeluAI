@@ -14,18 +14,3 @@ This build uses the existing TeluAI repository as the base. The existing UI, Gro
 The FTS layer is supplementary. It does **not** replace the existing structured Melimi subject index or the authoritative vocabulary/grammar rules. Groq remains the generation engine. Melimi validation and deterministic repair remain local; no second Groq call is introduced.
 
 The frontend is intentionally unchanged.
-
-
-## Melimi register identity
-
-Melimi Telugu is treated by TeluAI as a distinct Telugu-based language
-register, not as Standard Telugu with blind word substitution. Its
-authoritative vocabulary and native-Telugu derivational system determine
-lexical meaning and word formation. A complete formation such as `ముప్పుకాను`
-must be interpreted as its documented Melimi meaning (dangerous), not as
-`ముప్పు కాదు`.
-
-Non-`ం`-ending Melimi lexical forms may be invariant noun/adjectives where
-the corpus supports that function. For example, `హాళికాను` can represent
-both `ఆసక్తికరం` and `ఆసక్తికరమైన`; in predicative/adverbial use,
-`ఆసక్తికరంగా ఉంది` becomes `హాళికానుగా ఉంది`.

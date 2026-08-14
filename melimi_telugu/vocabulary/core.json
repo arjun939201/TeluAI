@@ -153,23 +153,5 @@
       "adjective"
     ],
     "adjective_invariant": true
-  },
-  {
-    "standard": "సినిమా",
-    "melimi": "తెఱాటం",
-    "status": "established",
-    "note": "cinema / film; corpus example uses తెఱాటం"
-  },
-  {
-    "standard": "భాష",
-    "melimi": "నుడి",
-    "status": "established",
-    "note": "language"
-  },
-  {
-    "standard": "ఆధారిత",
-    "melimi": "ఆనిద",
-    "status": "established",
-    "note": "based / dependent (on)"
   }
 ]
