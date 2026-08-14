@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SUBJECT = ROOT / "melimi_telugu"
 
 EXTENSIONS = {".md", ".txt", ".json", ".csv"}
-KINDS = ("vocabulary", "grammar", "word_formation", "syntax", "examples", "prose", "rules", "other")
+KINDS = ("vocabulary", "grammar", "word_formation", "syntax", "examples", "prose", "rules", "corpus", "other")
 
 
 @dataclass(frozen=True)
@@ -198,8 +198,16 @@ def language_profile(max_chars: int = 6500) -> str:
 
 
 def relevant_language_context(query: str, max_chars: int = 6500) -> str:
+    # Structured JSON/Markdown retrieval remains primary. SQLite FTS5 adds broad
+    # passage retrieval for the consolidated corpus and longer prose/grammar.
     results = retrieve(query, limit=16)
-    if not results:
+    try:
+        from app.melimi.fts import search as fts_search
+        fts_results = fts_search(query, top_k=8)
+    except Exception:
+        fts_results = []
+
+    if not results and not fts_results:
         return "No directly relevant subject item was retrieved. Do not invent Melimi facts."
 
     lines = ["RELEVANT MELIMI SUBJECT EVIDENCE:"]
@@ -209,4 +217,13 @@ def relevant_language_context(query: str, max_chars: int = 6500) -> str:
             lines.append(json.dumps(item["entry"], ensure_ascii=False))
         elif item["excerpt"]:
             lines.append(item["excerpt"])
+
+    seen = {(item["source"], item.get("excerpt", "")) for item in results}
+    for item in fts_results:
+        key = (item["source"], item["content"][:1800])
+        if key in seen:
+            continue
+        lines.append(f"\n[corpus passage] {item['source']} / chunk {item['chunk_id']}")
+        lines.append(item["content"])
+
     return "\n".join(lines)[:max_chars]
