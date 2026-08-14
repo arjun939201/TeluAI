@@ -5,7 +5,6 @@ from functools import lru_cache
 from app.melimi.index import build_index
 from app.morphology import CASE_SUFFIXES_BY_LENGTH
 from app.melimi.grammar import is_non_am_ending_melimi
-from app.melimi.strict_lexicon import leakage_replacements, leakage_only
 
 TOKEN_RE = re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 
@@ -63,51 +62,6 @@ def reload_firewall():
     subject_lexicon.cache_clear()
 
 
-# The genuine plural/oblique-plural markers that require ం -> ా sandhi on an
-# ం-final Melimi root. NOTE: this is a closed, explicit set — it must NOT be
-# approximated as "starts with ల", because లో (locative "in") and లోని
-# ("within") also start with ల by coincidence but are singular, unrelated
-# suffixes that attach to an ం-final root unchanged (తెఱాటంలో, not
-# తెఱాటాలో).
-_PLURAL_OBLIQUE_SUFFIXES = {"లు", "లను", "లకు", "లతో", "లలో", "లని", "లపై", "లకై", "ల"}
-
-
-def _reconstruct(melimi_root: str, suffix: str) -> str:
-    """Reattach a Standard-Telugu-derived suffix onto a Melimi root, applying
-    the same regular Telugu sandhi an "ం"-final noun requires — instead of
-    blindly concatenating, which produces invalid forms like తెఱాటంలు.
-
-    This is a general rule keyed only on whether the MELIMI root ends in the
-    anusvara "ం", not a per-word lookup table:
-
-    - no suffix               -> root unchanged                (తెఱాటం)
-    - plural/oblique-plural   -> root[:-1] + "ా" + suffix       (తెఱాటాలు, తెఱాటాలను, తెఱాటాల, తెఱాటాలకు, ...)
-      (the closed set of plural markers: లు, లను, లకు, లతో, లలో, ల, లని, లపై, లకై —
-       NOT లో/లోని, which are singular and attach unchanged)
-    - singular accusative     -> root[:-1] + "ాన్ని"             (తెఱాటాన్ని)
-      (ను or ని directly on the singular root)
-    - singular dative         -> root[:-1] + "ానికి"             (తెఱాటానికి)
-      (కు or కి directly on the singular root)
-    - anything else (తో, లో, పై, గా, నుంచి, నుండి, కోసం, వల్ల,
-      మధ్య, గురించి, యొక్క, తోటి, ...) attaches directly without sandhi,
-      exactly as it does on any other ం-final Telugu noun
-      (తెఱాటంతో, తెఱాటంలో, ...).
-
-    Roots that do NOT end in "ం" are unaffected and simply concatenate, as
-    before.
-    """
-    if not suffix or not melimi_root.endswith("ం"):
-        return melimi_root + suffix
-    stem = melimi_root[:-1]
-    if suffix in _PLURAL_OBLIQUE_SUFFIXES:
-        return stem + "ా" + suffix
-    if suffix in ("ను", "ని"):
-        return stem + "ాన్ని"
-    if suffix in ("కు", "కి"):
-        return stem + "ానికి"
-    return melimi_root + suffix
-
-
 def _match_root(token: str, forbidden: dict, adjective_capable=None):
     """Decompose a surface Telugu token into (root, suffix) against the
     authoritative Standard->Melimi root mapping.
@@ -133,19 +87,6 @@ def _match_root(token: str, forbidden: dict, adjective_capable=None):
         if root and root in forbidden:
             return root, suffix, forbidden[root]
 
-    # 3) Predicative/adverbial adjective surface form. A Standard Telugu
-    #    form such as ఆసక్తికరంగా is related to the headword ఆసక్తికరం. For
-    #    an invariant non-ం Melimi adjective, retain the ordinary -గా
-    #    grammatical ending: హాళికరంగా -> (headword) -> హాళికానుగా.
-    if token.endswith("గా") and len(token) > 3:
-        stem = token[:-2]
-        headword = stem + "ం"
-        if headword in forbidden:
-            melimi_root = forbidden[headword]
-            capable = adjective_capable or set()
-            if (headword, melimi_root) in capable and is_non_am_ending_melimi(melimi_root):
-                return headword, "గా", melimi_root
-
     # 3) Attributive adjective surface form.  A Standard Telugu adjective
     #    such as ఆసక్తికరమైన is related to the dictionary headword ఆసక్తికరం.
     #    When that headword maps to a Melimi form that belongs to the
@@ -164,39 +105,21 @@ def _match_root(token: str, forbidden: dict, adjective_capable=None):
 
 def lexical_violations(text: str):
     lex = subject_lexicon()
-    # Explicit leakage guard. This is intentionally separate from the
-    # registered Standard->Melimi dictionary: absence from the dictionary is
-    # not evidence that a Telugu word is wrong.
-    explicit = leakage_replacements()
-    explicit_only = leakage_only()
+    forbidden = lex["forbidden"]
     found = []
     seen = set()
-    for source, preferred in explicit.items():
-        if source in (text or ""):
-            key = (source, preferred)
-            if key not in seen:
-                seen.add(key)
-                found.append({"source": source, "preferred": preferred, "root": source, "suffix": "", "explicit_leakage": True})
-    for source, preferred in explicit_only.items():
-        if source in (text or ""):
-            key = (source, preferred)
-            if key not in seen:
-                seen.add(key)
-                found.append({"source": source, "preferred": preferred, "root": source, "suffix": "", "explicit_leakage": True})
-    forbidden = lex["forbidden"]
     for token in TOKEN_RE.findall(text or ""):
         match = _match_root(token, forbidden, lex.get("adjective_capable"))
         if not match:
             continue
         root, suffix, melimi_root = match
-        preferred = _reconstruct(melimi_root, suffix)
-        key = (token, preferred)
+        key = (token, melimi_root + suffix)
         if key in seen:
             continue
         seen.add(key)
         found.append({
             "source": token,
-            "preferred": preferred,
+            "preferred": melimi_root + suffix,
             "root": root,
             "suffix": suffix,
         })
@@ -219,24 +142,13 @@ def deterministic_repair(text: str) -> str:
     """
     lex = subject_lexicon()
     forbidden = lex["forbidden"]
-    explicit = leakage_replacements()
 
     def _replace(match: re.Match) -> str:
         token = match.group(0)
-        if token in explicit:
-            return explicit[token]
-        invariant = None
-        # Only forms explicitly marked adjective-capable are eligible.
-        for _, melimi in lex.get("adjective_capable", set()):
-            if token in {melimi + "మైన", melimi + "ము", melimi + "పు"}:
-                invariant = melimi
-                break
-        if invariant:
-            return invariant
         result = _match_root(token, forbidden, lex.get("adjective_capable"))
         if not result:
             return token
         root, suffix, melimi_root = result
-        return _reconstruct(melimi_root, suffix)
+        return melimi_root + suffix
 
     return TOKEN_RE.sub(_replace, text)

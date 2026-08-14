@@ -30,27 +30,6 @@ class ChatResponse(BaseModel):
     understanding: Dict = Field(default_factory=dict)
     language_audit: Dict = Field(default_factory=dict)
     word_audit: List[Dict] = Field(default_factory=list)
-    # True only when Groq itself reported finish_reason == "length" (it hit
-    # the output-token cap before finishing). Never inferred from text
-    # length/shape, so the frontend can reliably show a "continue" hint
-    # instead of a response silently looking complete when it isn't.
-    truncated: bool = False
-
-
-class LearningItem(BaseModel):
-    kind: str
-    standard: str = ""
-    melimi: str = ""
-    rule: str = ""
-    meaning: str = ""
-    evidence: str = ""
-    source: str = "chat"
-    status: Literal["pending", "approved", "rejected"] = "pending"
-    confidence: float = 0.5
-
-
-class LearningStatusUpdate(BaseModel):
-    status: Literal["pending", "approved", "rejected"]
 
 
 class HealthResponse(BaseModel):

@@ -24,21 +24,13 @@ def _key(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "").strip().lower())
 
 
-def _infer_intent_dict(text: str, state: ConversationState) -> Dict:
+def infer_intent(text: str, state: ConversationState) -> Dict:
     key = _key(text)
     normalized = normalize_roman_telugu(text)
-    legacy_state = not hasattr(state, "last_assistant") or not hasattr(state, "last_user")
-    # TurnState exposes last_assistant as a field; ConversationState exposes it as a method.
-    if hasattr(state, "last_assistant") and isinstance(getattr(state, "last_assistant"), str):
-        previous_assistant = getattr(state, "last_assistant")
-        open_question = getattr(state, "open_question", "")
-    else:
-        previous_assistant = state.last_assistant()
-        open_question = state.open_question
 
     # Contextual clarification is intentionally checked before generic "what".
     if key in {"enti", "emiti", "em"} or normalized in {"ఏంటి", "ఏమిటి", "ఏం"}:
-        if open_question:
+        if state.open_question:
             return {
                 "intent": "clarification_request",
                 "confidence": "high",
@@ -84,7 +76,7 @@ def _infer_intent_dict(text: str, state: ConversationState) -> Dict:
 
 
 def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
-    result = _infer_intent_dict(text, state)
+    result = infer_intent(text, state)
     return "\n".join([
         "CONTEXTUAL UNDERSTANDING:",
         f"- user input: {text.strip()}",
@@ -104,12 +96,3 @@ def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
         "- Do not ask a generic follow-up after every answer.",
         "- Do not copy previous assistant wording.",
     ])
-
-
-def infer_intent(text: str, state: ConversationState):
-    result = _infer_intent_dict(text, state)
-    # Keep the legacy compact API used by older callers/tests. The main app uses
-    # ConversationState and receives the richer dictionary.
-    if state.__class__.__name__ == "TurnState":
-        return result["intent"]
-    return result

@@ -59,15 +59,3 @@ def from_history(history: List[Dict]) -> ConversationState:
     ):
         state.open_question = assistant
     return state
-
-
-@dataclass
-class TurnState:
-    """Small compatibility/context object used by tests and short-turn intent detection."""
-    last_assistant: str = ""
-    open_question: str = ""
-
-    def last_assistant_text(self) -> str:
-        return self.last_assistant
-
-
