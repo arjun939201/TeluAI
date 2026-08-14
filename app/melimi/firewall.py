@@ -5,6 +5,7 @@ from functools import lru_cache
 from app.melimi.index import build_index
 from app.morphology import CASE_SUFFIXES_BY_LENGTH
 from app.melimi.grammar import is_non_am_ending_melimi
+from app.melimi.strict_lexicon import leakage_replacements, leakage_only
 
 TOKEN_RE = re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 
@@ -118,9 +119,26 @@ def _match_root(token: str, forbidden: dict, adjective_capable=None):
 
 def lexical_violations(text: str):
     lex = subject_lexicon()
-    forbidden = lex["forbidden"]
+    # Explicit leakage guard. This is intentionally separate from the
+    # registered Standard->Melimi dictionary: absence from the dictionary is
+    # not evidence that a Telugu word is wrong.
+    explicit = leakage_replacements()
+    explicit_only = leakage_only()
     found = []
     seen = set()
+    for source, preferred in explicit.items():
+        if source in (text or ""):
+            key = (source, preferred)
+            if key not in seen:
+                seen.add(key)
+                found.append({"source": source, "preferred": preferred, "root": source, "suffix": "", "explicit_leakage": True})
+    for source, preferred in explicit_only.items():
+        if source in (text or ""):
+            key = (source, preferred)
+            if key not in seen:
+                seen.add(key)
+                found.append({"source": source, "preferred": preferred, "root": source, "suffix": "", "explicit_leakage": True})
+    forbidden = lex["forbidden"]
     for token in TOKEN_RE.findall(text or ""):
         match = _match_root(token, forbidden, lex.get("adjective_capable"))
         if not match:
@@ -155,9 +173,12 @@ def deterministic_repair(text: str) -> str:
     """
     lex = subject_lexicon()
     forbidden = lex["forbidden"]
+    explicit = leakage_replacements()
 
     def _replace(match: re.Match) -> str:
         token = match.group(0)
+        if token in explicit:
+            return explicit[token]
         invariant = None
         # Only forms explicitly marked adjective-capable are eligible.
         for _, melimi in lex.get("adjective_capable", set()):

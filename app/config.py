@@ -10,21 +10,21 @@ class Settings:
         "GROQ_URL", "https://api.groq.com/openai/v1/chat/completions"
     ).strip()
     groq_model: str = os.getenv(
-        "GROQ_MODEL", "llama-3.3-70b-versatile"
+        "GROQ_MODEL", "llama-3.1-8b-instant"
     ).strip()
     # Groq free tier is tight (roughly 6,000-12,000 tokens/minute on
     # llama-3.3-70b-versatile). These defaults are kept small on purpose so a
     # normal back-and-forth conversation doesn't blow the per-minute budget
     # in a handful of messages. Raise them only if you're on a paid tier.
     max_history_turns: int = int(os.getenv("MAX_HISTORY_TURNS", "1"))
-    max_history_chars_per_turn: int = int(os.getenv("MAX_HISTORY_CHARS_PER_TURN", "180"))
-    max_context_chars: int = int(os.getenv("MAX_CONTEXT_CHARS", "4200"))
-    max_memory_items: int = int(os.getenv("MAX_MEMORY_ITEMS", "6"))
-    melimi_profile_chars: int = int(os.getenv("MELIMI_PROFILE_CHARS", "350"))
-    melimi_relevant_chars: int = int(os.getenv("MELIMI_RELEVANT_CHARS", "650"))
-    max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "300"))
-    max_system_chars: int = int(os.getenv("MAX_SYSTEM_CHARS", "7600"))
-    max_user_chars: int = int(os.getenv("MAX_USER_CHARS", "5000"))
+    max_history_chars_per_turn: int = int(os.getenv("MAX_HISTORY_CHARS_PER_TURN", "120"))
+    max_context_chars: int = int(os.getenv("MAX_CONTEXT_CHARS", "2600"))
+    max_memory_items: int = int(os.getenv("MAX_MEMORY_ITEMS", "3"))
+    melimi_profile_chars: int = int(os.getenv("MELIMI_PROFILE_CHARS", "300"))
+    melimi_relevant_chars: int = int(os.getenv("MELIMI_RELEVANT_CHARS", "550"))
+    max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "220"))
+    max_system_chars: int = int(os.getenv("MAX_SYSTEM_CHARS", "5000"))
+    max_user_chars: int = int(os.getenv("MAX_USER_CHARS", "2400"))
     temperature: float = float(os.getenv("GROQ_TEMPERATURE", "0.70"))
     database_url: str = os.getenv("DATABASE_URL", "").strip()
     melimi_repair_attempts: int = int(os.getenv("MELIMI_REPAIR_ATTEMPTS", "2"))

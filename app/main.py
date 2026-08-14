@@ -29,6 +29,7 @@ from app.groq_client import call_groq
 from app.chat_learner import learn_from_user_message, format_learned
 from app.learner_store import init_store, list_learning, set_status
 from app.response import clean_response
+from app.melimi.fast_answers import local_answer
 
 
 app = FastAPI(title="TeluAI — Standard & Melimi Telugu AI")
@@ -166,12 +167,17 @@ async def chat(request: ChatRequest):
         melimi_engine=melimi_engine,
     )
 
-    try:
-        reply = await call_groq(prompt, history, message)
-    except RuntimeError as exc:
-        raise HTTPException(502, str(exc))
-    except Exception as exc:
-        raise HTTPException(502, f"AI request failed: {exc}")
+    # High-confidence language-definition questions are answered locally from
+    # the authoritative contract. This both improves exactness and prevents a
+    # trivial FAQ from consuming Groq quota.
+    reply = local_answer(message, request.mode)
+    if reply is None:
+        try:
+            reply = await call_groq(prompt, history, message)
+        except RuntimeError as exc:
+            raise HTTPException(502, str(exc))
+        except Exception as exc:
+            raise HTTPException(502, f"AI request failed: {exc}")
 
     reply = clean_response(reply)
     if request.mode == "melimi":
