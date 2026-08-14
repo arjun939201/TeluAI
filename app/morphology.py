@@ -9,7 +9,13 @@ CASE_SUFFIXES = [
     "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై",
     "నుంచి", "నుండి", "యొక్క", "తోటి", "తో", "లో", "లు", "ను",
     "ని", "కు", "కి", "గా", "పై", "పైన", "లోని", "కోసం", "వల్ల", "మధ్య", "గురించి",
+    "ల",
 ]
+
+# Longest-suffix-first order, precomputed once so callers doing repeated
+# suffix stripping (e.g. per-token Melimi lexical substitution) don't have to
+# re-sort on every call.
+CASE_SUFFIXES_BY_LENGTH = sorted(CASE_SUFFIXES, key=len, reverse=True)
 
 
 def analyze_surface_form(word: str) -> Dict:
