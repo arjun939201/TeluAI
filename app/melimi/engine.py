@@ -15,20 +15,24 @@ def build_language_engine_context(
 ) -> str:
     profile = language_profile(max_chars=max_profile_chars)
     lexicon = subject_lexicon()
-    mapping_lines = ["FILE-AUTHORITATIVE LEXICON — THESE MAPPINGS ARE MANDATORY:"]
+    mapping_lines = [
+        "AUTHORITATIVE WORD-SUBSTITUTION LIST — these are the ONLY words you may "
+        "swap. Everything else in your sentence stays normal Telugu:"
+    ]
     for source, preferred in sorted(lexicon["preferred"].items()):
         mapping_lines.append(f"- {source} => {preferred}")
     file_authority = "\n".join(mapping_lines)[:7000]
     relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
 
     return f"""\n{file_authority}\n
-MELIMI TELUGU LANGUAGE ENGINE — EXECUTION CONTRACT
+MELIMI TELUGU WORD-SUBSTITUTION ENGINE — EXECUTION CONTRACT
 
-You are conversing with the user, not translating a document.
-
-The user has selected MELIMI TELUGU. Therefore Melimi Telugu is the target
-language of the response. The source language may be Standard Telugu, Roman
-Telugu, mixed Telugu, English, or a short conversational fragment.
+You are having a normal Telugu conversation with the user, not translating a
+document and not switching into a different language system. Melimi Telugu
+mode means: speak completely ordinary, natural conversational Telugu, and
+only where a specific word appears in the AUTHORITATIVE WORD-SUBSTITUTION LIST
+above, use its listed Melimi form instead. Nothing else about the sentence
+changes.
 
 STEP 1 — UNDERSTAND THE USER
 Use the conversation, not only the current string.
@@ -36,39 +40,46 @@ Determine the user's intended conversational act and meaning.
 A short expression such as "enti" can mean "what?" in isolation but can mean
 "what did you mean?" when it follows an assistant question.
 
-STEP 2 — DETERMINE THE RESPONSE MEANING
-Decide what a natural Telugu-speaking assistant should communicate next.
-Do this before choosing Melimi words.
+STEP 2 — COMPOSE A NORMAL TELUGU SENTENCE
+Decide what a natural Telugu-speaking assistant should say next, and write it
+exactly as you would in ordinary Standard/conversational Telugu. Grammar,
+sentence structure, word order, tense, person, case, and tone all stay
+completely natural at this stage — do not think about Melimi yet.
 
-STEP 3 — SELECT MELIMI AS THE LANGUAGE
-Use the Melimi Telugu subject below as the linguistic authority.
-Prefer established lexical forms and established grammatical/derivational rules.
-Use actual corpus usage as evidence.
+STEP 3 — SUBSTITUTE ONLY THE MATCHING WORDS
+Scan the sentence you just composed. For every word that exactly matches an
+entry on the left side of the AUTHORITATIVE WORD-SUBSTITUTION LIST, replace it
+with its Melimi form on the right side, keeping any grammatical
+suffix/ending (case marker, plural, verb ending, etc.) attached and correctly
+adjusted on the new word. Do not change any word that is not on the list.
+Do not add, remove, or reorder words beyond this substitution.
 
-STEP 4 — GENERATE
-Generate an original response in Melimi Telugu.
+STEP 4 — RULES WHILE SUBSTITUTING
 Do NOT:
 - copy a sentence from the corpus;
 - retrieve a sentence and lightly edit it;
-- translate a Standard Telugu sentence and perform find/replace;
-- replace words mechanically;
-- invent unsupported Melimi vocabulary simply to remove a Standard word;
-- fall back to generic Standard Telugu because it is easier.
+- restructure the sentence, its grammar, or its word order;
+- invent an unsupported Melimi word for a concept that has no registered
+  mapping — just keep the normal Telugu word;
+- leave a mapped Standard word unsubstituted if its Melimi equivalent is
+  registered and fits naturally;
+- perform so many substitutions, or such awkward ones, that the sentence
+  becomes hard to understand or changes its meaning. If a substitution would
+  make the sentence confusing, keep the normal Telugu word instead.
 
 STEP 5 — FINAL SILENT AUDIT
 Check:
 A. Did I answer what the user actually meant?
-B. Does the response continue this conversation naturally?
-C. Is Melimi Telugu the dominant expression system?
-D. Are established Melimi forms used where appropriate?
+B. Does the response continue this conversation naturally, as normal Telugu?
+C. Is every word NOT on the substitution list left exactly as normal Telugu?
+D. Did I substitute every listed word that appeared, with the suffix intact?
 E. Did I accidentally use a corpus sentence as a response?
-F. Did I invent a form and present it as established?
-G. Did I retain unnecessary Standard/loan vocabulary despite an established
-   Melimi alternative?
-H. Is the grammar coherent?
+F. Did I invent a Melimi word not on the list?
+G. Would a native Telugu speaker read this as a normal sentence with a few
+   Melimi words in it, rather than a confusing or garbled sentence?
 
-If evidence is insufficient for a word, preserve meaning and naturalness rather
-than fabricating a word. Never mention this audit to the user.
+If evidence is insufficient for a word, keep the normal Telugu word rather
+than fabricating a Melimi one. Never mention this audit to the user.
 
 CONVERSATION:
 {conversation_context}
@@ -88,35 +99,37 @@ RELEVANT SUBJECT EVIDENCE:
 
 
 def strict_repair_prompt(reply: str, violations: list[dict], max_chars: int = 4200) -> str:
-    inv=lexical_inventory()
-    mappings=[]
+    inv = lexical_inventory()
+    mappings = []
     for v in violations:
         if v.get("standard"):
-            mappings.append(f"{v['standard']} -> {v.get('melimi','')}")
+            mappings.append(f"{v['standard']} -> {v.get('melimi', '')}")
         else:
-            mappings.append(f"{v.get('loan','')} -> no registered Melimi form")
-    known="\n".join(f"{k} -> {v}" for k,v in list(inv["standard_to_melimi"].items())[:80])
+            mappings.append(f"{v.get('loan', '')} -> no registered Melimi form")
+    known = "\n".join(f"{k} -> {v}" for k, v in list(inv["standard_to_melimi"].items())[:80])
     return f"""
-MELIMI FINAL REPAIR — STRICT LANGUAGE GATE
+MELIMI FINAL REPAIR — TARGETED WORD SUBSTITUTION ONLY
 
-Rewrite the assistant answer below as a NEW natural conversational answer.
-Preserve its meaning, context, tone and conversational function.
+Take the assistant answer below and fix it with the smallest possible edit.
+Do NOT rewrite the sentence. Do NOT change grammar, word order, or tone.
+Keep the exact same wording throughout, except for the following:
 
 Hard constraints:
-- Output only the answer; no explanation.
-- Use Melimi Telugu as the expression system.
-- Do not mechanically substitute words.
+- Output only the corrected answer; no explanation.
+- Only touch the specific words listed under "Detected violations" below —
+  swap each one for its listed Melimi equivalent, preserving its original
+  grammatical suffix/ending.
+- Every other word in the sentence must stay byte-for-byte identical to the
+  original answer.
 - Do not copy corpus sentences.
-- Do not use a known Standard Telugu/loan lexical form when an established
-  Melimi equivalent is available.
-- Do not invent an unsupported Melimi word merely to avoid a Standard word.
-- If a needed equivalent is genuinely unavailable, preserve grammatical
-  naturalness rather than fabricating.
+- Do not invent an unsupported Melimi word for a word that has no listed
+  equivalent — leave that word untouched.
 
-Detected violations:
+Detected violations (only these words may change):
 {chr(10).join(mappings)}
 
-Useful established mappings:
+Useful established mappings (reference only, do not use unless the word above
+actually needs it):
 {known}
 
 Original answer:

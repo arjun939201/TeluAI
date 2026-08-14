@@ -25,6 +25,8 @@ DERIVATIONAL_MARKERS = {
 def grammar_policy() -> str:
     lines = [
         "MELIMI GRAMMAR/WORD-FORMATION POLICY:",
+        "- Keep the sentence itself normal, natural Telugu; only substitute individual",
+        "  words that have a registered Melimi equivalent.",
         "- Use established Melimi grammar and the supplied corpus as authority.",
         "- Preserve Telugu grammatical roles when expressing a meaning in Melimi.",
         "- Use productive derivation only when the corpus/rule evidence supports it.",
