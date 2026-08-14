@@ -16,3 +16,7 @@ Pipeline:
 Unknown native-looking Telugu is never treated as a loanword merely because it is absent from the corpus.
 
 Established language knowledge has priority over generic model knowledge. Unsupported Melimi words must not be invented merely for purity.
+
+8. Native-word and derivational constraints are authoritative: do not invent a Melimi word merely to satisfy a purity constraint.
+9. Noun-based suffixes and verb-based suffixes must be applied only to their documented base categories.
+10. Relevant non-ం/nasal-ending Melimi lexical forms may serve as invariant noun/adjective forms; preserve their surface form when used adjectivally.

@@ -136,5 +136,22 @@
     "melimi": "చిక్కు",
     "status": "established",
     "note": "problem (native Telugu synonym of the loanword 'problem')"
+  },
+  {
+    "standard": "విషయం",
+    "melimi": "ఎడాటం",
+    "status": "established",
+    "note": "subject / matter / topic"
+  },
+  {
+    "standard": "ఆసక్తికరం",
+    "melimi": "హాళికాను",
+    "status": "established",
+    "note": "interesting; invariant noun/adjective form",
+    "functions": [
+      "noun",
+      "adjective"
+    ],
+    "adjective_invariant": true
   }
 ]

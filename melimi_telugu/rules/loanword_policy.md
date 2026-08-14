@@ -21,3 +21,9 @@ is absent from the Melimi vocabulary. Absence is not evidence of borrowing.
 
 To classify a word, add it to a vocabulary entry with `status: "loanword"` or
 `source_type: "loanword"` and provide its Melimi equivalent when known.
+
+## Native Melimi expression
+
+Melimi generation should prefer native Telugu lexical material. This is a
+lexical-generation requirement, not permission to fabricate replacements for
+words whose Melimi equivalent has not been established by the corpus.

@@ -12,3 +12,5 @@
 9. A response must preserve Telugu grammatical meaning while changing the
    expression system to Melimi.
 10. The final answer should be original, not copied from corpus examples.
+
+11. The user's explicit Melimi word-formation rules are authoritative additions to the grammar profile: native Telugu lexical basis; noun-based suffixes such as కాను/మారి/వాను/పాదు; verb-based suffixes such as అలవి/అల్వి and అరిది/అర్ది; and the invariant noun/adjective behavior of relevant non-ం/nasal-ending Melimi forms.

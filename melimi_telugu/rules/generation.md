@@ -17,3 +17,9 @@
    is lost or the sentence becomes hard to follow.
 10. Every answer must be newly composed for the current turn, not copied from
     the corpus.
+
+11. Melimi lexical material must be native Telugu or an established native Melimi form supported by the supplied corpus.
+12. Noun-based suffixes (కాను, మారి, వాను, పాదు, etc.) attach to noun/nominal bases; interpret the complete derived word from the base + suffix combination.
+13. Verb-based suffixes (అలవి/అల్వి, అరిది/అర్ది) attach to verbs; for example చేయు + అలవి -> చేయల్వి.
+14. Reuse the existing Telugu inflection rules for plural/case forms rather than creating competing inflection rules.
+15. A relevant non-ం/nasal-ending Melimi lexical form may be an invariant noun/adjective: for example హాళికాను can correspond to both ఆసక్తికరం and ఆసక్తికరమైన. Do not add an adjective suffix to such a form unless the corpus explicitly requires it.
