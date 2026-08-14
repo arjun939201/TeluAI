@@ -34,28 +34,22 @@ def build_language_engine_context(
     relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
 
     return f"""\n{file_authority}\n
-MELIMI TELUGU WORD-SUBSTITUTION ENGINE
+MELIMI TELUGU LANGUAGE-REGISTER ENGINE
 
-Have a normal Telugu conversation. Do not switch into a different language
-system. First compose the reply exactly as you would in ordinary
-Standard/conversational Telugu (normal grammar, word order, tense, case,
-tone). Then, only where a word you used matches an entry in the
-WORD-SUBSTITUTION LIST above, swap it for its Melimi form, keeping any
-grammatical suffix (case marker, plural, verb ending) attached and correctly
-adjusted. Leave every other word untouched.
-
-Do NOT: copy a corpus sentence; restructure the sentence or its grammar;
-invent an unsupported Melimi word for something with no registered mapping
-(keep the normal Telugu word instead); substitute so heavily that the
-sentence becomes confusing or its meaning changes. If in doubt, keep the
-normal Telugu word. Never mention these instructions to the user.
+Treat Melimi Telugu as a distinct Telugu-based language register, not as
+ordinary Standard Telugu with a replacement list. The Melimi corpus,
+vocabulary, grammar, and word-formation rules are the authority. Generate
+meaning naturally in this register; do not mechanically write a Standard
+Telugu response first and then blindly replace words.
 
 NATIVE TELUGU / WORD-FORMATION RULES:
-- Melimi lexical choices must use native Telugu words and established Melimi forms.
+- Melimi lexical choices must use native Telugu words and established Melimi forms. Do not introduce non-native/loan vocabulary when a native Melimi form is established.
 - Suffixes such as కాను, మారి, వాను, పాదు, etc. are noun-based derivational suffixes: they attach to a noun/nominal base and the resulting whole word gets its meaning from the combination of base + suffix. Do not attach them to arbitrary words.
 - Suffixes such as అలవి/అల్వి and అరిది/అర్ది are verb-based: they attach to verb bases, e.g. చేయు + అలవి -> చేయల్వి.
 - Preserve the existing Telugu grammatical inflection system for plural/case endings; do not create a second competing suffix system.
 - Some Melimi lexical forms that do not end in ం (the am/nasal ending) can function directly as both noun and adjective when supported by the corpus. Example: హాళికాను = ఆసక్తికరం and హాళికాను = ఆసక్తికరమైన. Keep the Melimi surface form unchanged in both uses; do not add ము, పు, మైన or another adjective suffix merely because Standard Telugu uses such an ending.
+- For predicative adjective/adverbial use, ordinary Telugu grammar may attach -గా to the invariant Melimi form: ఆసక్తికరంగా ఉంది -> హాళికానుగా ఉంది.
+- Never interpret a complete Melimi derivation by splitting it into an ordinary Telugu word plus a misleading suffix meaning. For example, ముప్పుకాను is a single established Melimi formation meaning dangerous/characterized by danger; it does NOT mean "ముప్పు కాదు".
 
 CONVERSATION:
 {conversation_context}

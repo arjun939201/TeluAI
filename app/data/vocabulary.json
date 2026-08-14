@@ -17,7 +17,13 @@
   {
     "standard": "ఆసక్తికరం",
     "melimi": "హాళికాను",
-    "note": "interesting"
+    "note": "interesting; same Melimi form also serves the attributive adjective sense ఆసక్తికరమైన",
+    "functions": [
+      "noun",
+      "adjective"
+    ],
+    "adjective_invariant": true,
+    "native": true
   },
   {
     "standard": "effect / impact / influence",

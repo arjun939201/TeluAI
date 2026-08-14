@@ -87,6 +87,19 @@ def _match_root(token: str, forbidden: dict, adjective_capable=None):
         if root and root in forbidden:
             return root, suffix, forbidden[root]
 
+    # 3) Predicative/adverbial adjective surface form. A Standard Telugu
+    #    form such as ఆసక్తికరంగా is related to the headword ఆసక్తికరం. For
+    #    an invariant non-ం Melimi adjective, retain the ordinary -గా
+    #    grammatical ending: హాళికరంగా -> (headword) -> హాళికానుగా.
+    if token.endswith("గా") and len(token) > 3:
+        stem = token[:-2]
+        headword = stem + "ం"
+        if headword in forbidden:
+            melimi_root = forbidden[headword]
+            capable = adjective_capable or set()
+            if (headword, melimi_root) in capable and is_non_am_ending_melimi(melimi_root):
+                return headword, "గా", melimi_root
+
     # 3) Attributive adjective surface form.  A Standard Telugu adjective
     #    such as ఆసక్తికరమైన is related to the dictionary headword ఆసక్తికరం.
     #    When that headword maps to a Melimi form that belongs to the
