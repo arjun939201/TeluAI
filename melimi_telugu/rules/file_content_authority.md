@@ -1,22 +1,22 @@
 # File-content authority rule
 
-Melimi Telugu mode is governed by the actual `melimi_telugu/` subject files.
+The actual `melimi_telugu/` subject files govern Melimi mode.
 
-For every explicit Standard/source -> Melimi mapping in the vocabulary subject:
+For an explicit Standard/source → Melimi mapping:
 
-- the Standard/source form is forbidden in Melimi output;
-- the registered Melimi form is the required lexical choice;
-- the model is given the mapping before generation;
-- the response is checked after generation;
-- a failed response is regenerated;
-- a deterministic file-derived lexical barrier runs as the final safety net.
+- the Melimi form is the authoritative lexical choice;
+- the mapping is supplied to generation through retrieval/context;
+- output is checked after generation;
+- a deterministic local repair can preserve inflection and supported adjective behavior;
+- no unsupported word is invented merely to satisfy the mapping.
 
-This means the language files are not merely retrieval context. They are an
-enforceable lexical specification.
+For derivational rules, the file evidence also controls whether a formation is
+established, derived-by-rule, candidate or uncertain.
 
-Important distinction:
+Important distinctions:
 
-- unknown word != loanword
-- ordinary Telugu != automatically Melimi
-- file mapping = authoritative
-- unsupported invention = prohibited
+- unknown word != loanword;
+- ordinary Telugu != automatically forbidden;
+- file mapping = authoritative;
+- derivational suffix spelling alone != proof of a valid formation;
+- Melimi-derived word != ordinary Telugu phrase.

@@ -1047,3 +1047,8 @@ Subject/matter vocabulary:
 Important distinction:
 ప్రంగాణియం = భారత దేశం
 ప్రంగాణియ = భారతీయ
+
+
+===== TELUAI IMPLEMENTATION LANGUAGE REQUIREMENTS =====
+
+The application must treat Melimi Telugu as a distinct language/register system; use the authoritative corpus for vocabulary, grammar, derivation, terminology, provenance, register control, retrieval, validation and correction. See melimi_telugu/rules/complete_language_requirements.md for the full implementation checklist.
