@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.github_sync import status as github_status, GitHubSyncError
-from app.models import ChatRequest, ChatResponse, HealthResponse, WordRegistration
+from app.models import ChatRequest, ChatResponse, HealthResponse, WordRegistration, LearningStatusUpdate
 from app.linguistics.normalizer import analyze_input
 from app.linguistics.parser import extract_linguistic_hints
 from app.conversation.state import from_history
@@ -26,10 +26,15 @@ from app.melimi.local_repair import validate, repair
 from app.melimi.registration import register_word
 from app.prompts import build_prompt
 from app.groq_client import call_groq
+from app.chat_learner import learn_from_user_message, format_learned
+from app.learner_store import init_store, list_learning, set_status
 from app.response import clean_response
 
 
 app = FastAPI(title="TeluAI — Standard & Melimi Telugu AI")
+
+# Chat-time learning is persistent but isolated from the authoritative corpus.
+init_store()
 
 app.add_middleware(
     CORSMiddleware,
@@ -76,6 +81,23 @@ def github_sync_status():
     return github_status()
 
 
+@app.get("/learner/knowledge")
+def learner_knowledge(status: str | None = None, limit: int = 100):
+    """Inspect chat-time learning. Approved knowledge is used in future chats."""
+    return {"items": list_learning(status=status, limit=limit)}
+
+
+@app.post("/learner/{item_id}/status")
+def learner_status(item_id: int, payload: LearningStatusUpdate):
+    try:
+        updated = set_status(item_id, payload.status)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    if not updated:
+        raise HTTPException(404, "Learning item not found.")
+    return updated
+
+
 @app.get("/health")
 def health():
     return HealthResponse(
@@ -91,6 +113,10 @@ async def chat(request: ChatRequest):
     if not message:
         raise HTTPException(400, "Message cannot be empty.")
 
+    # Learn only explicit user-authored mappings; ordinary AI output is never
+    # promoted into language authority. The master Melimi corpus is untouched.
+    learn_from_user_message(message)
+
     history = [turn.model_dump() for turn in request.history]
 
     state = from_history(history)
@@ -102,6 +128,7 @@ async def chat(request: ChatRequest):
 
     candidates = extract_memory_candidates(history, settings.max_memory_items)
     memory = format_memory(candidates)
+    learned = format_learned(message, limit=6) if request.mode == "melimi" else ""
 
     # Melimi subject retrieval is handled by the dedicated language engine.
     # Do not separately stuff the legacy vocabulary retrieval into the prompt.
@@ -132,7 +159,7 @@ async def chat(request: ChatRequest):
         mode=request.mode,
         conversation=conversation,
         linguistics=linguistic_text,
-        memory=memory,
+        memory=(memory + "\n\nAPPROVED CHAT-TIME MELIMI KNOWLEDGE:\n" + learned) if learned else memory,
         knowledge=knowledge,
         grammar=grammar_policy() if request.mode == "melimi" else "",
         plan=plan,

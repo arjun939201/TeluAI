@@ -24,6 +24,7 @@ class Settings:
     melimi_relevant_chars: int = int(os.getenv("MELIMI_RELEVANT_CHARS", "800"))
     max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "500"))
     temperature: float = float(os.getenv("GROQ_TEMPERATURE", "0.70"))
+    database_url: str = os.getenv("DATABASE_URL", "").strip()
     melimi_repair_attempts: int = int(os.getenv("MELIMI_REPAIR_ATTEMPTS", "2"))
     github_token: str = os.getenv("GITHUB_TOKEN", "").strip()
     github_repo: str = os.getenv("GITHUB_REPO", "arjun939201/TeluAI").strip()

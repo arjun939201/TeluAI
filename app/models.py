@@ -32,6 +32,22 @@ class ChatResponse(BaseModel):
     word_audit: List[Dict] = Field(default_factory=list)
 
 
+class LearningItem(BaseModel):
+    kind: str
+    standard: str = ""
+    melimi: str = ""
+    rule: str = ""
+    meaning: str = ""
+    evidence: str = ""
+    source: str = "chat"
+    status: Literal["pending", "approved", "rejected"] = "pending"
+    confidence: float = 0.5
+
+
+class LearningStatusUpdate(BaseModel):
+    status: Literal["pending", "approved", "rejected"]
+
+
 class HealthResponse(BaseModel):
     status: str
     service: str
