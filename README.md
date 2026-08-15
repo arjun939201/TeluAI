@@ -383,3 +383,6 @@ Required Render environment variables for email delivery:
 - `SMTP_FROM`
 
 The verification code expires after 10 minutes. The code is never returned to the browser by the request endpoint.
+
+### Melimi lens
+TeluAI uses Melimi as an authoritative language lens for understanding and lookup while keeping normal Telugu conversation natural. Melimi-only generation is used when the user explicitly asks for Melimi output.

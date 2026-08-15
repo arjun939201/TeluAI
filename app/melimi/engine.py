@@ -25,8 +25,8 @@ def build_language_engine_context(
     profile = language_profile(max_chars=max_profile_chars)
     lexicon = subject_lexicon()
     mapping_lines = [
-        "WORD-SUBSTITUTION LIST — the ONLY words you may swap; everything else "
-        "stays normal Telugu:"
+        "AUTHORITATIVE MELIMI LENS MAPPINGS — use these to understand Melimi words "
+        "and to perform conversion only when the user asks for Melimi output:"
     ]
     for source, preferred in sorted(lexicon["preferred"].items()):
         mapping_lines.append(f"- {source} => {preferred}")
@@ -34,9 +34,9 @@ def build_language_engine_context(
     relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
 
     return f"""
-MELIMI TELUGU LANGUAGE ENGINE
+MELIMI TELUGU LENS
 
-Melimi Telugu is a distinct Telugu-based language/register system. Treat the supplied corpus, root dictionary, grammar and word-formation rules as authoritative.
+Melimi Telugu is a distinct Telugu-based language/register system. Treat the supplied corpus, root dictionary, grammar and word-formation rules as authoritative. The lens is for understanding and accurate lookup; it does not force every response to use Melimi vocabulary.
 
 ROOT-FIRST TRANSFORMATION:
 1. Analyze the surface word grammatically.
