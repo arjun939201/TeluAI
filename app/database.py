@@ -320,35 +320,76 @@ def authenticate(identifier,password):
 
 
 def create_password_reset_token(email):
-    raw = secrets.token_urlsafe(48)
-    h = hashlib.sha256(raw.encode()).hexdigest()
+    """Create a short-lived six-digit email verification code."""
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    h = hashlib.sha256(code.encode()).hexdigest()
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == email.lower()))
         if not user or not getattr(user, "is_active", True):
             return None
-        # Invalidate existing tokens for this user.
         db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
-        db.add(PasswordResetToken(token_hash=h, user_id=user.id, expires_at=now()+timedelta(minutes=30)))
+        db.add(
+            PasswordResetToken(
+                token_hash=h,
+                user_id=user.id,
+                expires_at=now() + timedelta(minutes=10),
+            )
+        )
         db.commit()
-    return raw
+    return code
+
+
+def verify_password_reset_code(email, code):
+    """Verify the emailed code and exchange it for a short-lived reset token."""
+    if not code or not code.isdigit() or len(code) != 6:
+        return None
+    code_hash = hashlib.sha256(code.encode()).hexdigest()
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email.lower()))
+        if not user or not getattr(user, "is_active", True):
+            return None
+        row = db.scalar(
+            select(PasswordResetToken).where(
+                (PasswordResetToken.user_id == user.id)
+                & (PasswordResetToken.token_hash == code_hash)
+            )
+        )
+        if not row or row.used_at is not None or row.expires_at < now():
+            return None
+
+        reset_token = secrets.token_urlsafe(48)
+        reset_hash = hashlib.sha256(reset_token.encode()).hexdigest()
+
+        # Replace the one-time code with a short-lived reset credential.
+        db.delete(row)
+        db.flush()
+        db.add(
+            PasswordResetToken(
+                token_hash=reset_hash,
+                user_id=user.id,
+                expires_at=now() + timedelta(minutes=10),
+            )
+        )
+        db.commit()
+        return reset_token
+
 
 def reset_password(raw_token, new_password):
     if not raw_token or len(new_password) < 8:
-        return False
+        return None
     h = hashlib.sha256(raw_token.encode()).hexdigest()
     with SessionLocal() as db:
         row = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash == h))
         if not row or row.used_at is not None or row.expires_at < now():
-            return False
+            return None
         user = db.get(User, row.user_id)
         if not user or not getattr(user, "is_active", True):
-            return False
+            return None
         user.password_hash = _hash_password(new_password)
         row.used_at = now()
-        # Revoke all existing sessions after a password reset.
         db.execute(delete(Session).where(Session.user_id == user.id))
         db.commit()
-        return True
+        return user.id
 
 def create_session(user_id,days=30):
     raw=secrets.token_urlsafe(48); h=hashlib.sha256(raw.encode()).hexdigest()
