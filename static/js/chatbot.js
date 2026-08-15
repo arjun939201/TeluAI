@@ -8,8 +8,6 @@ const mobileNewChat=document.getElementById("mobileNewChat");
 const mobileHistoryButton=document.getElementById("mobileHistoryButton");
 const mobileSidebarBackdrop=document.getElementById("mobileSidebarBackdrop");
 const sidebar=document.querySelector(".sidebar");
-const standardMode=document.getElementById("standardMode");
-const melimiMode=document.getElementById("melimiMode");
 const modelName=document.getElementById("modelName");
 const authGate=document.getElementById("authGate");
 const authForm=document.getElementById("authForm");
@@ -26,8 +24,7 @@ const logoutButton=document.getElementById("logoutButton");
 
 let mode="melimi",history=[],isSending=false,currentConversationId=null,authMode="login";
 
-function setMode(newMode){mode=newMode;standardMode.classList.toggle("active",mode==="standard");melimiMode.classList.toggle("active",mode==="melimi");modelName.textContent=mode==="melimi"?"మేలిమి తెలుగు AI":"తెలుగు AI";messageInput.placeholder=mode==="melimi"?"మేలిమి తెలుగులో అడుగు...":"తెలుగులో అడుగు..."}
-standardMode.addEventListener("click",()=>setMode("standard"));melimiMode.addEventListener("click",()=>setMode("melimi"));
+function setMode(newMode="melimi"){mode="melimi";if(modelName)modelName.textContent="మేలిమి తెలుగు AI";if(messageInput)messageInput.placeholder="మేలిమి తెలుగులో అడుగు..."}
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function renderMelimiText(text,audit){const map=new Map((audit||[]).map(x=>[x.word,x]));return String(text).split(/([\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*)/g).map(part=>{const x=map.get(part);if(!x)return escapeHtml(part);const cls=x.clickable?"word-token unregistered":"word-token";const title=x.loan?"Loan/foreign word — click to teach Melimi":(x.melimi_gap?"Melimi equivalent needed — click to teach":"Melimi word");return `<span class="${cls}" data-word="${escapeHtml(part)}" title="${title}">${escapeHtml(part)}</span>`}).join("")}
 function addMessage(text,role,melimi=false,audit=[]){const wrapper=document.createElement("div");wrapper.className=`message ${role}`;if(role==="assistant"&&melimi)wrapper.classList.add("melimi");const content=document.createElement("div");content.className="message-content";content.innerHTML=role==="assistant"&&melimi?renderMelimiText(text,audit):escapeHtml(text);wrapper.appendChild(content);chatContainer.appendChild(wrapper);scrollToBottom()}
@@ -62,6 +59,19 @@ clearButton.addEventListener("click",newChat);mobileNewChat.addEventListener("cl
 function setAuthMode(next){authMode=next;const reg=next==="register";loginTab.classList.toggle("active",!reg);registerTab.classList.toggle("active",reg);authUsername.classList.toggle("hidden",!reg);authUsername.required=reg;authEmail.placeholder=reg?"Email":"Email or username";authSubmit.textContent=reg?"Register":"Login";authError.textContent=""}
 loginTab.addEventListener("click",()=>setAuthMode("login"));registerTab.addEventListener("click",()=>setAuthMode("register"));
 forgotPasswordButton?.addEventListener("click",e=>{if(forgotPasswordModal){e.preventDefault();forgotPasswordModal.classList.remove("hidden");forgotPasswordResult.textContent="";forgotPasswordEmail?.focus()}});closeForgotPassword?.addEventListener("click",()=>forgotPasswordModal?.classList.add("hidden"));forgotPasswordModal?.addEventListener("click",e=>{if(e.target===forgotPasswordModal)forgotPasswordModal.classList.add("hidden")});forgotPasswordForm?.addEventListener("submit",async e=>{e.preventDefault();forgotPasswordResult.textContent="Sending…";try{const r=await fetch("/auth/forgot-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:forgotPasswordEmail.value.trim()})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.detail||"Could not request password reset");forgotPasswordResult.style.color="#8ed9a0";forgotPasswordResult.textContent=d.message||"If the account exists, a reset link has been sent."}catch(e){forgotPasswordResult.style.color="#ef7777";forgotPasswordResult.textContent=e.message||"Could not request password reset."}});
+
+document.querySelectorAll(".password-toggle[data-password-target]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    const input=document.getElementById(button.dataset.passwordTarget);
+    if(!input)return;
+    const visible=input.type==="text";
+    input.type=visible?"password":"text";
+    button.textContent=visible?"Show":"Hide";
+    button.setAttribute("aria-label",visible?"Show password":"Hide password");
+    button.setAttribute("aria-pressed",String(!visible));
+  });
+});
+
 async function checkAuth(){try{const r=await fetch("/auth/me",{credentials:"same-origin"});if(!r.ok)throw Error();const d=await r.json();enterApp(d)}catch(e){authGate.classList.remove("hidden");messageInput.disabled=true;sendButton.disabled=true}}
 function enterApp(user){authGate.classList.add("hidden");messageInput.disabled=false;sendButton.disabled=false;accountName.textContent=user.username;loadConversations();messageInput.focus()}
 authForm.addEventListener("submit",async e=>{e.preventDefault();authError.textContent="";authSubmit.disabled=true;try{const url=authMode==="register"?"/auth/register":"/auth/login";const body=authMode==="register"?{username:authUsername.value.trim(),email:authEmail.value.trim(),password:authPassword.value}:{identifier:authEmail.value.trim(),password:authPassword.value};const r=await fetch(url,{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.detail||"Authentication failed");authForm.reset();enterApp(d)}catch(e){authError.textContent=e.message}finally{authSubmit.disabled=false}});
@@ -73,7 +83,15 @@ async function loadConversation(id){try{const r=await fetch(`/conversations/${en
 function modalElements(){return {modal:document.getElementById("wordModal"),word:document.getElementById("selectedWord"),status:document.getElementById("wordStatus"),root:document.getElementById("wordRoot"),meaning:document.getElementById("wordMeaning"),pos:document.getElementById("wordPos"),melimi:document.getElementById("wordMelimi"),formation:document.getElementById("wordFormation"),result:document.getElementById("wordResult"),register:document.getElementById("registerWord")}}
 function closeWordModal(){const x=modalElements();x.modal?.classList.add("hidden")}
 async function openWordModal(word=""){const x=modalElements();if(!x.modal)return;x.word.textContent=word||"కొత్త మేలిమి పదం";x.root.value=word||"";x.meaning.value="";x.pos.value="";x.melimi.value="";x.formation.value="";x.result.textContent="";x.register.disabled=false;x.status.textContent=word?"Enter the verified Melimi Telugu form.":"Add a user-verified Melimi Telugu word.";x.modal.classList.remove("hidden");if(word){try{const r=await fetch("/melimi/word/"+encodeURIComponent(word));const d=await r.json();if(d.melimi_equivalent)x.melimi.value=d.melimi_equivalent;if(d.root_candidate)x.root.value=d.root_candidate}catch(e){}}setTimeout(()=>x.melimi.focus(),50)}
-document.addEventListener("click",e=>{const token=e.target.closest?.(".word-token.unregistered");if(token){e.preventDefault();e.stopPropagation();openWordModal(token.dataset.word||token.textContent.trim())}});document.getElementById("addWordButton")?.addEventListener("click",()=>openWordModal());document.getElementById("closeWordModal")?.addEventListener("click",closeWordModal);document.getElementById("cancelWord")?.addEventListener("click",closeWordModal);document.getElementById("wordModalBackdrop")?.addEventListener("click",closeWordModal);document.addEventListener("keydown",e=>{if(e.key==="Escape")closeWordModal()});
-document.getElementById("registerWord")?.addEventListener("click",async()=>{const x=modalElements();const source=x.root.value.trim()||x.word.textContent.trim();const melimi=x.melimi.value.trim();if(!source||!melimi){x.result.style.color="#ef7777";x.result.textContent="Enter both source and Melimi word.";return}x.register.disabled=true;x.result.textContent="Saving…";try{const r=await fetch("/melimi/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({word:source,root:x.root.value.trim(),meaning:x.meaning.value.trim(),part_of_speech:x.pos.value.trim(),melimi_equivalent:melimi,formation:x.formation.value.trim()})});const d=await r.json();if(!r.ok)throw Error(d.detail||"Registration failed");x.result.style.color="#8ed9a0";x.result.textContent="Saved as a controlled learning candidate.";setTimeout(closeWordModal,900)}catch(e){x.result.style.color="#ef7777";x.result.textContent=e.message||"Could not save."}finally{x.register.disabled=false}});
+document.addEventListener("click",e=>{
+  const token=e.target.closest?.(".word-token.unregistered");
+  if(token){e.preventDefault();e.stopPropagation();openWordModal(token.dataset.word||token.textContent.trim())}
+});
+document.getElementById("addWordButton")?.addEventListener("click",()=>openWordModal());
+document.getElementById("closeWordModal")?.addEventListener("click",(e)=>{e.preventDefault();closeWordModal()});
+document.getElementById("cancelWord")?.addEventListener("click",(e)=>{e.preventDefault();closeWordModal()});
+document.getElementById("wordModalBackdrop")?.addEventListener("click",closeWordModal);
+document.addEventListener("keydown",e=>{if(e.key==="Escape" && !document.getElementById("wordModal")?.classList.contains("hidden"))closeWordModal()});
+document.getElementById("registerWord")?.addEventListener("click",async()=>{const x=modalElements();const source=x.root.value.trim()||x.word.textContent.trim();const melimi=x.melimi.value.trim();if(!source||!melimi){x.result.style.color="#ef7777";x.result.textContent="Enter both source and Melimi word.";return}x.register.disabled=true;x.result.textContent="Saving…";try{const r=await fetch("/melimi/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({word:source,root:x.root.value.trim(),meaning:x.meaning.value.trim(),part_of_speech:x.pos.value.trim(),melimi_equivalent:melimi,formation:x.formation.value.trim()})});const d=await r.json();if(!r.ok)throw Error(d.detail||"Registration failed");x.result.style.color="#8ed9a0";x.result.textContent="Saved as a controlled learning candidate.";setTimeout(()=>{closeWordModal();loadConversations()},700)}catch(e){x.result.style.color="#ef7777";x.result.textContent=e.message||"Could not save."}finally{x.register.disabled=false}});
 
 setMode("melimi");resizeInput();checkAuth();

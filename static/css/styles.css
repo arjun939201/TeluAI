@@ -113,3 +113,9 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Te
   .auth-card,.forgot-card{padding:24px 18px}
   .word-card{width:calc(100vw - 20px);max-height:88dvh;padding:18px}
 }
+
+
+.password-field{position:relative;width:100%}
+.password-field .auth-input{padding-right:62px;box-sizing:border-box}
+.password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#aaa;font-size:12px;font-family:inherit;cursor:pointer;padding:6px}
+.password-toggle:hover{color:#fff}

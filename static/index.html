@@ -18,7 +18,10 @@
     <form id="authForm">
       <input id="authUsername" class="auth-input hidden" placeholder="Username" autocomplete="username">
       <input id="authEmail" class="auth-input" placeholder="Email or username" autocomplete="username" required>
-      <input id="authPassword" class="auth-input" type="password" placeholder="Password" autocomplete="current-password" required>
+      <div class="password-field">
+        <input id="authPassword" class="auth-input" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button class="password-toggle" type="button" data-password-target="authPassword" aria-label="Show password" aria-pressed="false">Show</button>
+      </div>
       <button id="authSubmit" class="auth-submit" type="submit">Login</button>
       <a id="forgotPasswordButton" class="forgot-password-button" href="/static/forgot-password.html">Forgot password?</a>
       <div id="authError" class="auth-error"></div>
@@ -36,29 +39,21 @@
             </div>
         </div>
 
-        <button id="clearButton" class="new-chat-button" type="button">
+        <button id="addWordButton" class="add-word-button" type="button">
             <span class="plus">＋</span>
-            కొత్త మాట
+            కొత్త మేలిమి పలుకు జోడించు</button>
+<button id="clearButton" class="new-chat-button" type="button">
+            <span class="plus">＋</span>
+            కొత్త ముచ్చట
         </button>
-
-        <div class="sidebar-section">
-            <div class="section-title">నుడి తీరు</div>
-            <div class="mode-switch">
-                <button id="standardMode" class="mode-button" type="button">కొలమాన తెలుగు</button>
-                <button id="melimiMode" class="mode-button active" type="button">మేలిమి తెలుగు</button>
-            </div>
-        </div>
-
-        <div class="sidebar-section language-tools">
-            <button id="addWordButton" class="add-word-button" type="button">＋ మేలిమి పదం జోడించు</button>
-        </div>
+        
 
         <div class="sidebar-section">
             <div class="section-title">ఈనాడు</div>
             <div id="chatHistory" class="chat-history">
                 <div class="chat-item active">
                     <span class="chat-icon">◌</span>
-                    <span>కొత్త మాటకం</span>
+                    <span>కొత్త ముచ్చటకం</span>
                 </div>
             </div>
         </div>
@@ -84,7 +79,7 @@
                 <span id="modelName" class="model-name">మేలిమి తెలుగు AI</span>
                 <span class="model-badge">AI</span>
             </div>
-            <div class="mobile-top-actions"><button id="mobileHistoryButton" class="mobile-history-button" type="button" aria-label="Chat history" aria-expanded="false">☰</button><button id="mobileNewChat" class="mobile-new-chat" type="button" aria-label="కొత్త మాట">＋</button></div>
+            <div class="mobile-top-actions"><button id="mobileHistoryButton" class="mobile-history-button" type="button" aria-label="Chat history" aria-expanded="false">☰</button><button id="mobileNewChat" class="mobile-new-chat" type="button" aria-label="కొత్త ముచ్చట">＋</button></div>
         </header>
 
         <section id="chatContainer" class="chat-container">
@@ -135,7 +130,7 @@
 <script src="/static/js/chatbot.js"></script>
 <div id="wordModal" class="word-modal hidden">
 <div class="word-modal-backdrop" id="wordModalBackdrop"></div><div class="word-card">
-<button id="closeWordModal" class="word-close" type="button">×</button>
+<button id="closeWordModal" class="word-close" type="button" aria-label="Close">×</button>
 <div class="word-kicker">Melimi Telugu language subject</div><h2 id="selectedWord">పదం</h2>
 <div id="wordStatus" class="word-status"></div><div class="word-analysis">
 <label>Root / మూలపలుకు<input id="wordRoot"></label>
