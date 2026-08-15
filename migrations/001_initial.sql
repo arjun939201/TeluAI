@@ -1,3 +1,4 @@
--- TeluAI schema is created by SQLAlchemy on first startup.
--- This migration marker documents schema version 1. Future destructive/schema
--- changes must use an explicit migration and increment schema_version.
+-- TeluAI PostgreSQL schema is created by SQLAlchemy in app/database.py.
+-- Language data is seeded from data/melimi_seed.json on first initialization.
+-- Runtime tables include users, chats, learning, and Melimi language data.
+-- Future schema changes should increment SCHEMA_VERSION and use explicit migrations.
