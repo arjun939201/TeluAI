@@ -5,6 +5,7 @@ from functools import lru_cache
 from app.melimi.index import build_index
 from app.morphology import CASE_SUFFIXES_BY_LENGTH
 from app.melimi.grammar import is_non_am_ending_melimi
+from app.melimi.root_morphology import load_root_dictionary, reduce_to_root, reapply_operations
 
 TOKEN_RE = re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 
@@ -100,6 +101,17 @@ def _match_root(token: str, forbidden: dict, adjective_capable=None):
             capable = adjective_capable or set()
             if (headword, melimi_root) in capable and is_non_am_ending_melimi(melimi_root):
                 return headword, "", melimi_root
+
+    # Generic root-first morphology fallback. It uses only the central root
+    # dictionary and central grammatical/derivational operations. No
+    # word-specific derivative table is consulted.
+    roots = load_root_dictionary()
+    form = reduce_to_root(token, roots)
+    if form.root in roots and form.root != token:
+        melimi = reapply_operations(roots[form.root], form)
+        # Firewall consumers expect a root/suffix pair; the full transformed
+        # form is returned as the preferred output while preserving provenance.
+        return form.root, "", melimi
     return None
 
 

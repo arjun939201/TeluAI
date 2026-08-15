@@ -22,7 +22,7 @@ class Settings:
     max_memory_items: int = int(os.getenv("MAX_MEMORY_ITEMS", "6"))
     melimi_profile_chars: int = int(os.getenv("MELIMI_PROFILE_CHARS", "900"))
     melimi_relevant_chars: int = int(os.getenv("MELIMI_RELEVANT_CHARS", "1200"))
-    max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "700"))
+    max_response_tokens: int = int(os.getenv("MAX_RESPONSE_TOKENS", "900"))
     temperature: float = float(os.getenv("GROQ_TEMPERATURE", "0.70"))
     melimi_repair_attempts: int = int(os.getenv("MELIMI_REPAIR_ATTEMPTS", "2"))
     github_token: str = os.getenv("GITHUB_TOKEN", "").strip()
@@ -31,7 +31,7 @@ class Settings:
     github_language_file: str = os.getenv(
         "GITHUB_LANGUAGE_FILE", "melimi_telugu/vocabulary/chat_registered.json"
     ).strip()
-    github_auto_commit: bool = os.getenv("GITHUB_AUTO_COMMIT", "true").lower() in {"1", "true", "yes", "on"}
+    github_auto_commit: bool = os.getenv("GITHUB_AUTO_COMMIT", "false").lower() in {"1", "true", "yes", "on"}
 
 
 settings = Settings()

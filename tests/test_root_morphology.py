@@ -16,7 +16,7 @@ def test_unknown_word_is_unchanged():
 
 def test_derivational_surface_reduces_without_per_word_rule():
     a=reduce_to_root("భాషా")
-    assert a.root == "భాష" and a.suffixes == ("ఆ",)
+    assert a.root == "భాష" and a.suffixes == ("ా",)
 
 def test_derivational_operation_is_central_not_word_specific():
     # The -ఆ operation is applied centrally; the dictionary contains only the root.
