@@ -10,6 +10,20 @@
 </head>
 
 <body>
+<div id="authGate" class="auth-gate hidden">
+  <div class="auth-card">
+    <div class="auth-brand">TeluAI</div>
+    <div class="auth-subtitle">మేలిమి తెలుగు AI</div>
+    <div class="auth-tabs"><button id="loginTab" class="auth-tab active">Login</button><button id="registerTab" class="auth-tab">Register</button></div>
+    <form id="authForm">
+      <input id="authUsername" class="auth-input hidden" placeholder="Username" autocomplete="username">
+      <input id="authEmail" class="auth-input" placeholder="Email or username" autocomplete="username" required>
+      <input id="authPassword" class="auth-input" type="password" placeholder="Password" autocomplete="current-password" required>
+      <button id="authSubmit" class="auth-submit" type="submit">Login</button>
+      <div id="authError" class="auth-error"></div>
+    </form>
+  </div>
+</div>
 <div class="app">
 
     <aside class="sidebar">
@@ -49,6 +63,7 @@
         </div>
 
         <div class="sidebar-bottom">
+            <div id="accountBar" class="account-bar"><span id="accountName"></span><button id="logoutButton" type="button">Logout</button></div>
             <div class="status">
                 <span class="status-dot"></span>
                 <span>AI పనిచేస్తోంది</span>

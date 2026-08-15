@@ -1,0 +1,3 @@
+-- TeluAI schema is created by SQLAlchemy on first startup.
+-- This migration marker documents schema version 1. Future destructive/schema
+-- changes must use an explicit migration and increment schema_version.
