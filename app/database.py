@@ -6,7 +6,7 @@ runtime tables; chat-learned knowledge is kept separate and requires approval.
 """
 from __future__ import annotations
 
-import hashlib, json, os, secrets, uuid
+import hashlib, json, os, secrets, uuid, io, zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -495,6 +495,135 @@ def recall_user_memory(user_id,limit=12):
         rows=db.scalars(select(UserMemory).where(UserMemory.user_id==user_id).order_by(UserMemory.created_at.desc()).limit(limit)).all()
         return [{"key":r.key,"value":r.value} for r in rows]
 
+
+def _upsert_language_json(db, seed: dict, source_name: str):
+    """Import structured Melimi content into authoritative DB tables."""
+    counts = {"roots": 0, "documents": 0, "affixes": 0, "rules": 0, "examples": 0, "knowledge": 0}
+    for item in seed.get("roots", []):
+        source=str(item.get("standard_root","")).strip()
+        target=str(item.get("melimi_root","")).strip().split("/")[0].strip()
+        if not source or not target: continue
+        row=db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root==source))
+        if row:
+            row.melimi_root=target; row.meaning=str(item.get("meaning",row.meaning))
+            row.category=str(item.get("category",row.category)); row.status="MASTER"; row.source=source_name; row.version+=1
+        else:
+            db.add(MelimiRoot(standard_root=source,melimi_root=target,meaning=str(item.get("meaning","")),
+                              category=str(item.get("category","")),status="MASTER",source=source_name))
+        counts["roots"]+=1
+    for doc in seed.get("documents", []):
+        path=str(doc.get("path","")).strip()
+        if not path: continue
+        row=db.scalar(select(MelimiDocument).where(MelimiDocument.path==path))
+        payload=json.dumps(doc.get("entries",[]),ensure_ascii=False)
+        if row:
+            row.kind=str(doc.get("kind",row.kind)); row.text=str(doc.get("text",row.text))
+            row.entries_json=payload; row.source=source_name; row.status="MASTER"; row.version+=1
+        else:
+            db.add(MelimiDocument(path=path,kind=str(doc.get("kind","other")),text=str(doc.get("text","")),
+                                  entries_json=payload,source=source_name,status="MASTER"))
+        counts["documents"]+=1
+    for item in seed.get("affixes", []):
+        form=str(item.get("form","")).strip(); kind=str(item.get("kind","other")).strip()
+        if not form: continue
+        row=db.scalar(select(MelimiAffix).where((MelimiAffix.form==form)&(MelimiAffix.kind==kind)))
+        if row:
+            row.meaning=str(item.get("meaning",row.meaning)); row.applies_to=str(item.get("applies_to",row.applies_to))
+            row.notes=str(item.get("notes",row.notes)); row.status="MASTER"; row.source=source_name
+        else:
+            db.add(MelimiAffix(form=form,kind=kind,meaning=str(item.get("meaning","")),
+                               applies_to=str(item.get("applies_to","")),notes=str(item.get("notes","")),
+                               status="MASTER",source=source_name))
+        counts["affixes"]+=1
+    for item in seed.get("rules", []):
+        name=str(item.get("name","")).strip()
+        if not name: continue
+        row=db.scalar(select(MelimiRule).where(MelimiRule.name==name))
+        if row:
+            row.category=str(item.get("category",row.category)); row.rule_text=str(item.get("rule_text",row.rule_text))
+            row.operation=str(item.get("operation",row.operation)); row.status="MASTER"; row.source=source_name; row.version+=1
+        else:
+            db.add(MelimiRule(name=name,category=str(item.get("category","grammar")),
+                              rule_text=str(item.get("rule_text","")),operation=str(item.get("operation","")),
+                              status="MASTER",source=source_name))
+        counts["rules"]+=1
+    for item in seed.get("examples", []):
+        db.add(MelimiExample(standard_text=str(item.get("standard","")),melimi_text=str(item.get("melimi","")),
+                             category=str(item.get("category","")),source=source_name,status="MASTER"))
+        counts["examples"]+=1
+    for item in seed.get("knowledge", []):
+        key=str(item.get("key","")).strip()
+        if not key: continue
+        kind=str(item.get("kind","FACT"))
+        row=db.scalar(select(KnowledgeEntry).where((KnowledgeEntry.kind==kind)&(KnowledgeEntry.key==key)))
+        if row:
+            row.value=str(item.get("value",row.value)); row.metadata_json=json.dumps(item.get("metadata",{}),ensure_ascii=False)
+            row.status="MASTER"; row.source=source_name; row.version+=1
+        else:
+            db.add(KnowledgeEntry(kind=kind,key=key,value=str(item.get("value","")),
+                                  metadata_json=json.dumps(item.get("metadata",{}),ensure_ascii=False),
+                                  status="MASTER",source=source_name))
+        counts["knowledge"]+=1
+    return counts
+
+def ingest_language_package(filename: str, raw: bytes, approved: bool, actor_user_id: int | None = None):
+    ext=os.path.splitext(filename.lower())[1]
+    files={}
+    if ext==".zip":
+        try:
+            with zipfile.ZipFile(io.BytesIO(raw)) as z:
+                for info in z.infolist():
+                    if info.is_dir(): continue
+                    inner=os.path.basename(info.filename)
+                    if inner.startswith(".") or os.path.basename(info.filename) in {"__MACOSX"}: continue
+                    iext=os.path.splitext(inner.lower())[1]
+                    if iext in {".txt",".md",".json"}:
+                        if info.file_size > 5*1024*1024: raise ValueError(f"File too large inside ZIP: {inner}")
+                        files[inner]=z.read(info)
+        except zipfile.BadZipFile as exc:
+            raise ValueError("Invalid ZIP file.") from exc
+        if not files: raise ValueError("ZIP contains no supported .txt, .md, or .json language-content files.")
+    else:
+        files[os.path.basename(filename) or "language_content"+ext]=raw
+
+    with SessionLocal() as db:
+        counts={"roots":0,"documents":0,"affixes":0,"rules":0,"examples":0,"knowledge":0,"files":0}
+        if approved:
+            for name,data in files.items():
+                ext2=os.path.splitext(name.lower())[1]
+                text=data.decode("utf-8-sig","replace")
+                if ext2==".json":
+                    try:
+                        obj=json.loads(text)
+                    except json.JSONDecodeError as exc:
+                        raise ValueError(f"Invalid JSON in {name}: {exc}") from exc
+                    if not isinstance(obj,dict): raise ValueError(f"{name} must contain a JSON object.")
+                    c=_upsert_language_json(db,obj,f"upload:{filename}/{name}")
+                    for k,v in c.items(): counts[k]+=v
+                else:
+                    path=f"uploads/{filename}/{name}"
+                    row=db.scalar(select(MelimiDocument).where(MelimiDocument.path==path))
+                    if row:
+                        row.text=text; row.kind="uploaded_content"; row.source=f"upload:{filename}"; row.status="MASTER"; row.version+=1
+                    else:
+                        db.add(MelimiDocument(path=path,kind="uploaded_content",text=text,entries_json="[]",
+                                              source=f"upload:{filename}",status="MASTER"))
+                    counts["documents"]+=1
+                counts["files"]+=1
+            db.add(KnowledgeVersion(version=knowledge_version()+1,source=f"upload:{filename}",
+                                    checksum=hashlib.sha256(raw).hexdigest()))
+            db.commit()
+            return {"status":"APPROVED","files":counts["files"],"documents":counts["documents"],"counts":counts}
+        else:
+            payload={"filename":filename,"bytes":len(raw),"files":[]}
+            for name,data in files.items():
+                payload["files"].append({"name":name,"content":data.decode("utf-8-sig","replace")[:500000]})
+            row=LearningCandidate(user_id=actor_user_id,knowledge_type="LANGUAGE_PACKAGE",
+                                 source_text=filename,payload_json=json.dumps(payload,ensure_ascii=False),
+                                 status="PENDING")
+            db.add(row); db.commit(); db.refresh(row)
+            return {"status":"PENDING","candidate_id":row.id,"files":len(files)}
+
 def language_roots():
     init_db()
     with SessionLocal() as db:
@@ -645,6 +774,24 @@ def list_audit_logs(limit: int = 100):
             "details": json.loads(r.details_json or "{}"), "created_at": r.created_at.isoformat()
         } for r in rows]
 
+
+def promote_configured_owners(emails=None):
+    """Promote configured owner accounts. Multiple owners are supported."""
+    configured = emails if emails is not None else [
+        e.strip().lower() for e in os.getenv("OWNER_EMAILS", "").split(",") if e.strip()
+    ]
+    if not configured:
+        return []
+    promoted=[]
+    with SessionLocal() as db:
+        for email in configured:
+            row=db.scalar(select(User).where(User.email==email))
+            if row and row.role != "owner":
+                row.role="owner"
+                promoted.append({"id":row.id,"email":row.email,"role":"owner"})
+        if promoted:
+            db.commit()
+    return promoted
 
 def bootstrap_owner(email: str):
     email = email.strip().lower()

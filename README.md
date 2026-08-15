@@ -1,3 +1,49 @@
+
+### Configured owners
+
+The default configured owner emails are:
+- `throwuse829@gmail.com`
+- `draftusagw93@gmail.com`
+
+Set `OWNER_EMAILS` in Render to a comma-separated list if you want to change them. A matching registered account is automatically promoted to `owner`.
+
+
+## External Melimi language content
+
+The repository no longer ships `data/melimi_seed.json`. Melimi language content is maintained separately and imported into PostgreSQL through the `＋ కొత్తగా చేర్చు` content uploader.
+
+Supported uploads:
+- TXT
+- MD
+- JSON
+- ZIP containing TXT/MD/JSON
+
+Owner/admin uploads are imported as authoritative database content. Regular-user uploads are stored as pending learning candidates for approval.
+
+## TeluAI v1
+
+TeluAI v1 is the stable Melimi-language platform baseline.
+
+Core v1 behavior:
+- Melimi Telugu is an authoritative language lens, not a forced replacement mode.
+- Root-first morphology is used for supported grammatical/derivational transformations.
+- Authoritative Melimi knowledge is retrieved before generation.
+- Normal Telugu conversation remains natural; Melimi-only output is used when requested.
+- PostgreSQL stores users, conversations, learning candidates, and language knowledge in production.
+- New knowledge is pending until owner/admin approval.
+- `＋ కొత్తగా చేర్చు` provides:
+  - `కొత్త మేలిమి తెలుగు కంటెంట్`
+  - `కొత్త మేలిమి తెలుగు పలుకు`
+- Mobile and desktop share the same application UI.
+- Password recovery, roles, audit logging, and conversation history are included.
+
+Production deployment:
+1. Keep the Render PostgreSQL service separate from the Web Service.
+2. Set the Web Service `DATABASE_URL` to the Render PostgreSQL connection string.
+3. Configure Groq and SMTP environment variables in Render.
+4. Run database migrations on startup.
+5. Never commit secrets or production database credentials to GitHub.
+
 ## Current release
 
 **TeluAI — Add Content Menu**

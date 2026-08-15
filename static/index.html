@@ -12,7 +12,7 @@
 <body>
 <div id="authGate" class="auth-gate hidden">
   <div class="auth-card">
-    <div class="auth-brand">TeluAI</div>
+    <div class="auth-brand">TeluAI</div> <span class="app-version">v1.0.1</span>
     <div class="auth-subtitle">మేలిమి తెలుగు AI</div>
     <div class="auth-tabs"><button id="loginTab" class="auth-tab active">Login</button><button id="registerTab" class="auth-tab">Register</button></div>
     <form id="authForm">
@@ -132,6 +132,11 @@
     <button id="closeAddContent" class="word-close" type="button" aria-label="Close">×</button>
     <h2 id="addContentTitle">కొత్తగా చేర్చు</h2>
     <p>మేలిమి తెలుగు జ్ఞానాన్ని చేర్చండి.</p>
+    <div class="content-upload-box">
+      <label for="languageContentFile">కంటెంట్ ఫైలు కూడా ఎంచుకోవచ్చు</label>
+      <input id="languageContentFile" type="file" accept=".txt,.md,.json,.zip,text/plain,application/zip,application/json">
+      <small>TXT, MD, JSON లేదా ZIP (గరిష్ఠం 10 MB). ZIP లో TXT/MD/JSON ఫైళ్లు ఉండవచ్చు.</small>
+    </div>
     <div class="add-content-options">
       <button id="addContentOption" class="add-content-option" type="button">
         <strong>కొత్త మేలిమి తెలుగు కంటెంట్</strong>

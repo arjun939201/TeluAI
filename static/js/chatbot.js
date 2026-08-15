@@ -120,3 +120,55 @@ setMode("melimi");resizeInput();checkAuth();
     openWordModal();
   });
 })();
+
+function openKnowledgeContentModal(){
+  let modal=document.getElementById("knowledgeContentModal");
+  if(!modal){
+    modal=document.createElement("div");
+    modal.id="knowledgeContentModal";
+    modal.className="modal";
+    modal.innerHTML=`
+      <div class="modal-backdrop" data-close-content></div>
+      <div class="modal-card add-content-card" role="dialog" aria-modal="true">
+        <button class="word-close" type="button" data-close-content aria-label="Close">×</button>
+        <h2>కొత్త మేలిమి తెలుగు కంటెంట్</h2>
+        <p>పేరాలు, పదాలు–సమానార్థాలు, ఉదాహరణలు, నియమాలు, వివరణలు లేదా కంటెంట్ ఫైలును చేర్చండి.</p>
+        <input id="knowledgeContentTitle" class="auth-input" placeholder="శీర్షిక (ఐచ్ఛికం)">
+        <textarea id="knowledgeContentText" class="knowledge-content-input" rows="10" placeholder="మేలిమి తెలుగు కంటెంట్‌ను ఇక్కడ రాయండి లేదా అతికించండి..."></textarea>
+        <div class="content-upload-box">
+          <label for="knowledgeContentFile">TXT / MD / JSON / ZIP ఫైలు</label>
+          <input id="knowledgeContentFile" type="file" accept=".txt,.md,.json,.zip,text/plain,application/zip,application/json">
+          <small>గరిష్ఠం 10 MB. ZIP లో TXT/MD/JSON ఫైళ్లు ఉండవచ్చు.</small>
+        </div>
+        <button id="submitKnowledgeContent" class="auth-submit" type="button">చేర్చు</button>
+        <div id="knowledgeContentResult" class="auth-error" aria-live="polite"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelectorAll("[data-close-content]").forEach(x=>x.addEventListener("click",()=>modal.remove()));
+    const submit=modal.querySelector("#submitKnowledgeContent");
+    submit.addEventListener("click",async()=>{
+      const text=modal.querySelector("#knowledgeContentText").value.trim();
+      const title=modal.querySelector("#knowledgeContentTitle").value.trim();
+      const file=modal.querySelector("#knowledgeContentFile").files[0];
+      const result=modal.querySelector("#knowledgeContentResult");
+      if(!text && !file){result.textContent="కంటెంట్ లేదా ఫైలు తప్పనిసరి.";return;}
+      submit.disabled=true; result.style.color=""; result.textContent="చేర్చుతోంది...";
+      try{
+        let r,d;
+        if(file){
+          const fd=new FormData(); fd.append("file",file);
+          r=await fetch("/melimi/content/upload",{method:"POST",body:fd,credentials:"same-origin"});
+        }else{
+          r=await fetch("/melimi/content",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
+             body:JSON.stringify({title,content:text})});
+        }
+        d=await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error(d.detail||"కంటెంట్ చేర్చలేకపోయాం.");
+        result.style.color="#8ed9a0";
+        result.textContent=d.status==="APPROVED"?"కంటెంట్ PostgreSQLలో చేర్చబడింది.":"కంటెంట్ PostgreSQLలో పరిశీలన కోసం భద్రపరచబడింది.";
+        setTimeout(()=>modal.remove(),1200);
+      }catch(e){result.style.color="#ef7777";result.textContent=e.message||"Could not save.";submit.disabled=false;}
+    });
+  }
+  document.getElementById("knowledgeContentText")?.focus();
+}

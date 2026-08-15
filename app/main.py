@@ -1,6 +1,6 @@
 import os
 import re
-from fastapi import FastAPI, HTTPException, Depends, Response, Cookie
+from fastapi import FastAPI, HTTPException, Depends, Response, Cookie, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,9 +13,9 @@ from app.models import (
 )
 from app.auth import current_user, require_admin, require_owner, COOKIE_NAME
 from app.database import (
-    init_db, create_user, authenticate, create_session, delete_session, bootstrap_owner, create_password_reset_token, verify_password_reset_code, reset_password,
+    init_db, create_user, authenticate, create_session, delete_session, bootstrap_owner, promote_configured_owners, create_password_reset_token, verify_password_reset_code, reset_password,
     create_conversation, save_message, get_conversations, get_history, delete_conversation, get_user_settings, update_user_settings,
-    add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory, cache_get, cache_put, audit_log, knowledge_version, list_users, get_user_by_id, set_user_role, set_user_active, delete_user, database_stats, list_audit_logs, language_snapshot,
+    add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory, cache_get, cache_put, audit_log, knowledge_version, list_users, get_user_by_id, set_user_role, set_user_active, delete_user, database_stats, list_audit_logs, language_snapshot, ingest_language_package,
 )
 from app.linguistics.normalizer import analyze_input
 from app.linguistics.parser import extract_linguistic_hints
@@ -48,6 +48,10 @@ if os.path.isdir(STATIC_DIR):
 @app.on_event("startup")
 def startup():
     run_migrations()
+    # Promote the configured owner accounts after migrations. Accounts must
+    # exist first; if they register later, the registration flow promotes them.
+    owner_emails = [e.strip().lower() for e in os.getenv("OWNER_EMAILS", "throwuse829@gmail.com,draftusagw93@gmail.com").split(",") if e.strip()]
+    promote_configured_owners(owner_emails)
 
 @app.get("/")
 def home():
@@ -294,6 +298,35 @@ def melimi_subject():
 @app.get("/melimi/word/{word}")
 def melimi_word(word: str):
     return analyze_word(word)
+
+
+@app.post("/melimi/content/upload")
+async def melimi_content_upload(file: UploadFile = File(...), user=Depends(current_user)):
+    """Upload .txt/.md/.json or a .zip language-content package.
+    Owner/admin uploads are imported directly as MASTER; regular-user uploads
+    become reviewable learning candidates.
+    """
+    name = (file.filename or "").strip()
+    ext = os.path.splitext(name.lower())[1]
+    if ext not in {".txt", ".md", ".json", ".zip"}:
+        raise HTTPException(400, "Upload a .txt, .md, .json, or .zip language-content file.")
+    raw = await file.read()
+    if len(raw) > 10 * 1024 * 1024:
+        raise HTTPException(413, "Language content file is too large. Maximum is 10 MB.")
+    try:
+        result = ingest_language_package(
+            filename=name,
+            raw=raw,
+            approved=user.role in {"owner", "admin"},
+            actor_user_id=user.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:
+        raise HTTPException(400, f"Could not import language content: {exc}")
+    audit_log(user.id, "language.content_upload", "language_package", name,
+              {"bytes": len(raw), "status": result.get("status"), "documents": result.get("documents", 0)})
+    return {"ok": True, **result}
 
 @app.post("/melimi/content")
 async def melimi_content(payload: dict, user=Depends(current_user)):

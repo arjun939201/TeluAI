@@ -125,3 +125,10 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Te
 .add-content-option strong,.add-content-option span{display:block}
 .add-content-option span{color:var(--muted);font-size:12px;line-height:1.5;margin-top:5px}
 .knowledge-content-input{width:100%;box-sizing:border-box;resize:vertical;min-height:220px;margin:12px 0;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);padding:12px;font:inherit}
+
+.content-upload-box{margin:12px 0;padding:10px;border:1px dashed var(--border);border-radius:10px}
+.content-upload-box label{display:block;font-size:13px;margin-bottom:7px}
+.content-upload-box input[type=file]{width:100%;font:inherit;color:var(--text)}
+.content-upload-box small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:6px}
+
+.app-version{font-size:10px;opacity:.6;margin-left:5px;vertical-align:middle;font-weight:500}
