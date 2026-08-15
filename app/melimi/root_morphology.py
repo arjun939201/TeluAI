@@ -1,172 +1,120 @@
-"""Generic root-first Melimi morphology engine.
+"""Generic root-first Melimi morphology.
 
-Design goal:
-    surface form -> reduce to root/operations -> root dictionary lookup ->
-    reapply the same grammatical/derivational operations.
-
-The knowledge base stores lexical roots, not every inflected or derived form.
-No word-specific derivation table is used here.
+Surface → grammatical/derivational analysis → root lookup → Melimi root →
+reapply the same operation. The engine stores rules once and does not maintain
+word-by-word derivative tables.
 """
 from __future__ import annotations
-
-import json
-import os
-import re
+import json, os, re
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, Iterable, Optional, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
-
-# Longest first. These are grammatical operations, not vocabulary entries.
-GRAMMATICAL_SUFFIXES: Tuple[str, ...] = tuple(sorted([
-    "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై",
-    "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల", "మధ్య",
-    "లోని", "పైన", "తో", "లో", "లు", "ను", "ని", "కు", "కి", "గా", "పై", "ల",
+GRAMMATICAL_SUFFIXES = tuple(sorted([
+    "లతో","లలో","లకు","లను","లని","లపై","లకై","లవల్ల","నుంచి","నుండి","యొక్క",
+    "తోటి","గురించి","కోసం","వల్ల","మధ్య","లోని","పైన","తో","లో","లు","ను","ని",
+    "కు","కి","గా","పై","ల",
 ], key=len, reverse=True))
-
-# Documented Melimi derivational operations. These describe mechanisms; they
-# do not encode individual words.
-DERIVATIONAL_SUFFIXES: Tuple[str, ...] = tuple(sorted([
-    "కాను", "కాన్", "మారి", "వాను", "వాన్", "పాదు", "పఱ", "మాలు",
-    "కము", "ఇకము", "గము", "ఓరు", "ఆది", "ఓలి", "ఓజ", "అంగి",
-    "అలవి", "అల్వి", "అరిది", "అర్ది", "ా", "ి", "తి", "టి", "అటి",
-    "ఇటి", "ఇంటి", "ఆటి", "పాటి", "పారు", "బారు",
+# These are mechanisms, not lexical entries.
+DERIVATIONAL_SUFFIXES = tuple(sorted([
+    "అలవి","అల్వి","అరిది","అర్ది","కాను","కాన్","మారి","వాను","వాన్","పాదు","పఱ",
+    "కము","ఇకము","మాలు","గము","ఓరు","ఆది","ఓలి","ఓజ","అంగి","ఇద","ద","అ",
 ], key=len, reverse=True))
 
 @dataclass(frozen=True)
 class MorphologicalForm:
     surface: str
     root: str
-    suffixes: Tuple[str, ...] = ()
-    kinds: Tuple[str, ...] = ()
-
+    suffixes: Tuple[str,...] = ()
+    kinds: Tuple[str,...] = ()
     @property
-    def operations(self):
-        return tuple(zip(self.kinds, self.suffixes))
-
+    def operations(self): return tuple(zip(self.kinds,self.suffixes))
 
 @lru_cache(maxsize=1)
-def load_root_dictionary() -> Dict[str, str]:
-    """Load authoritative roots from PostgreSQL, with a safe local fallback."""
+def load_root_dictionary() -> Dict[str,str]:
     try:
         from app.database import language_roots
-        result = language_roots()
-        if result:
-            return result
-    except Exception:
-        pass
-    # Local fallback is intentionally only for development/recovery. Production
-    # language data lives in PostgreSQL and is seeded from data/melimi_seed.json.
-    fallback = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "melimi_seed.json")
+        result=language_roots()
+        if result: return result
+    except Exception: pass
     try:
-        with open(fallback, encoding="utf-8") as f:
-            data = json.load(f)
-        return {str(x.get("standard_root")): str(x.get("melimi_root", "")).split("/")[0].strip() for x in data.get("roots", []) if x.get("standard_root") and x.get("melimi_root")}
-    except Exception:
-        return {}
+        p=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),"data","melimi_seed.json")
+        d=json.load(open(p,encoding="utf8"))
+        return {str(x["standard_root"]):str(x["melimi_root"]).split("/")[0].strip() for x in d.get("roots",[]) if x.get("standard_root") and x.get("melimi_root")}
+    except Exception: return {}
 
+def reload_root_dictionary(): load_root_dictionary.cache_clear()
 
 def _candidate_strips(surface: str, suffixes: Iterable[str], kind: str):
     for suffix in suffixes:
-        if surface.endswith(suffix) and len(surface) > len(suffix) + 1:
-            yield surface[:-len(suffix)], suffix, kind
+        if surface.endswith(suffix) and len(surface)>len(suffix)+1:
+            yield surface[:-len(suffix)],suffix,kind
 
+def _adjectival_candidate(surface: str, roots: Dict[str,str]):
+    # Standard Telugu adjective forms such as ఆసక్తికరమైన are reduced to a
+    # documented lexical headword only when that headword is an exact root.
+    if surface.endswith("మైన") and len(surface)>4:
+        candidate=surface[:-3] + "ం"
+        if candidate in roots: return candidate,"మైన","adjective"
+    # A final long-a adjectival/relational surface such as భాషా is reduced to
+    # its lexical root. Reapplication is handled by the central operation.
+    if surface.endswith("ా") and len(surface)>2:
+        candidate=surface[:-1]
+        if candidate in roots: return candidate,"ా","adjective"
+    return None
 
-def reduce_to_root(word: str, roots: Optional[Dict[str, str]] = None) -> MorphologicalForm:
-    """Reduce a supported surface form to an authoritative lexical root.
-
-    The analyzer may remove up to three documented grammatical/derivational
-    operations, but it accepts a path only when the final candidate is an
-    authoritative root. This gives broad grammatical coverage without storing
-    word-by-word derivative tables.
-    """
-    surface = (word or "").strip()
-    if not surface:
-        return MorphologicalForm("", "")
-    roots = roots or load_root_dictionary()
-    if surface in roots:
-        return MorphologicalForm(surface, surface)
-
-    def search(current: str, operations: list[tuple[str, str]], depth: int):
-        if current in roots:
-            return current, operations
-        if depth >= 3:
-            return None
-        candidates = list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar"))
-        candidates += list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation"))
-        candidates.sort(key=lambda x: (-len(x[1]), x[0]))
-        for root, suffix, kind in candidates:
-            result = search(root, operations + [(kind, suffix)], depth + 1)
-            if result:
-                return result
+def reduce_to_root(word: str, roots: Optional[Dict[str,str]]=None) -> MorphologicalForm:
+    surface=(word or "").strip()
+    if not surface:return MorphologicalForm("","")
+    roots=roots or load_root_dictionary()
+    if surface in roots:return MorphologicalForm(surface,surface)
+    adj=_adjectival_candidate(surface,roots)
+    if adj:
+        return MorphologicalForm(surface,adj[0],(adj[1],),(adj[2],))
+    def search(current,operations,depth):
+        if current in roots:return current,operations
+        if depth>=3:return None
+        candidates=list(_candidate_strips(current,GRAMMATICAL_SUFFIXES,"grammar"))+list(_candidate_strips(current,DERIVATIONAL_SUFFIXES,"derivation"))
+        candidates.sort(key=lambda x:(-len(x[1]),x[0]))
+        for root,suffix,kind in candidates:
+            found=search(root,operations+[(kind,suffix)],depth+1)
+            if found:return found
         return None
-
-    found = search(surface, [], 0)
-    if not found:
-        return MorphologicalForm(surface, surface)
-    root, operations = found
-    return MorphologicalForm(surface, root, tuple(s for _, s in operations), tuple(k for k, _ in operations))
+    found=search(surface,[],0)
+    if not found:return MorphologicalForm(surface,surface)
+    root,ops=found
+    return MorphologicalForm(surface,root,tuple(s for _,s in ops),tuple(k for k,_ in ops))
 
 def apply_operation(root: str, kind: str, suffix: str) -> str:
-    """Apply one operation using central morphophonemic rules only.
-
-    These rules operate on grammatical shape, never on individual lexical
-    words. A Melimi root ending in ``ం`` belongs to the documented ``-am``
-    stem class and changes shape before plural/case material in the same way
-    across the vocabulary.
-    """
-    if suffix in {"ా", "ి"} and kind == "derivation":
-        # Telugu orthography represents this derivational/linking vowel as a
-        # dependent sign. In the attributive construction it is not emitted
-        # as a second vowel on the Melimi root.
-        return root
-
-    if root.endswith("ం") and kind == "grammar":
-        stem = root[:-1] + "ా"
-        am_forms = {
-            "లు": stem + "లు",
-            "ల": stem + "ల",
-            "లను": stem + "లను",
-            "లని": stem + "లని",
-            "లకు": stem + "లకు",
-            "లకై": stem + "లకై",
-            "లపై": stem + "లపై",
-            "లతో": stem + "లతో",
-            "లలో": stem + "లలో",
-        }
-        if suffix in am_forms:
-            return am_forms[suffix]
-        # Singular oblique forms of -ం stems retain the nasal before case
-        # endings where ordinary Telugu orthography does so.
-        if suffix in {"లో", "తో", "గా", "పై"}:
-            return root + suffix
-        if suffix in {"కు", "కి"}:
-            return stem + "నికి"
-        if suffix == "ను":
-            return stem + "ను"
-
-    return root + suffix
-
+    # The final long-a in a derived Standard form is a grammatical relation,
+    # not an instruction to append a long-a blindly to every Melimi root.
+    # For non-am Melimi lexical stems it is realized as the lexical form.
+    if suffix=="ా" and kind=="adjective": return root
+    if suffix=="మైన" and kind=="adjective":
+        return root if not root.endswith("ం") else root
+    if root.endswith("ం") and kind=="grammar":
+        stem=root[:-1]+"ా"
+        forms={"లు":stem+"లు","ల":stem+"ల","లను":stem+"లను","లని":stem+"లని","లకు":stem+"లకు","లకై":stem+"లకై","లపై":stem+"లపై","లతో":stem+"లతో","లలో":stem+"లలో"}
+        if suffix in forms:return forms[suffix]
+        if suffix in {"లో","తో","గా","పై"}:return root+suffix
+        if suffix in {"కు","కి"}:return stem+"నికి"
+        if suffix=="ను":return stem+"ను"
+    return root+suffix
 
 def reapply_operations(melimi_root: str, form: MorphologicalForm) -> str:
-    result = melimi_root
-    for kind, suffix in form.operations:
-        result = apply_operation(result, kind, suffix)
+    result=melimi_root
+    for kind,suffix in reversed(form.operations):
+        # Reduction peels outer operations; reconstruction must apply them in
+        # reverse order so nested morphology is restored in the original order.
+        result=apply_operation(result,kind,suffix)
     return result
 
+def convert_surface(word: str, roots: Optional[Dict[str,str]]=None) -> str:
+    roots=roots or load_root_dictionary(); form=reduce_to_root(word,roots)
+    if form.root not in roots:return word
+    return reapply_operations(roots[form.root],form)
 
-def convert_surface(word: str, roots: Optional[Dict[str, str]] = None) -> str:
-    roots = roots or load_root_dictionary()
-    form = reduce_to_root(word, roots)
-    if form.root not in roots:
-        return word
-    return reapply_operations(roots[form.root], form)
-
-
-def convert_text(text: str, roots: Optional[Dict[str, str]] = None) -> str:
-    roots = roots or load_root_dictionary()
-    def repl(match: re.Match) -> str:
-        token = match.group(0)
-        return convert_surface(token, roots)
-    return TELUGU_RE.sub(repl, text or "")
+def convert_text(text: str, roots: Optional[Dict[str,str]]=None) -> str:
+    roots=roots or load_root_dictionary()
+    return TELUGU_RE.sub(lambda m:convert_surface(m.group(0),roots),text or "")

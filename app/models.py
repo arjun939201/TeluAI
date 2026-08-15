@@ -49,3 +49,12 @@ class HealthResponse(BaseModel):
     service: str
     vocabulary_entries: int
     database: str
+
+class SettingsUpdateRequest(BaseModel):
+    preferred_mode: Literal["standard", "melimi"] = "melimi"
+    response_length: Literal["short", "normal", "long"] = "normal"
+    memory_enabled: bool = True
+
+class MemoryRequest(BaseModel):
+    key: str = Field(min_length=1, max_length=160)
+    value: str = Field(min_length=1, max_length=4000)

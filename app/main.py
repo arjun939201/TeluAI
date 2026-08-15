@@ -9,13 +9,13 @@ from app.config import settings
 from app.github_sync import status as github_status, GitHubSyncError
 from app.models import (
     ChatRequest, ChatResponse, HealthResponse, WordRegistration,
-    RegisterRequest, LoginRequest, FeedbackRequest,
+    RegisterRequest, LoginRequest, FeedbackRequest, SettingsUpdateRequest, MemoryRequest,
 )
 from app.auth import current_user, COOKIE_NAME
 from app.database import (
     init_db, create_user, authenticate, create_session, delete_session,
-    create_conversation, save_message, get_conversations, get_history,
-    add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory,
+    create_conversation, save_message, get_conversations, get_history, delete_conversation, get_user_settings, update_user_settings,
+    add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory, cache_get, cache_put, audit_log, knowledge_version,
 )
 from app.linguistics.normalizer import analyze_input
 from app.linguistics.parser import extract_linguistic_hints
@@ -92,6 +92,24 @@ def admin_learning_reject(candidate_id: int, note: str = "", _: bool = Depends(r
 def auth_me(user=Depends(current_user)):
     return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email, "role": user.role}
 
+@app.get("/me/settings")
+def me_settings(user=Depends(current_user)):
+    return get_user_settings(user.id)
+
+@app.put("/me/settings")
+def update_settings(payload: SettingsUpdateRequest, user=Depends(current_user)):
+    return update_user_settings(user.id, payload.preferred_mode, payload.response_length, payload.memory_enabled)
+
+@app.post("/me/memory")
+def add_memory(payload: MemoryRequest, user=Depends(current_user)):
+    remember_user_memory(user.id, payload.key.strip(), payload.value.strip())
+    audit_log(user.id, "memory.create", "user_memory", payload.key, {"value_length": len(payload.value)})
+    return {"ok": True}
+
+@app.get("/me/memory")
+def get_memory(user=Depends(current_user)):
+    return {"memory": recall_user_memory(user.id)}
+
 @app.post("/auth/register")
 def auth_register(payload: RegisterRequest, response: Response):
     try:
@@ -128,6 +146,13 @@ def conversation(conversation_id: str, user=Depends(current_user)):
     except ValueError as exc:
         raise HTTPException(404, str(exc))
 
+@app.delete("/conversations/{conversation_id}")
+def remove_conversation(conversation_id: str, user=Depends(current_user)):
+    if not delete_conversation(user.id, conversation_id):
+        raise HTTPException(404, "Conversation not found.")
+    audit_log(user.id, "conversation.delete", "conversation", conversation_id)
+    return {"ok": True}
+
 @app.get("/melimi/subject")
 def melimi_subject():
     return subject_inventory()
@@ -139,8 +164,7 @@ def melimi_word(word: str):
 @app.post("/melimi/register")
 async def melimi_register(payload: WordRegistration, user=Depends(current_user)):
     try:
-        result = await register_word(payload.model_dump())
-        add_learning_candidate(user.id, "VOCABULARY", payload.word, payload.model_dump())
+        result = await register_word(payload.model_dump(), user.id)
         return {"ok": True, **result}
     except ValueError as exc:
         raise HTTPException(400, str(exc))
@@ -175,6 +199,11 @@ def _extract_learning(message: str):
                 return {"source_root": left, "melimi_root": right}
     return None
 
+def _cache_key(message: str, mode: str) -> str:
+    import hashlib
+    normalized = re.sub(r"\s+", " ", message.strip().lower())
+    return hashlib.sha256(f"{mode}\n{knowledge_version()}\n{normalized}".encode("utf-8")).hexdigest()
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, user=Depends(current_user)):
     message = request.message.strip()
@@ -193,6 +222,15 @@ async def chat(request: ChatRequest, user=Depends(current_user)):
         history = [turn.model_dump() for turn in request.history]
         conversation_id = create_conversation(user.id, message[:70], request.mode)
 
+    # Exact deterministic/cacheable answers can avoid Groq entirely. Cache only
+    # standalone user queries; conversation-specific answers remain contextual.
+    if settings.cache_enabled and not request.conversation_id:
+        cached = cache_get(_cache_key(message, request.mode), request.mode)
+        if cached:
+            user_msg_id = save_message(user.id, conversation_id, "user", message)
+            assistant_id = save_message(user.id, conversation_id, "assistant", cached, model="cache")
+            return ChatResponse(reply=cached, mode=request.mode, intent="cached", conversation_id=conversation_id, message_id=assistant_id, local=True)
+
     # Explicit teaching is durable as a candidate, but not automatically global authority.
     candidate = _extract_learning(message)
     if candidate:
@@ -202,6 +240,8 @@ async def chat(request: ChatRequest, user=Depends(current_user)):
     if local is not None:
         user_msg_id = save_message(user.id, conversation_id, "user", message)
         assistant_id = save_message(user.id, conversation_id, "assistant", local, model="local-deterministic")
+        if settings.cache_enabled and not request.conversation_id:
+            cache_put(_cache_key(message, request.mode), request.mode, local)
         return ChatResponse(reply=local, mode=request.mode, intent="local_knowledge", conversation_id=conversation_id, message_id=assistant_id, local=True)
 
     state = from_history(history)
@@ -219,7 +259,7 @@ async def chat(request: ChatRequest, user=Depends(current_user)):
     persistent_memory = recall_user_memory(user.id)
     if persistent_memory:
         memory += "\nPERSISTENT USER MEMORY (use only when relevant):\n" + "\n".join(f"- {x['value']}" for x in persistent_memory)
-    approved = approved_learning()
+    approved = approved_learning()[-24:]
     approved_context = "\n".join(
         f"- {x.get('standard_root','')} → {x.get('melimi_root','')}"
         for x in approved if x.get('standard_root') and x.get('melimi_root')
@@ -262,6 +302,19 @@ async def chat(request: ChatRequest, user=Depends(current_user)):
         result = await call_groq_detailed(prompt, history, message)
     except RuntimeError as exc:
         save_usage(user.id, settings.groq_model, None, None, "error")
+        # If Groq is unavailable/rate-limited, deterministic Melimi conversion
+        # can still answer simple conversion-style turns without spending a
+        # retry or exposing a raw provider failure. Complex questions still
+        # return the provider error.
+        if request.mode == "melimi":
+            from app.linguistics.normalizer import normalize_roman_telugu
+            from app.melimi.root_morphology import convert_text
+            normalized = normalize_roman_telugu(message)
+            converted = convert_text(normalized)
+            if converted != normalized and len(normalized) <= 500:
+                user_msg_id = save_message(user.id, conversation_id, "user", message)
+                assistant_id = save_message(user.id, conversation_id, "assistant", converted, model="local-melimi-fallback")
+                return ChatResponse(reply=converted, mode=request.mode, intent="local_conversion_fallback", conversation_id=conversation_id, message_id=assistant_id, local=True)
         raise HTTPException(502, str(exc))
     except Exception:
         save_usage(user.id, settings.groq_model, None, None, "error")
@@ -282,6 +335,8 @@ async def chat(request: ChatRequest, user=Depends(current_user)):
     )
 
     audit = audit_melimi(reply) if request.mode == "melimi" else {}
+    if settings.cache_enabled and not request.conversation_id and len(reply) >= settings.cache_min_chars:
+        cache_put(_cache_key(message, request.mode), request.mode, reply)
     return ChatResponse(
         reply=reply,
         mode=request.mode,

@@ -5,7 +5,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: GROQ_TOKEN
+      - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
         value: llama-3.1-8b-instant
@@ -27,3 +27,7 @@ services:
         value: "5000"
       - key: MAX_RESPONSE_TOKENS
         value: "1200"
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: CACHE_ENABLED
+        value: "true"

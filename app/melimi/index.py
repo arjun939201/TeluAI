@@ -135,13 +135,24 @@ def language_profile(max_chars: int = 6500) -> str:
     It is cached locally and intentionally compact so every request does not
     send the entire corpus to Groq.
     """
+    structured = []
+    try:
+        from app.database import language_rules, language_affixes
+        for r in language_rules()[:20]:
+            structured.append(f"RULE {r['name']}: {r['rule_text']} OPERATION={r['operation']}")
+        for a in language_affixes()[:30]:
+            structured.append(f"AFFIX {a['form']} ({a['kind']}) applies_to={a['applies_to']} meaning={a['meaning']}")
+    except Exception:
+        pass
     parts = [
         "MELIMI TELUGU — AUTHORITATIVE LANGUAGE SUBJECT",
         "The corpus is language knowledge, not a phrase bank.",
-        _compact_docs("rules", 1800),
-        _compact_docs("grammar", 1800),
-        _compact_docs("word_formation", 1800),
-        _compact_docs("syntax", 900),
+        "GRAMMAR/RULES STORED IN RUNTIME KNOWLEDGE:",
+        "\n".join(structured),
+        _compact_docs("rules", 1500),
+        _compact_docs("grammar", 1500),
+        _compact_docs("word_formation", 1500),
+        _compact_docs("syntax", 700),
     ]
     return "\n\n".join(x for x in parts if x)[:max_chars]
 
@@ -150,11 +161,9 @@ def relevant_language_context(query: str, max_chars: int = 6500) -> str:
     # Structured JSON/Markdown retrieval remains primary. SQLite FTS5 adds broad
     # passage retrieval for the consolidated corpus and longer prose/grammar.
     results = retrieve(query, limit=16)
-    try:
-        from app.melimi.fts import search as fts_search
-        fts_results = fts_search(query, top_k=8)
-    except Exception:
-        fts_results = []
+    # PostgreSQL/SQLAlchemy documents are the primary runtime retrieval store.
+    # The legacy SQLite FTS helper is intentionally not required for production.
+    fts_results = []
 
     if not results and not fts_results:
         return "No directly relevant subject item was retrieved. Do not invent Melimi facts."

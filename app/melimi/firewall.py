@@ -30,34 +30,34 @@ def subject_lexicon():
     preferred = {}
     registered = set()
     adjective_capable = set()
-    for doc in build_index():
-        if doc.kind != "vocabulary":
-            continue
-        for entry in doc.entries:
-            standards = []
-            for key in _STANDARD_KEYS:
-                standards.extend(_as_list(entry.get(key)))
-            melimis = []
-            for key in _MELIMI_KEYS:
-                melimis.extend(_as_list(entry.get(key)))
-            if not standards or not melimis:
+    try:
+        roots = load_root_dictionary()
+        for source, melimi in roots.items():
+            forbidden[source] = melimi
+            preferred[source] = melimi
+            registered.add(melimi)
+            if not melimi.endswith("ం"):
+                adjective_capable.add((source, melimi))
+    except Exception:
+        pass
+    try:
+        for doc in build_index():
+            if doc.kind != "vocabulary":
                 continue
-            # The canonical Melimi form is the first supplied one; any
-            # additional standard-side variants (synonyms) all map to it.
-            m = melimis[0]
-            registered.add(m)
-            if entry.get("adjective_invariant") is True or (
-                isinstance(entry.get("functions"), list)
-                and "adjective" in [str(x).strip().lower() for x in entry.get("functions", [])]
-                and is_non_am_ending_melimi(m)
-            ):
-                for s in standards:
-                    adjective_capable.add((s, m))
-            for s in standards:
-                forbidden[s] = m
-                preferred[s] = m
-    return {"forbidden": forbidden, "preferred": preferred, "registered": registered, "adjective_capable": adjective_capable}
-
+            for entry in doc.entries:
+                standards=[]
+                for key in _STANDARD_KEYS: standards.extend(_as_list(entry.get(key)))
+                melimis=[]
+                for key in _MELIMI_KEYS: melimis.extend(_as_list(entry.get(key)))
+                if not standards or not melimis: continue
+                m=melimis[0]; registered.add(m)
+                capable=entry.get("adjective_invariant") is True or (isinstance(entry.get("functions"),list) and "adjective" in [str(x).strip().lower() for x in entry.get("functions",[])])
+                for std in standards:
+                    forbidden[std]=m; preferred[std]=m
+                    if capable and is_non_am_ending_melimi(m): adjective_capable.add((std,m))
+    except Exception:
+        pass
+    return {"forbidden":forbidden,"preferred":preferred,"registered":registered,"adjective_capable":adjective_capable}
 
 def reload_firewall():
     subject_lexicon.cache_clear()
