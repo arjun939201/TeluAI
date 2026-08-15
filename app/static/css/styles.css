@@ -132,3 +132,14 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Te
 .content-upload-box small{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:6px}
 
 .app-version{font-size:10px;opacity:.6;margin-left:5px;vertical-align:middle;font-weight:500}
+
+/* Compact toggle menu for knowledge actions */
+.add-content-menu{position:absolute;z-index:1000;top:calc(100% + 6px);left:0;width:min(340px,calc(100vw - 32px))}
+.add-content-menu.hidden{display:none}
+.add-content-menu-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:8px}
+.add-content-menu-panel h2{font-size:15px;margin:7px 9px 3px}
+.add-content-menu-panel>p{font-size:11px;color:var(--muted);margin:0 9px 8px}
+.add-content-menu .add-content-options{margin-top:4px;gap:5px}
+.add-content-menu .add-content-option{padding:10px;border:0;border-radius:8px}
+.add-content-menu .add-content-option span{font-size:11px}
+#addContentButton{position:relative}

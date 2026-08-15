@@ -95,21 +95,36 @@ document.getElementById("registerWord")?.addEventListener("click",async()=>{cons
 
 setMode("melimi");resizeInput();checkAuth();
 
-/* New knowledge/content entry menu */
+/* New knowledge/content entry menu — compact toggle */
 (function(){
   const menu=document.getElementById("addContentModal");
   const open=document.getElementById("addContentButton");
   const close=document.getElementById("closeAddContent");
-  const backdrop=document.getElementById("addContentBackdrop");
   const contentOption=document.getElementById("addContentOption");
   const wordOption=document.getElementById("addWordOption");
 
-  function show(){ if(!menu)return; menu.classList.remove("hidden"); menu.setAttribute("aria-hidden","false"); }
-  function hide(){ if(!menu)return; menu.classList.add("hidden"); menu.setAttribute("aria-hidden","true"); }
-  open?.addEventListener("click",show);
+  function show(){
+    if(!menu)return;
+    menu.classList.remove("hidden");
+    menu.setAttribute("aria-hidden","false");
+  }
+  function hide(){
+    if(!menu)return;
+    menu.classList.add("hidden");
+    menu.setAttribute("aria-hidden","true");
+  }
+  open?.addEventListener("click",()=>{
+    if(menu?.classList.contains("hidden")) show(); else hide();
+  });
   close?.addEventListener("click",hide);
-  backdrop?.addEventListener("click",hide);
-  document.addEventListener("keydown",e=>{if(e.key==="Escape" && menu && !menu.classList.contains("hidden"))hide()});
+
+  document.addEventListener("click",(e)=>{
+    if(!menu || menu.classList.contains("hidden")) return;
+    if(!menu.contains(e.target) && e.target!==open) hide();
+  });
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape" && menu && !menu.classList.contains("hidden")) hide();
+  });
 
   contentOption?.addEventListener("click",()=>{
     hide();
@@ -117,7 +132,7 @@ setMode("melimi");resizeInput();checkAuth();
   });
   wordOption?.addEventListener("click",()=>{
     hide();
-    openWordModal();
+    if(typeof openWordModal==="function") openWordModal();
   });
 })();
 
