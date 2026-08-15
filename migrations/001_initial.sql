@@ -24,3 +24,7 @@
 -- feedback
 -- usage
 -- audit_logs
+
+-- Role-based administration (v20)
+-- users.role: user | admin | owner
+-- users.is_active: application account enable/disable flag
