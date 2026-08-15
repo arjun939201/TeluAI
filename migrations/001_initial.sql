@@ -1,4 +1,26 @@
--- TeluAI PostgreSQL schema is created by SQLAlchemy in app/database.py.
--- Language data is seeded from data/melimi_seed.json on first initialization.
--- Runtime tables include users, chats, learning, and Melimi language data.
--- Future schema changes should increment SCHEMA_VERSION and use explicit migrations.
+-- TeluAI v19 schema reference.
+-- The application creates/updates the SQLAlchemy schema at startup so this file
+-- is also a human-readable deployment reference. Production uses PostgreSQL.
+-- Runtime language data is imported from data/melimi_seed.json.
+
+-- Core language:
+-- melimi_roots
+-- melimi_documents
+-- melimi_affixes
+-- melimi_rules
+-- melimi_examples
+-- knowledge_versions
+-- knowledge_entries
+-- response_cache
+
+-- Platform:
+-- users
+-- sessions
+-- conversations
+-- messages
+-- user_settings
+-- learning_candidates
+-- user_memory
+-- feedback
+-- usage
+-- audit_logs
