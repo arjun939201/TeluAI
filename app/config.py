@@ -53,5 +53,27 @@ class Settings:
     ).strip()
     github_auto_commit: bool = os.getenv("GITHUB_AUTO_COMMIT", "false").lower() in {"1", "true", "yes", "on"}
 
+    # --- PostgreSQL layer (learning candidates, approved knowledge, cache,
+    # user memory). Entirely optional: if DATABASE_URL is unset, TeluAI runs
+    # exactly as before on file/JSON storage only. Render's Postgres add-on
+    # gives you a connection string in the "postgres://..." shape; app/db
+    # normalizes that to the asyncpg driver automatically. ---
+    database_url: str = os.getenv("DATABASE_URL", "").strip()
+    # Token required on the X-Admin-Token header for /admin/learning/* routes.
+    # Leave unset to keep those routes disabled entirely.
+    admin_token: str = os.getenv("ADMIN_TOKEN", "").strip()
+    # Tier 0: answer simple known-word definition questions locally, with
+    # zero Groq calls, when there's no conversation history yet.
+    enable_local_first: bool = os.getenv("ENABLE_LOCAL_FIRST", "true").lower() in {"1", "true", "yes", "on"}
+    # Cache Groq answers for fresh (no-history) questions, keyed by
+    # mode + question + knowledge_version, so repeated questions from
+    # different users don't re-spend the free-tier budget.
+    enable_response_cache: bool = os.getenv("ENABLE_RESPONSE_CACHE", "true").lower() in {"1", "true", "yes", "on"}
+    # Detect chat-time "X = Y" / "X ni Y antaru" teaching statements and
+    # queue them as pending learning candidates for admin review.
+    enable_chat_learning_capture: bool = os.getenv("ENABLE_CHAT_LEARNING_CAPTURE", "true").lower() in {
+        "1", "true", "yes", "on"
+    }
+
 
 settings = Settings()
