@@ -113,14 +113,16 @@ setMode("melimi");resizeInput();checkAuth();
     menu.classList.add("hidden");
     menu.setAttribute("aria-hidden","true");
   }
-  open?.addEventListener("click",()=>{
+  open?.addEventListener("click",(e)=>{
+    e.stopPropagation();
     if(menu?.classList.contains("hidden")) show(); else hide();
   });
   close?.addEventListener("click",hide);
 
   document.addEventListener("click",(e)=>{
     if(!menu || menu.classList.contains("hidden")) return;
-    if(!menu.contains(e.target) && e.target!==open) hide();
+    const wrapper=document.querySelector(".add-content-wrapper");
+    if(wrapper && !wrapper.contains(e.target)) hide();
   });
   document.addEventListener("keydown",e=>{
     if(e.key==="Escape" && menu && !menu.classList.contains("hidden")) hide();

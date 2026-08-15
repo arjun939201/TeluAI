@@ -39,9 +39,25 @@
             </div>
         </div>
 
-        <button id="addContentButton" class="add-content-button" type="button">
+        <div class="add-content-wrapper"><button id="addContentButton" class="add-content-button" type="button">
             ＋ కొత్తగా చేర్చు
-        </button>
+        </button><div id="addContentModal" class="add-content-menu hidden" aria-hidden="true">
+  <div class="add-content-menu-panel" role="menu" aria-labelledby="addContentTitle">
+    <button id="closeAddContent" class="word-close" type="button" aria-label="Close">×</button>
+    <h2 id="addContentTitle">కొత్తగా చేర్చు</h2>
+    <p>మేలిమి తెలుగు జ్ఞానాన్ని చేర్చండి.</p>
+    <div class="add-content-options">
+      <button id="addContentOption" class="add-content-option" type="button">
+        <strong>కొత్త మేలిమి తెలుగు కంటెంట్</strong>
+        <span>పేరాలు, పదాలు–సమానార్థాలు, ఉదాహరణలు, నియమాలు, వివరణలు వంటి ఏ రకమైన కంటెంట్ అయినా చేర్చండి.</span>
+      </button>
+      <button id="addWordOption" class="add-content-option" type="button">
+        <strong>కొత్త మేలిమి తెలుగు పలుకు</strong>
+        <span>ఒక మేలిమి పలుకు మరియు దాని సమానార్థం/తెల్లం, వాడుక, వర్గం వంటి వివరాలు చేర్చండి.</span>
+      </button>
+    </div>
+  </div>
+</div></div>
 <button id="clearButton" class="new-chat-button" type="button">
             <span class="plus">＋</span>
             కొత్త ముచ్చట
@@ -126,29 +142,6 @@
             </div>
         </div>
     
-<div id="addContentModal" class="add-content-menu hidden" aria-hidden="true">
-  <div class="add-content-menu-panel" role="menu" aria-labelledby="addContentTitle">
-    <button id="closeAddContent" class="word-close" type="button" aria-label="Close">×</button>
-    <h2 id="addContentTitle">కొత్తగా చేర్చు</h2>
-    <p>మేలిమి తెలుగు జ్ఞానాన్ని చేర్చండి.</p>
-    <div class="content-upload-box">
-      <label for="languageContentFile">కంటెంట్ ఫైలు కూడా ఎంచుకోవచ్చు</label>
-      <input id="languageContentFile" type="file" accept=".txt,.md,.json,.zip,text/plain,application/zip,application/json">
-      <small>TXT, MD, JSON లేదా ZIP (గరిష్ఠం 10 MB). ZIP లో TXT/MD/JSON ఫైళ్లు ఉండవచ్చు.</small>
-    </div>
-    <div class="add-content-options">
-      <button id="addContentOption" class="add-content-option" type="button">
-        <strong>కొత్త మేలిమి తెలుగు కంటెంట్</strong>
-        <span>పేరాలు, పదాలు–సమానార్థాలు, ఉదాహరణలు, నియమాలు, వివరణలు వంటి ఏ రకమైన కంటెంట్ అయినా చేర్చండి.</span>
-      </button>
-      <button id="addWordOption" class="add-content-option" type="button">
-        <strong>కొత్త మేలిమి తెలుగు పలుకు</strong>
-        <span>ఒక మేలిమి పలుకు మరియు దాని సమానార్థం/తెల్లం, వాడుక, వర్గం వంటి వివరాలు చేర్చండి.</span>
-      </button>
-    </div>
-  </div>
-</div>
-
 </main>
 </div>
 <script src="/static/js/chatbot.js"></script>
