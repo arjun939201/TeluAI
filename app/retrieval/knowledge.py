@@ -16,20 +16,15 @@ def norm(value: Any) -> str:
 
 @lru_cache(maxsize=1)
 def load_vocabulary() -> List[Dict[str, Any]]:
-    if not os.path.exists(VOCAB_FILE):
-        return []
     try:
-        with open(VOCAB_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        from app.database import language_documents
+        out=[]
+        for doc in language_documents():
+            for entry in doc.get("entries", []):
+                if isinstance(entry, dict): out.append(entry)
+        return out
     except Exception:
         return []
-    if isinstance(data, list):
-        return [x for x in data if isinstance(x, dict)]
-    if isinstance(data, dict):
-        for key in ("vocabulary", "words", "entries", "data"):
-            if isinstance(data.get(key), list):
-                return [x for x in data[key] if isinstance(x, dict)]
-    return []
 
 
 def fields(entry: Dict) -> str:

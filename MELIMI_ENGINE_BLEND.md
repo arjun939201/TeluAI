@@ -4,7 +4,7 @@ This build uses the existing TeluAI repository as the base. The existing UI, Gro
 
 ## Added from Melimi Telugu Engine 1
 
-- A consolidated `melimi_telugu/corpus/Melimi_Telugu_Master.txt` corpus containing the transferred Melimi Telugu material.
+- A consolidated the seeded `melimi_documents` PostgreSQL records corpus containing the transferred Melimi Telugu material.
 - SQLite FTS5 passage retrieval for broad corpus/grammar/prose search.
 - Incremental indexing so changed subject files are refreshed automatically.
 - `scripts/ingest_melimi_fts.py` for manual index rebuilding.

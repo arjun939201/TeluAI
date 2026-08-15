@@ -22,13 +22,13 @@ input
 The authoritative lexical layer stores roots and linguistic rules, not every surface derivative. A root entry can contain provenance, domain, word class and status.
 
 ### Root dictionary
-`melimi_telugu/vocabulary/root_dictionary.json` contains Standard/Mixed root -> Melimi root mappings.
+the `melimi_roots` PostgreSQL table contains Standard/Mixed root -> Melimi root mappings.
 
 ### Grammar
-`melimi_telugu/grammar/` and `app/melimi/grammar.py` contain central grammatical and derivational rules.
+the `melimi_documents` PostgreSQL table and `app/melimi/grammar.py` contain central grammatical and derivational rules.
 
 ### Corpus
-`melimi_telugu/corpus/Melimi_Telugu_Master.txt` remains the source corpus.
+the seeded `melimi_documents` PostgreSQL records remains the source corpus.
 
 ## Morphology principle
 A surface form is reduced to a root only through supported grammatical/derivational operations. The reduced root must exist in the authoritative root dictionary. The Melimi root is then given the same operation by the central morphology engine. Unknown words are left unchanged rather than guessed.

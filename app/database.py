@@ -42,6 +42,28 @@ class Base(DeclarativeBase):
     pass
 
 
+class MelimiRoot(Base):
+    __tablename__ = "melimi_roots"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    standard_root: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    melimi_root: Mapped[str] = mapped_column(String(160))
+    meaning: Mapped[str] = mapped_column(Text, default="")
+    category: Mapped[str] = mapped_column(String(80), default="")
+    status: Mapped[str] = mapped_column(String(30), default="MASTER", index=True)
+    source: Mapped[str] = mapped_column(String(255), default="master_corpus")
+
+
+class MelimiDocument(Base):
+    __tablename__ = "melimi_documents"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    path: Mapped[str] = mapped_column(String(500), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(80), index=True)
+    text: Mapped[str] = mapped_column(Text, default="")
+    entries_json: Mapped[str] = mapped_column(Text, default="[]")
+    source: Mapped[str] = mapped_column(String(255), default="master_corpus")
+    status: Mapped[str] = mapped_column(String(30), default="MASTER", index=True)
+
+
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -135,17 +157,39 @@ class Usage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+def _seed_language_if_empty() -> None:
+    from pathlib import Path
+    seed_path = Path(__file__).resolve().parents[1] / "data" / "melimi_seed.json"
+    if not seed_path.exists():
+        return
+    try:
+        seed = json.loads(seed_path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    with SessionLocal() as db:
+        if db.scalar(select(MelimiRoot.id).limit(1)) is None:
+            for item in seed.get("roots", []):
+                source = str(item.get("standard_root", "")).strip()
+                target = str(item.get("melimi_root", "")).strip()
+                if source and target:
+                    db.add(MelimiRoot(standard_root=source, melimi_root=target.split("/")[0].strip(), meaning=str(item.get("meaning", "")), category=str(item.get("category", "")), status=str(item.get("status", "MASTER")).upper(), source="master_corpus"))
+        if db.scalar(select(MelimiDocument.id).limit(1)) is None:
+            for doc in seed.get("documents", []):
+                db.add(MelimiDocument(path=str(doc.get("path", "")), kind=str(doc.get("kind", "other")), text=str(doc.get("text", "")), entries_json=json.dumps(doc.get("entries", []), ensure_ascii=False), source="master_corpus", status="MASTER"))
+        db.commit()
 
 def init_db() -> None:
     Base.metadata.create_all(engine)
-    # Keep a tiny version table so future schema changes can be migrated
-    # deliberately instead of silently changing the schema at runtime.
     with engine.begin() as conn:
         conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")
         count = conn.exec_driver_sql("SELECT COUNT(*) FROM schema_version").scalar()
         if not count:
-            conn.exec_driver_sql("INSERT INTO schema_version(version) VALUES (1)")
+            conn.exec_driver_sql(f"INSERT INTO schema_version(version) VALUES ({SCHEMA_VERSION})")
+        else:
+            conn.exec_driver_sql(f"UPDATE schema_version SET version = {SCHEMA_VERSION}")
+    _seed_language_if_empty()
 
 
 def _hash_password(password: str) -> str:
@@ -311,3 +355,39 @@ def recall_user_memory(user_id: int, limit: int = 12) -> list[dict[str, str]]:
     with SessionLocal() as db:
         rows = db.scalars(select(UserMemory).where(UserMemory.user_id == user_id).order_by(UserMemory.created_at.desc()).limit(limit)).all()
         return [{"key": r.key, "value": r.value} for r in rows]
+
+
+def language_roots() -> dict[str, str]:
+    init_db()
+    with SessionLocal() as db:
+        rows = db.scalars(select(MelimiRoot).where(MelimiRoot.status != "REJECTED")).all()
+        result = {r.standard_root: r.melimi_root for r in rows}
+        for item in approved_learning():
+            source = str(item.get("standard_root", "")).strip()
+            target = str(item.get("melimi_root", "")).strip()
+            if source and target:
+                result[source] = target.split("/")[0].strip()
+        return result
+
+def language_documents() -> list[dict[str, Any]]:
+    init_db()
+    with SessionLocal() as db:
+        rows = db.scalars(select(MelimiDocument).where(MelimiDocument.status != "REJECTED")).all()
+        return [{"path": r.path, "kind": r.kind, "text": r.text, "entries": json.loads(r.entries_json or "[]")} for r in rows]
+
+
+def register_language_root(standard_root: str, melimi_root: str, metadata: dict[str, Any] | None = None) -> int:
+    payload = {"standard_root": standard_root.strip(), "melimi_root": melimi_root.strip(), **(metadata or {})}
+    return add_learning_candidate(None, "ROOT", "language_registration", payload) if False else _register_language_root_approved(payload)
+
+def _register_language_root_approved(payload: dict[str, Any]) -> int:
+    with SessionLocal() as db:
+        source = payload["standard_root"]
+        target = payload["melimi_root"]
+        row = db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root == source))
+        if row:
+            row.melimi_root = target; row.status = "APPROVED"; row.source = "user_verified"
+        else:
+            row = MelimiRoot(standard_root=source, melimi_root=target, meaning=str(payload.get("meaning", "")), category=str(payload.get("part_of_speech", "")), status="APPROVED", source="user_verified")
+            db.add(row)
+        db.commit(); db.refresh(row); return row.id

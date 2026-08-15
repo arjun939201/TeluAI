@@ -119,7 +119,7 @@ user memory.
 
 ## Knowledge
 
-`data/vocabulary.json` contains a small seed corpus so the repository can boot.
+`data/melimi_seed.json` contains a small seed corpus so the repository can boot.
 
 To restore the current full public vocabulary:
 
@@ -163,7 +163,7 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 ## Melimi Telugu is now a language subject
 
-The `melimi_telugu/` directory is the dedicated language subject. The engine
+The the PostgreSQL-backed Melimi language store is the dedicated language subject. The engine
 reads vocabulary, grammar, word formation, syntax, examples, prose and rules
 from this subject instead of treating a single vocabulary JSON as the language.
 
@@ -188,7 +188,7 @@ python scripts/check_melimi_subject.py
 ```
 
 For the real project, put your complete authoritative Melimi language material
-inside `melimi_telugu/`. The application should not silently replace it with
+inside the PostgreSQL-backed Melimi language store. The application should not silently replace it with
 small seed data.
 
 The old UI remains unchanged; this release changes the language architecture
@@ -238,7 +238,7 @@ make a response look "pure".
 
 ## Corpus safety
 
-If you already have the full `data/vocabulary.json` in your GitHub repository,
+If you already have the full `data/melimi_seed.json` in your GitHub repository,
 KEEP IT. This ZIP contains the development seed from the previous package because
 the connector cannot download the full corpus into the build environment.
 
@@ -253,7 +253,7 @@ retrieval files.
 At startup, TeluAI builds a local index of every supported file in:
 
 ```text
-melimi_telugu/
+data/melimi_seed.json
   vocabulary/
   grammar/
   word_formation/
@@ -292,7 +292,7 @@ answers.
 
 ### Add the full corpus
 
-Copy your real Melimi language files into `melimi_telugu/` while preserving
+Copy your real Melimi language files into the PostgreSQL-backed Melimi language store while preserving
 their original content. Then run:
 
 ```bash

@@ -27,7 +27,3 @@ services:
         value: "5000"
       - key: MAX_RESPONSE_TOKENS
         value: "1200"
-# Create a Render PostgreSQL database separately and set its Internal/External
-# connection URL in DATABASE_URL. Keeping the URL as an environment secret
-# avoids committing credentials to GitHub and also lets local development use
-# the SQLite fallback automatically.

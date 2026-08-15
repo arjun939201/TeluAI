@@ -46,36 +46,25 @@ class MorphologicalForm:
         return tuple(zip(self.kinds, self.suffixes))
 
 
-def _root_file() -> str:
-    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    return os.path.join(here, "melimi_telugu", "vocabulary", "root_dictionary.json")
-
-
 @lru_cache(maxsize=1)
 def load_root_dictionary() -> Dict[str, str]:
-    with open(_root_file(), encoding="utf-8") as f:
-        data = json.load(f)
-    result: Dict[str, str] = {}
-    for item in data.get("entries", []):
-        source = str(item.get("standard_root", "")).strip()
-        target = str(item.get("melimi_root", "")).strip()
-        if source and target and item.get("status", "established") != "rejected":
-            # A multi-option target is retained as supplied; generation uses
-            # the first option as the canonical deterministic form.
-            result[source] = target.split("/")[0].strip()
-    # Approved chat-learned roots extend the runtime dictionary without
-    # modifying the authoritative Git corpus. Database access is optional;
-    # the deterministic engine remains fully usable when PostgreSQL is down.
+    """Load authoritative roots from PostgreSQL, with a safe local fallback."""
     try:
-        from app.database import approved_learning
-        for item in approved_learning():
-            source = str(item.get("standard_root", "")).strip()
-            target = str(item.get("melimi_root", "")).strip()
-            if source and target:
-                result[source] = target.split("/")[0].strip()
+        from app.database import language_roots
+        result = language_roots()
+        if result:
+            return result
     except Exception:
         pass
-    return result
+    # Local fallback is intentionally only for development/recovery. Production
+    # language data lives in PostgreSQL and is seeded from data/melimi_seed.json.
+    fallback = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "melimi_seed.json")
+    try:
+        with open(fallback, encoding="utf-8") as f:
+            data = json.load(f)
+        return {str(x.get("standard_root")): str(x.get("melimi_root", "")).split("/")[0].strip() for x in data.get("roots", []) if x.get("standard_root") and x.get("melimi_root")}
+    except Exception:
+        return {}
 
 
 def _candidate_strips(surface: str, suffixes: Iterable[str], kind: str):

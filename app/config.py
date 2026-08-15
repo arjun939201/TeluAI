@@ -17,7 +17,7 @@ class Settings:
     github_token: str = os.getenv("GITHUB_TOKEN", "").strip()
     github_repo: str = os.getenv("GITHUB_REPO", "arjun939201/TeluAI").strip()
     github_branch: str = os.getenv("GITHUB_BRANCH", "main").strip()
-    github_language_file: str = os.getenv("GITHUB_LANGUAGE_FILE", "melimi_telugu/vocabulary/chat_registered.json").strip()
+    github_language_file: str = os.getenv("GITHUB_LANGUAGE_FILE", "database").strip()
     github_auto_commit: bool = os.getenv("GITHUB_AUTO_COMMIT", "false").lower() in {"1", "true", "yes", "on"}
     database_url: str = os.getenv("DATABASE_URL", "").strip()
     session_days: int = int(os.getenv("SESSION_DAYS", "30"))

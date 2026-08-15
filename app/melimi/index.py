@@ -10,12 +10,15 @@ from pathlib import Path
 from functools import lru_cache
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[2]
-SUBJECT = ROOT / "melimi_telugu"
+KINDS=("vocabulary","grammar","word_formation","syntax","examples","prose","rules","corpus","other")
 
-EXTENSIONS = {".md", ".txt", ".json", ".csv"}
-KINDS = ("vocabulary", "grammar", "word_formation", "syntax", "examples", "prose", "rules", "corpus", "other")
+def _tokens(text: str) -> set[str]:
+    return set(re.findall(r"[\u0C00-\u0C7F]+|[A-Za-z][A-Za-z'-]*", (text or "").lower()))
 
+def _stringify(value: Any) -> str:
+    if isinstance(value, dict): return " ".join(f"{k} {_stringify(v)}" for k,v in value.items())
+    if isinstance(value, list): return " ".join(_stringify(v) for v in value)
+    return str(value or "")
 
 @dataclass(frozen=True)
 class SubjectDoc:
@@ -25,70 +28,16 @@ class SubjectDoc:
     entries: tuple[dict[str, Any], ...] = field(default_factory=tuple)
     tokens: frozenset[str] = field(default_factory=frozenset)
 
-
-def _tokens(text: str) -> set[str]:
-    return set(re.findall(r"[\u0C00-\u0C7F]+|[A-Za-z][A-Za-z'-]*", (text or "").lower()))
-
-
-def _stringify(value: Any) -> str:
-    if isinstance(value, dict):
-        return " ".join(f"{k} {_stringify(v)}" for k, v in value.items())
-    if isinstance(value, list):
-        return " ".join(_stringify(v) for v in value)
-    return str(value or "")
-
-
-def _read(path: Path) -> tuple[str, list[dict[str, Any]]]:
-    ext = path.suffix.lower()
-    try:
-        if ext == ".json":
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(data, list):
-                entries = tuple(x for x in data if isinstance(x, dict))
-            elif isinstance(data, dict):
-                entries = tuple(
-                    x for v in data.values() if isinstance(v, list)
-                    for x in v if isinstance(x, dict)
-                )
-            else:
-                entries = ()
-            return _stringify(data), list(entries)
-        if ext == ".csv":
-            with path.open("r", encoding="utf-8", newline="") as f:
-                rows = list(csv.DictReader(f))
-            return _stringify(rows), rows
-        return path.read_text(encoding="utf-8", errors="ignore"), []
-    except Exception:
-        return "", []
-
-
-def _kind(path: Path) -> str:
-    rel = path.relative_to(SUBJECT).parts
-    if not rel:
-        return "other"
-    return rel[0] if rel[0] in KINDS else "other"
-
-
 @lru_cache(maxsize=1)
 def build_index() -> tuple[SubjectDoc, ...]:
-    docs = []
-    if not SUBJECT.exists():
+    docs=[]
+    try:
+        from app.database import language_documents
+        for d in language_documents():
+            text=str(d.get('text',''))
+            docs.append(SubjectDoc(path=str(d.get('path','')),kind=str(d.get('kind','other')),text=text,entries=tuple(x for x in d.get('entries',[]) if isinstance(x,dict)),tokens=frozenset(_tokens(text))))
+    except Exception:
         return tuple()
-
-    for path in sorted(SUBJECT.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
-            continue
-        text, entries = _read(path)
-        rel = str(path.relative_to(ROOT))
-        docs.append(
-            SubjectDoc(
-                path=rel,
-                kind=_kind(path),
-                text=text,
-                entries=tuple(entries),
-                tokens=frozenset(_tokens(text)),
-            )
-        )
     return tuple(docs)
 
 

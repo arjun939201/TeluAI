@@ -3,7 +3,7 @@ from typing import Dict, List
 
 # Melimi derivational suffixes are category-sensitive.  These are policy
 # metadata used to guide generation; the full authoritative examples remain
-# in melimi_telugu/corpus and word_formation rules.
+# in the PostgreSQL-backed Melimi language documents.
 NOUN_SUFFIXES = {
     "కాను": "noun-based characterizing/agentive formation; meaning depends on the base noun",
     "కాన్": "noun-based characterizing/agentive formation; meaning depends on the base noun",

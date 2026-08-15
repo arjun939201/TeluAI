@@ -79,23 +79,20 @@ The design deliberately avoids an extra Groq call for every message.
 
 ## Corpus
 
-The original repository's large `data/vocabulary.json` is preserved by
-`scripts/ensure_corpus.py`.
+The authoritative Melimi language data is seeded into PostgreSQL from data/melimi_seed.json.
 
 If the JSON is already present, it is never overwritten.
 
 If the package is deployed without the large JSON, the script restores it from:
 
-`https://raw.githubusercontent.com/arjun939201/TeluAI/main/data/vocabulary.json`
 
 For a permanent standalone copy, run the script once while online and keep
-the resulting `data/vocabulary.json` before uploading.
+the resulting `data/melimi_seed.json` before uploading.
 
 ## Run
 
 ```bash
 pip install -r requirements.txt
-python scripts/ensure_corpus.py
 pytest -q
 uvicorn app.main:app --reload
 ```
