@@ -16,6 +16,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_URL = os.getenv("DATABASE_URL", "").strip()
+if not DB_URL and os.getenv("RENDER"):
+    raise RuntimeError("DATABASE_URL is required on Render. Create/attach the TeluAI PostgreSQL database and set DATABASE_URL on the web service.")
 if DB_URL.startswith("postgres://"):
     DB_URL = "postgresql+psycopg://" + DB_URL[len("postgres://"):]
 elif DB_URL.startswith("postgresql://"):
@@ -120,7 +122,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(80), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(30), default="user")
+    role: Mapped[str] = mapped_column(String(30), default="user", index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -209,7 +212,7 @@ class AuditLog(Base):
     details_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 def _read_seed():
     p = ROOT / "data" / "melimi_seed.json"
@@ -265,7 +268,9 @@ def _upgrade_existing_schema():
     inspector = inspect(engine)
     additions = {
         "melimi_roots": {"version":"INTEGER DEFAULT 1", "updated_at":"DATETIME"},
+        "melimi_documents": {"version":"INTEGER DEFAULT 1"},
         "conversations": {"summary":"TEXT DEFAULT ''"},
+        "users": {"role":"TEXT DEFAULT 'user'", "is_active":"BOOLEAN DEFAULT TRUE"},
     }
     with engine.begin() as conn:
         for table, cols in additions.items():
@@ -297,12 +302,12 @@ def verify_password(password, encoded):
 def create_user(username,email,password):
     with SessionLocal() as db:
         if db.scalar(select(User).where((User.username==username)|(User.email==email))): raise ValueError("Username or email is already registered.")
-        u=User(username=username,email=email,password_hash=_hash_password(password)); db.add(u); db.flush(); db.add(UserSetting(user_id=u.id)); db.commit(); return u
+        u=User(username=username,email=email,password_hash=_hash_password(password),role="user",is_active=True); db.add(u); db.flush(); db.add(UserSetting(user_id=u.id)); db.commit(); return u
 
 def authenticate(identifier,password):
     with SessionLocal() as db:
         u=db.scalar(select(User).where((User.email==identifier)|(User.username==identifier)))
-        if not u or not verify_password(password,u.password_hash): return None
+        if not u or not getattr(u, "is_active", True) or not verify_password(password,u.password_hash): return None
         u.last_login=now(); db.commit(); return u
 
 def create_session(user_id,days=30):
@@ -482,3 +487,102 @@ def delete_conversation(user_id, conversation_id):
         row=db.scalar(select(Conversation).where((Conversation.id==conversation_id)&(Conversation.user_id==user_id)))
         if not row:return False
         db.delete(row); db.commit(); return True
+
+
+def get_user_by_id(user_id: int):
+    with SessionLocal() as db:
+        return db.get(User, user_id)
+
+
+def list_users():
+    with SessionLocal() as db:
+        rows = db.scalars(select(User).order_by(User.created_at.asc())).all()
+        return [{
+            "id": r.id, "username": r.username, "email": r.email,
+            "role": r.role, "is_active": r.is_active,
+            "created_at": r.created_at.isoformat(),
+            "last_login": r.last_login.isoformat() if r.last_login else None,
+        } for r in rows]
+
+
+def set_user_role(target_id: int, role: str):
+    role = role.lower().strip()
+    if role not in {"user", "admin", "owner"}:
+        raise ValueError("Invalid role.")
+    with SessionLocal() as db:
+        row = db.get(User, target_id)
+        if not row: return None
+        row.role = role
+        db.commit(); db.refresh(row)
+        return {"id": row.id, "username": row.username, "email": row.email, "role": row.role, "is_active": row.is_active}
+
+
+def set_user_active(target_id: int, active: bool):
+    with SessionLocal() as db:
+        row = db.get(User, target_id)
+        if not row: return None
+        row.is_active = bool(active)
+        db.commit(); db.refresh(row)
+        return {"id": row.id, "username": row.username, "email": row.email, "role": row.role, "is_active": row.is_active}
+
+
+def delete_user(target_id: int):
+    with SessionLocal() as db:
+        row = db.get(User, target_id)
+        if not row: return False
+        db.delete(row); db.commit(); return True
+
+
+def database_stats():
+    with SessionLocal() as db:
+        return {
+            "users": db.scalar(select(func.count()).select_from(User)) or 0,
+            "active_users": db.scalar(select(func.count()).select_from(User).where(User.is_active.is_(True))) or 0,
+            "admins": db.scalar(select(func.count()).select_from(User).where(User.role == "admin")) or 0,
+            "owners": db.scalar(select(func.count()).select_from(User).where(User.role == "owner")) or 0,
+            "conversations": db.scalar(select(func.count()).select_from(Conversation)) or 0,
+            "messages": db.scalar(select(func.count()).select_from(Message)) or 0,
+            "melimi_roots": db.scalar(select(func.count()).select_from(MelimiRoot)) or 0,
+            "melimi_documents": db.scalar(select(func.count()).select_from(MelimiDocument)) or 0,
+            "melimi_affixes": db.scalar(select(func.count()).select_from(MelimiAffix)) or 0,
+            "melimi_rules": db.scalar(select(func.count()).select_from(MelimiRule)) or 0,
+            "melimi_examples": db.scalar(select(func.count()).select_from(MelimiExample)) or 0,
+            "knowledge_entries": db.scalar(select(func.count()).select_from(KnowledgeEntry)) or 0,
+            "pending_learning": db.scalar(select(func.count()).select_from(LearningCandidate).where(LearningCandidate.status == "PENDING")) or 0,
+            "feedback": db.scalar(select(func.count()).select_from(Feedback)) or 0,
+            "usage_records": db.scalar(select(func.count()).select_from(Usage)) or 0,
+            "audit_logs": db.scalar(select(func.count()).select_from(AuditLog)) or 0,
+        }
+
+
+def list_audit_logs(limit: int = 100):
+    with SessionLocal() as db:
+        rows = db.scalars(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(max(1, min(limit, 500)))).all()
+        return [{
+            "id": r.id, "actor_user_id": r.actor_user_id, "action": r.action,
+            "target_type": r.target_type, "target_id": r.target_id,
+            "details": json.loads(r.details_json or "{}"), "created_at": r.created_at.isoformat()
+        } for r in rows]
+
+
+def bootstrap_owner(email: str):
+    email = email.strip().lower()
+    with SessionLocal() as db:
+        existing_owner = db.scalar(select(User).where(User.role == "owner"))
+        if existing_owner:
+            return None, "An owner already exists."
+        row = db.scalar(select(User).where(User.email == email))
+        if not row:
+            return None, "Register the owner account first using the configured owner email."
+        row.role = "owner"
+        db.commit(); db.refresh(row)
+        return row, None
+
+def language_snapshot(limit: int = 50):
+    with SessionLocal() as db:
+        roots = db.scalars(select(MelimiRoot).order_by(MelimiRoot.updated_at.desc()).limit(max(1, min(limit, 200)))).all()
+        rules = db.scalars(select(MelimiRule).order_by(MelimiRule.id.desc()).limit(max(1, min(limit, 200)))).all()
+        return {
+            "roots": [{"id": r.id, "standard_root": r.standard_root, "melimi_root": r.melimi_root, "meaning": r.meaning, "status": r.status, "source": r.source, "version": r.version} for r in roots],
+            "rules": [{"id": r.id, "name": r.name, "category": r.category, "status": r.status, "source": r.source, "version": r.version} for r in rules],
+        }

@@ -23,8 +23,9 @@ class Settings:
     session_days: int = int(os.getenv("SESSION_DAYS", "30"))
     require_auth: bool = os.getenv("REQUIRE_AUTH", "true").lower() in {"1","true","yes","on"}
     cookie_secure: bool = os.getenv("COOKIE_SECURE", "1" if os.getenv("RENDER") else "0").lower() in {"1","true","yes","on"}
-    admin_token: str = os.getenv("ADMIN_TOKEN", "").strip()
     cache_enabled: bool = os.getenv("CACHE_ENABLED", "true").lower() in {"1","true","yes","on"}
     cache_min_chars: int = int(os.getenv("CACHE_MIN_CHARS", "1"))
 
 settings=Settings()
+# TELUAI_OWNER_EMAIL is intentionally read at bootstrap time from the environment
+# so it can be removed after the first owner is established.

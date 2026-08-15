@@ -1,6 +1,6 @@
 import os
 import re
-from fastapi import FastAPI, HTTPException, Depends, Response, Cookie, Header
+from fastapi import FastAPI, HTTPException, Depends, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,11 +11,11 @@ from app.models import (
     ChatRequest, ChatResponse, HealthResponse, WordRegistration,
     RegisterRequest, LoginRequest, FeedbackRequest, SettingsUpdateRequest, MemoryRequest,
 )
-from app.auth import current_user, COOKIE_NAME
+from app.auth import current_user, require_admin, require_owner, COOKIE_NAME
 from app.database import (
-    init_db, create_user, authenticate, create_session, delete_session,
+    init_db, create_user, authenticate, create_session, delete_session, bootstrap_owner,
     create_conversation, save_message, get_conversations, get_history, delete_conversation, get_user_settings, update_user_settings,
-    add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory, cache_get, cache_put, audit_log, knowledge_version,
+    add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory, cache_get, cache_put, audit_log, knowledge_version, list_users, get_user_by_id, set_user_role, set_user_active, delete_user, database_stats, list_audit_logs, language_snapshot,
 )
 from app.linguistics.normalizer import analyze_input
 from app.linguistics.parser import extract_linguistic_hints
@@ -56,13 +56,6 @@ def home():
         raise HTTPException(404, "Frontend not found.")
     return FileResponse(target)
 
-def require_admin(x_admin_token: str = Header(default="")):
-    if not settings.admin_token:
-        raise HTTPException(503, "Admin endpoints are disabled. Set ADMIN_TOKEN.")
-    if x_admin_token != settings.admin_token:
-        raise HTTPException(401, "Invalid admin token.")
-    return True
-
 @app.get("/admin")
 def admin_page():
     target = os.path.join(STATIC_DIR, "admin.html")
@@ -71,22 +64,78 @@ def admin_page():
     return FileResponse(target)
 
 @app.get("/admin/learning/pending")
-def admin_learning_pending(_: bool = Depends(require_admin)):
-    return {"candidates": list_candidates("PENDING")}
+def admin_learning_pending(user=Depends(require_admin)):
+    return {"candidates": list_candidates("PENDING"), "role": user.role}
 
 @app.post("/admin/learning/{candidate_id}/approve")
-def admin_learning_approve(candidate_id: int, note: str = "", _: bool = Depends(require_admin)):
+def admin_learning_approve(candidate_id: int, note: str = "", user=Depends(require_admin)):
     result = review_candidate(candidate_id, True, note)
     if result is None:
         raise HTTPException(404, "Candidate not found.")
+    audit_log(user.id, "learning.approve", "learning_candidate", str(candidate_id), {"note": note})
     return {"ok": True, "candidate": result}
 
 @app.post("/admin/learning/{candidate_id}/reject")
-def admin_learning_reject(candidate_id: int, note: str = "", _: bool = Depends(require_admin)):
+def admin_learning_reject(candidate_id: int, note: str = "", user=Depends(require_admin)):
     result = review_candidate(candidate_id, False, note)
     if result is None:
         raise HTTPException(404, "Candidate not found.")
+    audit_log(user.id, "learning.reject", "learning_candidate", str(candidate_id), {"note": note})
     return {"ok": True, "candidate": result}
+
+@app.get("/admin/database/stats")
+def admin_database_stats(user=Depends(require_admin)):
+    return {"stats": database_stats(), "role": user.role}
+
+@app.get("/admin/database/language")
+def admin_database_language(limit: int = 50, user=Depends(require_admin)):
+    return {"language": language_snapshot(limit), "role": user.role}
+
+@app.get("/admin/database/users")
+def admin_database_users(user=Depends(require_admin)):
+    return {"users": list_users(), "role": user.role}
+
+@app.get("/admin/database/audit")
+def admin_database_audit(limit: int = 100, user=Depends(require_admin)):
+    return {"logs": list_audit_logs(limit), "role": user.role}
+
+@app.post("/admin/users/{target_id}/role")
+def admin_set_role(target_id: int, role: str, user=Depends(require_owner)):
+    target = get_user_by_id(target_id)
+    if target is None:
+        raise HTTPException(404, "User not found.")
+    if target.id == user.id and role.lower() != "owner":
+        raise HTTPException(400, "The owner cannot demote their own account.")
+    if target.role == "owner" and role.lower() != "owner":
+        raise HTTPException(400, "The owner cannot be demoted through this endpoint.")
+    result = set_user_role(target_id, role)
+    audit_log(user.id, "user.role_change", "user", str(target_id), {"old_role": target.role, "new_role": role.lower()})
+    return {"ok": True, "user": result}
+
+@app.post("/admin/users/{target_id}/active")
+def admin_set_active(target_id: int, active: bool, user=Depends(require_owner)):
+    target = get_user_by_id(target_id)
+    if target is None:
+        raise HTTPException(404, "User not found.")
+    if target.id == user.id and not active:
+        raise HTTPException(400, "The owner cannot deactivate their own account.")
+    if target.role == "owner" and not active:
+        raise HTTPException(400, "The owner cannot be deactivated.")
+    result = set_user_active(target_id, active)
+    audit_log(user.id, "user.activation_change", "user", str(target_id), {"active": active})
+    return {"ok": True, "user": result}
+
+@app.delete("/admin/users/{target_id}")
+def admin_delete_user(target_id: int, user=Depends(require_owner)):
+    target = get_user_by_id(target_id)
+    if target is None:
+        raise HTTPException(404, "User not found.")
+    if target.id == user.id or target.role == "owner":
+        raise HTTPException(400, "The owner account cannot be deleted.")
+    if not delete_user(target_id):
+        raise HTTPException(404, "User not found.")
+    audit_log(user.id, "user.delete", "user", str(target_id), {"username": target.username, "role": target.role})
+    return {"ok": True}
 
 @app.get("/auth/me")
 def auth_me(user=Depends(current_user)):
@@ -110,13 +159,26 @@ def add_memory(payload: MemoryRequest, user=Depends(current_user)):
 def get_memory(user=Depends(current_user)):
     return {"memory": recall_user_memory(user.id)}
 
+@app.post("/auth/bootstrap-owner")
+def auth_bootstrap_owner(user=Depends(current_user)):
+    configured = os.getenv("TELUAI_OWNER_EMAIL", "").strip().lower()
+    if not configured:
+        raise HTTPException(503, "Owner bootstrap is not configured. Set TELUAI_OWNER_EMAIL first.")
+    if user.email.lower() != configured:
+        raise HTTPException(403, "This account is not the configured owner account.")
+    owner, error = bootstrap_owner(configured)
+    if error:
+        raise HTTPException(400, error)
+    audit_log(owner.id, "owner.bootstrap", "user", str(owner.id), {"email": owner.email})
+    return {"ok": True, "id": owner.id, "username": owner.username, "role": owner.role}
+
 @app.post("/auth/register")
 def auth_register(payload: RegisterRequest, response: Response):
     try:
         user = create_user(payload.username.strip(), payload.email.strip().lower(), payload.password)
         token = create_session(user.id, settings.session_days)
         response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400)
-        return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email}
+        return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email, "role": user.role}
     except ValueError as exc:
         raise HTTPException(400, str(exc))
 
@@ -127,7 +189,7 @@ def auth_login(payload: LoginRequest, response: Response):
         raise HTTPException(401, "Invalid username/email or password.")
     token = create_session(user.id, settings.session_days)
     response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400)
-    return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email}
+    return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email, "role": user.role}
 
 @app.post("/auth/logout")
 def auth_logout(response: Response, teluai_session: str | None = Cookie(default=None)):

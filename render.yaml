@@ -27,7 +27,7 @@ services:
         value: "5000"
       - key: MAX_RESPONSE_TOKENS
         value: "1200"
-      - key: ADMIN_TOKEN
+      - key: TELUAI_OWNER_EMAIL
         sync: false
       - key: CACHE_ENABLED
         value: "true"
