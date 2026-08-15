@@ -39,9 +39,9 @@
             </div>
         </div>
 
-        <button id="addWordButton" class="add-word-button" type="button">
-            <span class="plus">＋</span>
-            కొత్త మేలిమి పలుకు జోడించు</button>
+        <button id="addContentButton" class="add-content-button" type="button">
+            ＋ కొత్తగా చేర్చు
+        </button>
 <button id="clearButton" class="new-chat-button" type="button">
             <span class="plus">＋</span>
             కొత్త ముచ్చట
@@ -125,7 +125,27 @@
                 TeluAI తప్పులు చేయవచ్చు. ముఖ్యమైన సమాచారాన్ని నిర్ధారించుకో.
             </div>
         </div>
-    </main>
+    
+<div id="addContentModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-backdrop" id="addContentBackdrop"></div>
+  <div class="modal-card add-content-card" role="dialog" aria-modal="true" aria-labelledby="addContentTitle">
+    <button id="closeAddContent" class="word-close" type="button" aria-label="Close">×</button>
+    <h2 id="addContentTitle">కొత్తగా చేర్చు</h2>
+    <p>మేలిమి తెలుగు జ్ఞానాన్ని చేర్చండి.</p>
+    <div class="add-content-options">
+      <button id="addContentOption" class="add-content-option" type="button">
+        <strong>కొత్త మేలిమి తెలుగు కంటెంట్</strong>
+        <span>పేరాలు, పదాలు–సమానార్థాలు, ఉదాహరణలు, నియమాలు, వివరణలు వంటి ఏ రకమైన కంటెంట్ అయినా చేర్చండి.</span>
+      </button>
+      <button id="addWordOption" class="add-content-option" type="button">
+        <strong>కొత్త మేలిమి తెలుగు పలుకు</strong>
+        <span>ఒక మేలిమి పలుకు మరియు దాని సమానార్థం/తెల్లం, వాడుక, వర్గం వంటి వివరాలు చేర్చండి.</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+</main>
 </div>
 <script src="/static/js/chatbot.js"></script>
 <div id="wordModal" class="word-modal hidden">

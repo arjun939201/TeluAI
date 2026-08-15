@@ -295,6 +295,20 @@ def melimi_subject():
 def melimi_word(word: str):
     return analyze_word(word)
 
+@app.post("/melimi/content")
+async def melimi_content(payload: dict, user=Depends(current_user)):
+    title = str(payload.get("title", "")).strip()
+    content = str(payload.get("content", "")).strip()
+    if not content:
+        raise HTTPException(400, "Content is required.")
+    if len(content) > 50000:
+        raise HTTPException(400, "Content is too large.")
+    source = f"CONTENT:{title}" if title else "CONTENT"
+    candidate = {"title": title, "content": content, "kind": "CONTENT"}
+    add_learning_candidate(user.id, "CONTENT", source, candidate)
+    audit_log(user.id, "learning.content_submit", "learning_candidate", source, {"chars": len(content)})
+    return {"ok": True, "status": "PENDING"}
+
 @app.post("/melimi/register")
 async def melimi_register(payload: WordRegistration, user=Depends(current_user)):
     try:

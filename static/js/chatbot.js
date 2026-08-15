@@ -87,7 +87,6 @@ document.addEventListener("click",e=>{
   const token=e.target.closest?.(".word-token.unregistered");
   if(token){e.preventDefault();e.stopPropagation();openWordModal(token.dataset.word||token.textContent.trim())}
 });
-document.getElementById("addWordButton")?.addEventListener("click",()=>openWordModal());
 document.getElementById("closeWordModal")?.addEventListener("click",(e)=>{e.preventDefault();closeWordModal()});
 document.getElementById("cancelWord")?.addEventListener("click",(e)=>{e.preventDefault();closeWordModal()});
 document.getElementById("wordModalBackdrop")?.addEventListener("click",closeWordModal);
@@ -95,3 +94,29 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape" && !document.getElem
 document.getElementById("registerWord")?.addEventListener("click",async()=>{const x=modalElements();const source=x.root.value.trim()||x.word.textContent.trim();const melimi=x.melimi.value.trim();if(!source||!melimi){x.result.style.color="#ef7777";x.result.textContent="Enter both source and Melimi word.";return}x.register.disabled=true;x.result.textContent="Saving…";try{const r=await fetch("/melimi/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({word:source,root:x.root.value.trim(),meaning:x.meaning.value.trim(),part_of_speech:x.pos.value.trim(),melimi_equivalent:melimi,formation:x.formation.value.trim()})});const d=await r.json();if(!r.ok)throw Error(d.detail||"Registration failed");x.result.style.color="#8ed9a0";x.result.textContent="Saved as a controlled learning candidate.";setTimeout(()=>{closeWordModal();loadConversations()},700)}catch(e){x.result.style.color="#ef7777";x.result.textContent=e.message||"Could not save."}finally{x.register.disabled=false}});
 
 setMode("melimi");resizeInput();checkAuth();
+
+/* New knowledge/content entry menu */
+(function(){
+  const menu=document.getElementById("addContentModal");
+  const open=document.getElementById("addContentButton");
+  const close=document.getElementById("closeAddContent");
+  const backdrop=document.getElementById("addContentBackdrop");
+  const contentOption=document.getElementById("addContentOption");
+  const wordOption=document.getElementById("addWordOption");
+
+  function show(){ if(!menu)return; menu.classList.remove("hidden"); menu.setAttribute("aria-hidden","false"); }
+  function hide(){ if(!menu)return; menu.classList.add("hidden"); menu.setAttribute("aria-hidden","true"); }
+  open?.addEventListener("click",show);
+  close?.addEventListener("click",hide);
+  backdrop?.addEventListener("click",hide);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape" && menu && !menu.classList.contains("hidden"))hide()});
+
+  contentOption?.addEventListener("click",()=>{
+    hide();
+    openKnowledgeContentModal();
+  });
+  wordOption?.addEventListener("click",()=>{
+    hide();
+    openWordModal();
+  });
+})();

@@ -1,3 +1,13 @@
+## Current release
+
+**TeluAI — Add Content Menu**
+
+The knowledge-add UI is consolidated under **＋ కొత్తగా చేర్చు**:
+- **కొత్త మేలిమి తెలుగు కంటెంట్**
+- **కొత్త మేలిమి తెలుగు పలుకు**
+
+The previous standalone **＋ కొత్త మేలిమి పలుకు జోడించు** button has been removed.
+
 # TeluAI
 
 > **UI preservation:** This release restores the original TeluAI dark chat interface (sidebar, mode switch, welcome screen, suggestions, composer, responsive layout). The UI is intentionally kept separate from the language-engineering work.
