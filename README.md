@@ -363,3 +363,23 @@ loanword. Only explicit file evidence creates a lexical constraint.
 ## v13: one-Groq architecture
 
 Melimi lexical validation and repair are local. A chat turn makes one Groq generation request at most. Explicit mappings such as `సహాయం -> బాసట` are enforced without another Groq call.
+
+
+## Password reset flow
+
+1. User clicks **Forgot password?** on the login page.
+2. The user must provide a valid email address; the field is required.
+3. TeluAI sends a 6-digit password-reset verification code to that email.
+4. The user enters the code on the verification step.
+5. A valid code takes the user to the password-reset page.
+6. The user enters and confirms a new password.
+7. TeluAI updates the password, revokes old sessions, creates a fresh authenticated session, and returns the user to the website.
+
+Required Render environment variables for email delivery:
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_FROM`
+
+The verification code expires after 10 minutes. The code is never returned to the browser by the request endpoint.

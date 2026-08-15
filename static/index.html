@@ -20,7 +20,7 @@
       <input id="authEmail" class="auth-input" placeholder="Email or username" autocomplete="username" required>
       <input id="authPassword" class="auth-input" type="password" placeholder="Password" autocomplete="current-password" required>
       <button id="authSubmit" class="auth-submit" type="submit">Login</button>
-      <button id="forgotPasswordButton" class="forgot-password-button" type="button">Forgot password?</button>
+      <a id="forgotPasswordButton" class="forgot-password-button" href="/static/forgot-password.html">Forgot password?</a>
       <div id="authError" class="auth-error"></div>
     </form>
   </div>
@@ -72,6 +72,7 @@
             <div class="powered">Groq ఆనిదం</div>
         </div>
     </aside>
+    <div id="mobileSidebarBackdrop" class="mobile-sidebar-backdrop hidden"></div>
 
     <main class="main">
         <header class="topbar">
@@ -83,7 +84,7 @@
                 <span id="modelName" class="model-name">మేలిమి తెలుగు AI</span>
                 <span class="model-badge">AI</span>
             </div>
-            <button id="mobileNewChat" class="mobile-new-chat" type="button" aria-label="కొత్త మాట">＋</button>
+            <div class="mobile-top-actions"><button id="mobileHistoryButton" class="mobile-history-button" type="button" aria-label="Chat history" aria-expanded="false">☰</button><button id="mobileNewChat" class="mobile-new-chat" type="button" aria-label="కొత్త మాట">＋</button></div>
         </header>
 
         <section id="chatContainer" class="chat-container">
