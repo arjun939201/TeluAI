@@ -52,3 +52,7 @@ The database view includes:
 - audit log
 
 PostgreSQL credentials remain in Render environment configuration and must not be given to normal TeluAI admins.
+
+
+## Password reset
+The login screen includes a Forgot password flow. For production email delivery, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, and `TELUAI_PUBLIC_URL`. Reset tokens expire after 30 minutes and are single-use; all existing sessions are revoked after a successful reset.
