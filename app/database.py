@@ -127,6 +127,14 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
 class Session(Base):
     __tablename__ = "sessions"
     token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -309,6 +317,38 @@ def authenticate(identifier,password):
         u=db.scalar(select(User).where((User.email==identifier)|(User.username==identifier)))
         if not u or not getattr(u, "is_active", True) or not verify_password(password,u.password_hash): return None
         u.last_login=now(); db.commit(); return u
+
+
+def create_password_reset_token(email):
+    raw = secrets.token_urlsafe(48)
+    h = hashlib.sha256(raw.encode()).hexdigest()
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email.lower()))
+        if not user or not getattr(user, "is_active", True):
+            return None
+        # Invalidate existing tokens for this user.
+        db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
+        db.add(PasswordResetToken(token_hash=h, user_id=user.id, expires_at=now()+timedelta(minutes=30)))
+        db.commit()
+    return raw
+
+def reset_password(raw_token, new_password):
+    if not raw_token or len(new_password) < 8:
+        return False
+    h = hashlib.sha256(raw_token.encode()).hexdigest()
+    with SessionLocal() as db:
+        row = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash == h))
+        if not row or row.used_at is not None or row.expires_at < now():
+            return False
+        user = db.get(User, row.user_id)
+        if not user or not getattr(user, "is_active", True):
+            return False
+        user.password_hash = _hash_password(new_password)
+        row.used_at = now()
+        # Revoke all existing sessions after a password reset.
+        db.execute(delete(Session).where(Session.user_id == user.id))
+        db.commit()
+        return True
 
 def create_session(user_id,days=30):
     raw=secrets.token_urlsafe(48); h=hashlib.sha256(raw.encode()).hexdigest()

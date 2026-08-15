@@ -58,3 +58,11 @@ class SettingsUpdateRequest(BaseModel):
 class MemoryRequest(BaseModel):
     key: str = Field(min_length=1, max_length=160)
     value: str = Field(min_length=1, max_length=4000)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    password: str = Field(min_length=8, max_length=128)

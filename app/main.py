@@ -9,11 +9,11 @@ from app.config import settings
 from app.github_sync import status as github_status, GitHubSyncError
 from app.models import (
     ChatRequest, ChatResponse, HealthResponse, WordRegistration,
-    RegisterRequest, LoginRequest, FeedbackRequest, SettingsUpdateRequest, MemoryRequest,
+    RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest, FeedbackRequest, SettingsUpdateRequest, MemoryRequest,
 )
 from app.auth import current_user, require_admin, require_owner, COOKIE_NAME
 from app.database import (
-    init_db, create_user, authenticate, create_session, delete_session, bootstrap_owner,
+    init_db, create_user, authenticate, create_session, delete_session, bootstrap_owner, create_password_reset_token, reset_password,
     create_conversation, save_message, get_conversations, get_history, delete_conversation, get_user_settings, update_user_settings,
     add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory, cache_get, cache_put, audit_log, knowledge_version, list_users, get_user_by_id, set_user_role, set_user_active, delete_user, database_stats, list_audit_logs, language_snapshot,
 )
@@ -190,6 +190,43 @@ def auth_login(payload: LoginRequest, response: Response):
     token = create_session(user.id, settings.session_days)
     response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400)
     return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email, "role": user.role}
+
+@app.post("/auth/forgot-password")
+def auth_forgot_password(payload: ForgotPasswordRequest):
+    # Always return the same response to avoid account enumeration.
+    token = create_password_reset_token(payload.email.strip().lower())
+    # A production mail provider can deliver the token using a reset URL.
+    # The token is deliberately not returned by this API.
+    if token:
+        # If SMTP is configured, send the reset email. Otherwise the request is
+        # safely stored and can be wired to the chosen mail provider later.
+        try:
+            import smtplib
+            from email.message import EmailMessage
+            host=os.getenv("SMTP_HOST", "").strip()
+            port=int(os.getenv("SMTP_PORT", "587"))
+            username=os.getenv("SMTP_USERNAME", "").strip()
+            password=os.getenv("SMTP_PASSWORD", "")
+            sender=os.getenv("SMTP_FROM", username).strip()
+            base=os.getenv("TELUAI_PUBLIC_URL", "").rstrip("/")
+            if host and username and password and sender and base:
+                msg=EmailMessage()
+                msg["Subject"]="TeluAI password reset"
+                msg["From"]=sender
+                msg["To"]=payload.email.strip().lower()
+                msg.set_content(f"Reset your TeluAI password within 30 minutes:\n\n{base}/static/reset-password.html?token={token}\n\nIf you did not request this, ignore this email.")
+                with smtplib.SMTP(host, port, timeout=10) as smtp:
+                    smtp.starttls(); smtp.login(username, password); smtp.send_message(msg)
+        except Exception:
+            pass
+    return {"ok": True, "message": "If an account with that email exists, a password reset link has been sent."}
+
+@app.post("/auth/reset-password")
+def auth_reset_password(payload: ResetPasswordRequest, response: Response):
+    if not reset_password(payload.token, payload.password):
+        raise HTTPException(400, "The reset link is invalid or expired.")
+    response.delete_cookie(COOKIE_NAME)
+    return {"ok": True, "message": "Password reset successfully. Please log in again."}
 
 @app.post("/auth/logout")
 def auth_logout(response: Response, teluai_session: str | None = Cookie(default=None)):

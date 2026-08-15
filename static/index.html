@@ -20,6 +20,7 @@
       <input id="authEmail" class="auth-input" placeholder="Email or username" autocomplete="username" required>
       <input id="authPassword" class="auth-input" type="password" placeholder="Password" autocomplete="current-password" required>
       <button id="authSubmit" class="auth-submit" type="submit">Login</button>
+      <button id="forgotPasswordButton" class="forgot-password-button" type="button">Forgot password?</button>
       <div id="authError" class="auth-error"></div>
     </form>
   </div>
@@ -143,5 +144,18 @@
 <label>Formation rule<input id="wordFormation" placeholder="optional"></label></div>
 <div class="word-actions"><button id="cancelWord" class="secondary-action" type="button">Cancel</button>
 <button id="registerWord" class="primary-action" type="button">Register Melimi word</button></div>
-<div id="wordResult" class="word-result"></div></div></div></body>
+<div id="wordResult" class="word-result"></div></div></div>
+<div id="forgotPasswordModal" class="forgot-modal hidden">
+  <div class="forgot-card">
+    <button id="closeForgotPassword" class="forgot-close" type="button">×</button>
+    <h2>Forgot password?</h2>
+    <p>Enter your account email. If it exists, TeluAI will send a password reset link.</p>
+    <form id="forgotPasswordForm">
+      <input id="forgotPasswordEmail" class="auth-input" type="email" placeholder="Email" required autocomplete="email">
+      <button class="auth-submit" type="submit">Send reset link</button>
+      <div id="forgotPasswordResult" class="auth-error"></div>
+    </form>
+  </div>
+</div>
+</body>
 </html>
