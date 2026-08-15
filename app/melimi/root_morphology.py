@@ -63,6 +63,18 @@ def load_root_dictionary() -> Dict[str, str]:
             # A multi-option target is retained as supplied; generation uses
             # the first option as the canonical deterministic form.
             result[source] = target.split("/")[0].strip()
+    # Approved chat-learned roots extend the runtime dictionary without
+    # modifying the authoritative Git corpus. Database access is optional;
+    # the deterministic engine remains fully usable when PostgreSQL is down.
+    try:
+        from app.database import approved_learning
+        for item in approved_learning():
+            source = str(item.get("standard_root", "")).strip()
+            target = str(item.get("melimi_root", "")).strip()
+            if source and target:
+                result[source] = target.split("/")[0].strip()
+    except Exception:
+        pass
     return result
 
 
@@ -73,11 +85,12 @@ def _candidate_strips(surface: str, suffixes: Iterable[str], kind: str):
 
 
 def reduce_to_root(word: str, roots: Optional[Dict[str, str]] = None) -> MorphologicalForm:
-    """Find a registered root by removing supported operations.
+    """Reduce a supported surface form to an authoritative lexical root.
 
-    The engine only accepts a reduction when the resulting root exists in the
-    authoritative root dictionary. This prevents arbitrary stripping of
-    unknown words.
+    The analyzer may remove up to three documented grammatical/derivational
+    operations, but it accepts a path only when the final candidate is an
+    authoritative root. This gives broad grammatical coverage without storing
+    word-by-word derivative tables.
     """
     surface = (word or "").strip()
     if not surface:
@@ -86,17 +99,25 @@ def reduce_to_root(word: str, roots: Optional[Dict[str, str]] = None) -> Morphol
     if surface in roots:
         return MorphologicalForm(surface, surface)
 
-    # One operation is deliberately conservative. Multi-step support can be
-    # added centrally later without creating per-word entries.
-    candidates = list(_candidate_strips(surface, GRAMMATICAL_SUFFIXES, "grammar"))
-    candidates += list(_candidate_strips(surface, DERIVATIONAL_SUFFIXES, "derivation"))
-    # Prefer the longest operation, then a registered root.
-    candidates.sort(key=lambda x: len(x[1]), reverse=True)
-    for root, suffix, kind in candidates:
-        if root in roots:
-            return MorphologicalForm(surface, root, (suffix,), (kind,))
-    return MorphologicalForm(surface, surface)
+    def search(current: str, operations: list[tuple[str, str]], depth: int):
+        if current in roots:
+            return current, operations
+        if depth >= 3:
+            return None
+        candidates = list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar"))
+        candidates += list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation"))
+        candidates.sort(key=lambda x: (-len(x[1]), x[0]))
+        for root, suffix, kind in candidates:
+            result = search(root, operations + [(kind, suffix)], depth + 1)
+            if result:
+                return result
+        return None
 
+    found = search(surface, [], 0)
+    if not found:
+        return MorphologicalForm(surface, surface)
+    root, operations = found
+    return MorphologicalForm(surface, root, tuple(s for _, s in operations), tuple(k for k, _ in operations))
 
 def apply_operation(root: str, kind: str, suffix: str) -> str:
     """Apply one operation using central morphophonemic rules only.

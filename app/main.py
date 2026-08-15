@@ -1,69 +1,53 @@
-
-import hashlib
 import os
-
-from fastapi import Depends, FastAPI, Header, HTTPException
+import re
+from fastapi import FastAPI, HTTPException, Depends, Response, Cookie, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.github_sync import status as github_status, GitHubSyncError
-from app.models import ChatRequest, ChatResponse, HealthResponse, WordRegistration
+from app.models import (
+    ChatRequest, ChatResponse, HealthResponse, WordRegistration,
+    RegisterRequest, LoginRequest, FeedbackRequest,
+)
+from app.auth import current_user, COOKIE_NAME
+from app.database import (
+    init_db, create_user, authenticate, create_session, delete_session,
+    create_conversation, save_message, get_conversations, get_history,
+    add_learning_candidate, save_usage, SessionLocal, Feedback, list_candidates, review_candidate, approved_learning, remember_user_memory, recall_user_memory,
+)
 from app.linguistics.normalizer import analyze_input
 from app.linguistics.parser import extract_linguistic_hints
 from app.conversation.state import from_history
 from app.conversation.understanding import infer_intent, build_context
 from app.conversation.planner import plan_response
 from app.memory.manager import extract_memory_candidates, format_memory
-from app.retrieval.knowledge import load_vocabulary, retrieve, format_knowledge
+from app.retrieval.knowledge import load_vocabulary
 from app.melimi.grammar import grammar_policy
 from app.melimi.validator import audit_melimi
 from app.melimi.engine import build_language_engine_context
 from app.melimi.index import inventory as subject_inventory
-from app.melimi.registry import audit_response, analyze_word, strict_violations
-from app.melimi.firewall import lexical_violations, deterministic_repair, reload_firewall
-from app.melimi.local_repair import validate, repair
+from app.melimi.registry import audit_response, analyze_word
+from app.melimi.firewall import deterministic_repair, reload_firewall
 from app.melimi.registration import register_word
 from app.prompts import build_prompt
-from app.groq_client import call_groq
+from app.groq_client import call_groq_detailed
 from app.response import clean_response
-from app.db import engine as db_engine
-from app.db import repository as db_repo
-from app.knowledge_version import knowledge_version
-from app.local_answer import try_deterministic_answer
-from app.teaching import detect_teaching
+from app.local_answer import answer as local_answer
+from app.migrations import run_migrations
 
-
-app = FastAPI(title="TeluAI — Standard & Melimi Telugu AI")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.on_event("startup")
-async def _startup() -> None:
-    # Optional: if DATABASE_URL isn't set, this just leaves the DB layer
-    # disabled and every db-backed feature degrades to a no-op.
-    await db_engine.init_db()
-
-
-def require_admin(x_admin_token: str = Header(default="")) -> bool:
-    if not settings.admin_token:
-        raise HTTPException(503, "Admin endpoints are disabled (set ADMIN_TOKEN to enable).")
-    if x_admin_token != settings.admin_token:
-        raise HTTPException(401, "Invalid admin token.")
-    return True
+app = FastAPI(title="TeluAI — Melimi Telugu AI Platform")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+@app.on_event("startup")
+def startup():
+    run_migrations()
 
 @app.get("/")
 def home():
@@ -72,6 +56,12 @@ def home():
         raise HTTPException(404, "Frontend not found.")
     return FileResponse(target)
 
+def require_admin(x_admin_token: str = Header(default="")):
+    if not settings.admin_token:
+        raise HTTPException(503, "Admin endpoints are disabled. Set ADMIN_TOKEN.")
+    if x_admin_token != settings.admin_token:
+        raise HTTPException(401, "Invalid admin token.")
+    return True
 
 @app.get("/admin")
 def admin_page():
@@ -80,82 +70,139 @@ def admin_page():
         raise HTTPException(404, "Admin page not found.")
     return FileResponse(target)
 
+@app.get("/admin/learning/pending")
+def admin_learning_pending(_: bool = Depends(require_admin)):
+    return {"candidates": list_candidates("PENDING")}
+
+@app.post("/admin/learning/{candidate_id}/approve")
+def admin_learning_approve(candidate_id: int, note: str = "", _: bool = Depends(require_admin)):
+    result = review_candidate(candidate_id, True, note)
+    if result is None:
+        raise HTTPException(404, "Candidate not found.")
+    return {"ok": True, "candidate": result}
+
+@app.post("/admin/learning/{candidate_id}/reject")
+def admin_learning_reject(candidate_id: int, note: str = "", _: bool = Depends(require_admin)):
+    result = review_candidate(candidate_id, False, note)
+    if result is None:
+        raise HTTPException(404, "Candidate not found.")
+    return {"ok": True, "candidate": result}
+
+@app.get("/auth/me")
+def auth_me(user=Depends(current_user)):
+    return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email, "role": user.role}
+
+@app.post("/auth/register")
+def auth_register(payload: RegisterRequest, response: Response):
+    try:
+        user = create_user(payload.username.strip(), payload.email.strip().lower(), payload.password)
+        token = create_session(user.id, settings.session_days)
+        response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400)
+        return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+@app.post("/auth/login")
+def auth_login(payload: LoginRequest, response: Response):
+    user = authenticate(payload.identifier.strip(), payload.password)
+    if not user:
+        raise HTTPException(401, "Invalid username/email or password.")
+    token = create_session(user.id, settings.session_days)
+    response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400)
+    return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email}
+
+@app.post("/auth/logout")
+def auth_logout(response: Response, teluai_session: str | None = Cookie(default=None)):
+    delete_session(teluai_session)
+    response.delete_cookie(COOKIE_NAME)
+    return {"authenticated": False}
+
+@app.get("/conversations")
+def conversations(user=Depends(current_user)):
+    return {"conversations": get_conversations(user.id)}
+
+@app.get("/conversations/{conversation_id}")
+def conversation(conversation_id: str, user=Depends(current_user)):
+    try:
+        return {"conversation_id": conversation_id, "messages": get_history(user.id, conversation_id)}
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
 
 @app.get("/melimi/subject")
 def melimi_subject():
     return subject_inventory()
-
 
 @app.get("/melimi/word/{word}")
 def melimi_word(word: str):
     return analyze_word(word)
 
 @app.post("/melimi/register")
-async def melimi_register(payload: WordRegistration):
+async def melimi_register(payload: WordRegistration, user=Depends(current_user)):
     try:
-        return {"ok": True, **(await register_word(payload.model_dump()))}
+        result = await register_word(payload.model_dump())
+        add_learning_candidate(user.id, "VOCABULARY", payload.word, payload.model_dump())
+        return {"ok": True, **result}
     except ValueError as exc:
         raise HTTPException(400, str(exc))
     except GitHubSyncError as exc:
         raise HTTPException(502, str(exc))
 
-
-@app.get("/github/status")
-def github_sync_status():
-    return github_status()
-
+@app.post("/feedback")
+def feedback(payload: FeedbackRequest, user=Depends(current_user)):
+    with SessionLocal() as db:
+        db.add(Feedback(user_id=user.id, message_id=payload.message_id, rating=payload.rating, text=payload.text))
+        db.commit()
+    return {"ok": True}
 
 @app.get("/health")
 def health():
-    return HealthResponse(
-        status="ok",
-        service="TeluAI",
-        vocabulary_entries=len(load_vocabulary()),
-    )
+    db_name = "postgresql" if settings.database_url.startswith(("postgres://", "postgresql://")) else "sqlite-fallback"
+    return HealthResponse(status="ok", service="TeluAI", vocabulary_entries=len(load_vocabulary()), database=db_name)
 
 
-@app.get("/db/health")
-def db_health():
-    return {
-        "configured": db_engine.is_configured(),
-        "available": db_engine.is_available(),
-    }
-
-
-@app.get("/admin/learning/pending")
-async def admin_learning_pending(status: str = "pending", _: bool = Depends(require_admin)):
-    return {"candidates": await db_repo.list_candidates(status=status)}
-
-
-@app.post("/admin/learning/{candidate_id}/approve")
-async def admin_learning_approve(candidate_id: int, note: str = "", _: bool = Depends(require_admin)):
-    result = await db_repo.review_candidate(candidate_id, approve=True, reviewer_note=note)
-    if result is None:
-        raise HTTPException(404, "Candidate not found, or the database is unavailable.")
-    return {"ok": True, "candidate": result}
-
-
-@app.post("/admin/learning/{candidate_id}/reject")
-async def admin_learning_reject(candidate_id: int, note: str = "", _: bool = Depends(require_admin)):
-    result = await db_repo.review_candidate(candidate_id, approve=False, reviewer_note=note)
-    if result is None:
-        raise HTTPException(404, "Candidate not found, or the database is unavailable.")
-    return {"ok": True, "candidate": result}
-
-
-@app.get("/admin/learning/stats")
-async def admin_learning_stats(_: bool = Depends(require_admin)):
-    return await db_repo.candidate_stats()
-
+def _extract_learning(message: str):
+    # Only explicit user teaching is captured as a candidate. It is never
+    # promoted automatically to authoritative Melimi knowledge.
+    patterns = [
+        re.compile(r"^\s*(.+?)\s*(?:→|->|=)\s*(.+?)\s*$"),
+        re.compile(r"^\s*(.+?)\s+అంటే\s+(.+?)\s*$"),
+    ]
+    for pattern in patterns:
+        m = pattern.match(message)
+        if m:
+            left, right = m.group(1).strip(), m.group(2).strip()
+            if left and right and len(left) < 120 and len(right) < 120:
+                return {"source_root": left, "melimi_root": right}
+    return None
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, user=Depends(current_user)):
     message = request.message.strip()
     if not message:
         raise HTTPException(400, "Message cannot be empty.")
 
-    history = [turn.model_dump() for turn in request.history]
-    user_id = request.user_id.strip()
+    # Prefer persisted conversation history when the client supplies a chat id.
+    if request.conversation_id:
+        try:
+            history = get_history(user.id, request.conversation_id, limit=40)
+        except ValueError as exc:
+            raise HTTPException(404, str(exc))
+        history = [{"role": x["role"], "content": x["content"]} for x in history]
+        conversation_id = request.conversation_id
+    else:
+        history = [turn.model_dump() for turn in request.history]
+        conversation_id = create_conversation(user.id, message[:70], request.mode)
+
+    # Explicit teaching is durable as a candidate, but not automatically global authority.
+    candidate = _extract_learning(message)
+    if candidate:
+        add_learning_candidate(user.id, "ROOT", message, candidate)
+
+    local = local_answer(message, request.mode)
+    if local is not None:
+        user_msg_id = save_message(user.id, conversation_id, "user", message)
+        assistant_id = save_message(user.id, conversation_id, "assistant", local, model="local-deterministic")
+        return ChatResponse(reply=local, mode=request.mode, intent="local_knowledge", conversation_id=conversation_id, message_id=assistant_id, local=True)
 
     state = from_history(history)
     linguistic = extract_linguistic_hints(message)
@@ -163,28 +210,20 @@ async def chat(request: ChatRequest):
     understanding = infer_intent(message, state)
     conversation = build_context(message, state, linguistic)
     plan = plan_response(understanding)
-
-    candidates = extract_memory_candidates(history, settings.max_memory_items)
-    memory = format_memory(candidates)
-
-    # Postgres-backed per-user memory: small explicit facts (name, stated
-    # likes/dislikes) that persist across sessions, not just within the
-    # client-sent history for this one conversation.
-    if user_id and db_engine.is_available():
-        recalled = await db_repo.recall_user_facts(user_id)
-        if recalled:
-            recalled_text = "\n".join(f"- {item['value']}" for item in recalled)
-            memory = f"{memory}\n{recalled_text}".strip() if memory else recalled_text
-        for item in candidates:
-            text = item.get("text", "").strip()
-            if text:
-                fact_key = "fact_" + hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
-                await db_repo.remember_user_fact(user_id, fact_key, text)
-
-    # Melimi subject retrieval is handled by the dedicated language engine.
-    # Do not separately stuff the legacy vocabulary retrieval into the prompt.
-    knowledge_entries = []
-    knowledge = ""
+    memory = format_memory(extract_memory_candidates(history, settings.max_memory_items))
+    explicit_memory = extract_memory_candidates(history, settings.max_memory_items)
+    for item in explicit_memory:
+        text = str(item.get("text", "")).strip()
+        if text:
+            remember_user_memory(user.id, "fact_" + str(abs(hash(text)))[:16], text)
+    persistent_memory = recall_user_memory(user.id)
+    if persistent_memory:
+        memory += "\nPERSISTENT USER MEMORY (use only when relevant):\n" + "\n".join(f"- {x['value']}" for x in persistent_memory)
+    approved = approved_learning()
+    approved_context = "\n".join(
+        f"- {x.get('standard_root','')} → {x.get('melimi_root','')}"
+        for x in approved if x.get('standard_root') and x.get('melimi_root')
+    )
 
     linguistic_text = "\n".join([
         f"- normalized input: {linguistic['normalized']}",
@@ -192,8 +231,6 @@ async def chat(request: ChatRequest):
         f"- sentence force: {linguistic['sentence_force']}",
         f"- question type: {linguistic['question_type']}",
         f"- negation hint: {linguistic['negation_hint']}",
-        f"- first-person hint: {linguistic['first_person_hint']}",
-        f"- second-person hint: {linguistic['second_person_hint']}",
         f"- Roman/mixed input signals: {input_info}",
     ])
 
@@ -204,83 +241,54 @@ async def chat(request: ChatRequest):
             conversation_context=conversation,
             linguistic_analysis=linguistic_text,
             response_plan=plan,
+            max_profile_chars=settings.melimi_profile_chars,
+            max_relevant_chars=settings.melimi_relevant_chars,
         )
 
-    # --- Local-first pipeline -------------------------------------------
-    # Tier 0: known-word definition questions answered from local/DB
-    # knowledge with zero Groq calls at all.
-    source = "groq"
-    reply = None
-    if settings.enable_local_first:
-        reply = await try_deterministic_answer(message, request.mode, len(history))
-        if reply is not None:
-            source = "deterministic"
+    prompt = build_prompt(
+        mode=request.mode,
+        conversation=conversation,
+        linguistics=linguistic_text,
+        memory=memory,
+        grammar=grammar_policy() if request.mode == "melimi" else "",
+        plan=plan,
+        melimi_engine=melimi_engine,
+        knowledge=("APPROVED CHAT-LEARNED ROOT MAPPINGS:\n" + approved_context) if approved_context and request.mode == "melimi" else "",
+    )
 
-    kv = knowledge_version()
-    cache_eligible = settings.enable_response_cache and len(history) == 0
+    # Last-resort context cap protects Groq's TPM/request-size limits.
+    prompt = prompt[:settings.max_context_chars]
+    try:
+        result = await call_groq_detailed(prompt, history, message)
+    except RuntimeError as exc:
+        save_usage(user.id, settings.groq_model, None, None, "error")
+        raise HTTPException(502, str(exc))
+    except Exception:
+        save_usage(user.id, settings.groq_model, None, None, "error")
+        raise HTTPException(502, "AI request failed. Please try again.")
 
-    if reply is None and cache_eligible:
-        cached = await db_repo.get_cached_answer(request.mode, message, kv)
-        if cached is not None:
-            reply = cached
-            source = "cache"
-
-    if reply is None:
-        # Tier 2: only now do we build the full prompt and spend Groq tokens.
-        prompt = build_prompt(
-            mode=request.mode,
-            conversation=conversation,
-            linguistics=linguistic_text,
-            memory=memory,
-            knowledge=knowledge,
-            grammar=grammar_policy() if request.mode == "melimi" else "",
-            plan=plan,
-            melimi_engine=melimi_engine,
-        )
-
-        try:
-            reply = await call_groq(prompt, history, message)
-        except RuntimeError as exc:
-            raise HTTPException(502, str(exc))
-        except Exception as exc:
-            raise HTTPException(502, f"AI request failed: {exc}")
-
-        reply = clean_response(reply)
-        source = "groq"
-
+    reply = clean_response(result["answer"])
     if request.mode == "melimi":
-        # ONE-GROQ ARCHITECTURE: validation/repair is entirely local.
-        # Never regenerate through Groq for a lexical violation.
         reply = deterministic_repair(reply)
+    if not reply:
+        raise HTTPException(502, "AI returned an empty response.")
 
-    if source == "groq" and cache_eligible:
-        await db_repo.set_cached_answer(request.mode, message, kv, reply)
-
-    # Chat-time teaching capture: "X = Y" / "X ni Y antaru" style statements
-    # become pending learning candidates for human review, never auto-applied.
-    if settings.enable_chat_learning_capture and request.mode == "melimi":
-        taught = detect_teaching(message)
-        if taught:
-            await db_repo.propose_candidate(
-                standard_root=taught["standard_root"],
-                melimi_root=taught["melimi_root"],
-                source="chat",
-                proposed_message=message,
-            )
+    save_usage(user.id, result.get("model"), result.get("input_tokens"), result.get("output_tokens"), "ok")
+    save_message(user.id, conversation_id, "user", message)
+    assistant_id = save_message(
+        user.id, conversation_id, "assistant", reply,
+        model=result.get("model"), input_tokens=result.get("input_tokens"),
+        output_tokens=result.get("output_tokens"), latency_ms=result.get("latency_ms")
+    )
 
     audit = audit_melimi(reply) if request.mode == "melimi" else {}
-
     return ChatResponse(
         reply=reply,
         mode=request.mode,
         intent=understanding["intent"],
-        understanding={
-            "meaning": understanding["meaning"],
-            "confidence": understanding["confidence"],
-            "linguistics": linguistic,
-            "response_plan": plan,
-        },
+        conversation_id=conversation_id,
+        message_id=assistant_id,
+        understanding={"meaning": understanding["meaning"], "confidence": understanding["confidence"], "linguistics": linguistic, "response_plan": plan},
         language_audit=audit,
         word_audit=audit_response(reply) if request.mode == "melimi" else [],
-        source=source,
     )
