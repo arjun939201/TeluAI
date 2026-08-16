@@ -12,7 +12,7 @@ from difflib import SequenceMatcher
 from sqlalchemy import select
 
 from app.database import SessionLocal, KnowledgeEntry, MelimiExample
-from app.melimi.root_morphology import load_root_dictionary
+from app.melimi.root_morphology import load_root_dictionary, reduce_to_root, reapply_operations
 from app.melimi.registry import lexical_inventory
 
 
@@ -63,8 +63,6 @@ def _lookup_standard(word: str, roots: dict[str, str]):
         for key, value in roots.items():
             candidate = _romanize_telugu(key) if re.search(r"[\u0C00-\u0C7F]", key) else key.lower()
             ratio = SequenceMatcher(None, needle, candidate).ratio()
-            # Fuzzy lookup is deliberately very conservative and is only used
-            # to recover obvious Telugu typing variants.
             if ratio >= 0.90 and (best is None or ratio > best[0]):
                 best = (ratio, key, value)
         if best:
@@ -73,8 +71,6 @@ def _lookup_standard(word: str, roots: dict[str, str]):
 
 
 def _extract_lookup_word(q: str):
-    # More specific constructions must run before the generic "ఏమిటి" rule;
-    # otherwise "సాయం అంటే ఏమిటి?" incorrectly becomes "సాయం అంటే".
     patterns = (
         r"^(.+?)\s+అంటే\s+ఏమిటి\??$",
         r"^(.+?)\s+అర్థం\s+ఏమిటి\??$",
@@ -119,6 +115,51 @@ def _lookup_content(q: str):
     return f"{value}\n{meaning}" if meaning else value
 
 
+def _grammatical_role(form) -> str | None:
+    """Give a concise grammatical role instead of a repetitive word definition."""
+    roles = []
+    for kind, suffix in form.operations:
+        if kind == "case":
+            roles.append({
+                "ACCUSATIVE": "కర్మ విభక్తి (Accusative)",
+                "DATIVE": "సంప్రదాన విభక్తి (Dative)",
+            }.get(suffix, suffix))
+        elif kind == "grammar":
+            roles.append({
+                "లు": "బహువచనం",
+                "ల": "బహువచనం",
+                "లను": "బహువచనం + కర్మ విభక్తి",
+                "లని": "బహువచనం + కర్మ విభక్తి",
+                "లకు": "బహువచనం + సంప్రదాన విభక్తి",
+                "లకై": "బహువచనం + కొరకు రూపం",
+                "లపై": "బహువచనం + పై విభక్తి",
+                "లతో": "బహువచనం + తో విభక్తి",
+                "లలో": "బహువచనం + లో విభక్తి",
+                "ను": "కర్మ విభక్తి",
+                "ని": "కర్మ విభక్తి",
+                "కు": "సంప్రదాన విభక్తి",
+                "కి": "సంప్రదాన విభక్తి",
+                "లో": "స్థాన విభక్తి",
+                "తో": "సహచర్య విభక్తి",
+                "పై": "స్థాన/పై విభక్తి",
+                "గా": "రీతి రూపం",
+            }.get(suffix, suffix))
+        elif kind == "derivation":
+            roles.append(f"-{suffix} ప్రత్యయ రూపం")
+        elif kind.startswith("adjective"):
+            roles.append("విశేషణ రూపం")
+    return " + ".join(dict.fromkeys(roles)) if roles else None
+
+
+def _lookup_inflected(word: str, roots: dict[str, str]):
+    form = reduce_to_root(word, roots)
+    if form.root not in roots or not form.operations:
+        return None
+    melimi = reapply_operations(roots[form.root], form)
+    role = _grammatical_role(form)
+    return f"{melimi}\nవ్యాకరణ పాత్ర: {role}" if role else melimi
+
+
 def answer(message: str, mode: str) -> str | None:
     if mode != "melimi":
         return None
@@ -133,15 +174,15 @@ def answer(message: str, mode: str) -> str | None:
     word = _extract_lookup_word(q)
     if word:
         roots = load_root_dictionary()
+        inflected = _lookup_inflected(word, roots)
+        if inflected:
+            return inflected
         found = _lookup_standard(word, roots)
         if found:
             return found[1]
         inverse = lexical_inventory()["melimi_to_standard"].get(word)
         if inverse:
             return f"{word} అంటే {inverse}."
-        # Unknown lexical questions must reach the conversational pipeline.
-        # This preserves context and avoids pretending that the local index is
-        # complete.
         return None
 
     return _lookup_content(q)
