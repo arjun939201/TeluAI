@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import inspect
+
 from fastapi import Cookie, Depends, HTTPException, Response
 from app import database as db
 from app.account_service import create_guest_user, update_credentials
 from app.auth import COOKIE_NAME, current_user
+from app.chat_commands import parse_chat_command
+from app.chat_learning import learn_explicit_teaching
 from app.config import settings
-from app.models import CredentialUpdateRequest, GuestRegisterRequest
+from app.models import ChatRequest, ChatResponse, CredentialUpdateRequest, GuestRegisterRequest
 
 
 def _remove_routes(app, path: str, methods: set[str]) -> None:
@@ -15,9 +19,72 @@ def _remove_routes(app, path: str, methods: set[str]) -> None:
     ]
 
 
+def _install_chat_command_gateway(app) -> None:
+    routes = [r for r in app.router.routes if getattr(r, "path", None) == "/chat" and "POST" in getattr(r, "methods", set())]
+    if not routes:
+        return
+    original_route = routes[0]
+    original_chat = original_route.endpoint
+
+    # The old endpoint contained a generic `word = word` extractor. Disable it
+    # at the source so ordinary conversation can never become language data.
+    globals_map = getattr(original_chat, "__globals__", {})
+    if "_extract_learning" in globals_map:
+        globals_map["_extract_learning"] = lambda message: None
+
+    _remove_routes(app, "/chat", {"POST"})
+
+    @app.post("/chat", response_model=ChatResponse)
+    async def chat_gateway(request: ChatRequest, user=Depends(current_user)):
+        message = request.message.strip()
+        try:
+            command = parse_chat_command(message)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
+
+        if command is None:
+            result = original_chat(request, user)
+            return await result if inspect.isawaitable(result) else result
+
+        if request.conversation_id:
+            try:
+                db.get_history(user.id, request.conversation_id, limit=1)
+            except ValueError as exc:
+                raise HTTPException(404, str(exc))
+            conversation_id = request.conversation_id
+        else:
+            conversation_id = db.create_conversation(user.id, message[:70], request.mode)
+
+        db.save_message(user.id, conversation_id, "user", message)
+        try:
+            learned = learn_explicit_teaching(message, user.id)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
+
+        if command.kind == "word":
+            source = command.payload["standard_or_source"]
+            target = command.payload["melimi"]
+            reply = f"✓ పలుకు చేర్చబడింది\n{source} → {target}\nఇది ఇప్పుడు మేలిమి భాషా నిలయంలో అందుబాటులో ఉంది."
+        else:
+            reply = "✓ కంటెంట్ చేర్చబడింది\nఇది ఇప్పుడు మేలిమి భాషా నిలయంలో అందుబాటులో ఉంది."
+
+        assistant_id = db.save_message(user.id, conversation_id, "assistant", reply, model="language-command")
+        db.audit_log(user.id, f"language.command.{command.kind}", "language_entry", str(assistant_id), {"learned": learned})
+        return ChatResponse(
+            reply=reply,
+            mode=request.mode,
+            intent=f"language_{command.kind}_entry",
+            conversation_id=conversation_id,
+            message_id=assistant_id,
+            local=True,
+        )
+
+
 def install(app) -> None:
     if getattr(app.state, "runtime_fixes_installed", False):
         return
+
+    _install_chat_command_gateway(app)
 
     _remove_routes(app, "/conversations/{conversation_id}", {"GET", "DELETE"})
 
