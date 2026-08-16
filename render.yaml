@@ -15,10 +15,14 @@ services:
         value: "true"
       - key: COOKIE_SECURE
         value: "true"
+      - key: SESSION_DAYS
+        value: "30"
       - key: MAX_HISTORY_TURNS
         value: "4"
       - key: MAX_HISTORY_CHARS_PER_TURN
         value: "500"
+      - key: MAX_USER_CHARS
+        value: "2400"
       - key: MELIMI_PROFILE_CHARS
         value: "1200"
       - key: MELIMI_RELEVANT_CHARS
@@ -29,5 +33,9 @@ services:
         value: "1200"
       - key: TELUAI_OWNER_EMAIL
         sync: false
+      # Keep this empty unless legacy automatic owner promotion is explicitly required.
+      # Normal owner setup uses /auth/bootstrap-owner after the owner account is registered.
+      - key: OWNER_EMAILS
+        value: ""
       - key: CACHE_ENABLED
         value: "true"
