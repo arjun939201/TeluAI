@@ -67,8 +67,9 @@ def _lookup_word(message: str) -> str:
 def _lookup_grammar(message: str) -> str:
     from app.melimi.grammar import grammar_policy
 
-    policy = grammar_policy()
-    return str(policy)[:5000] if any(x in str(message).casefold() for x in ("grammar", "వ్యాకరణ", "వాక్యం", "case", "విభక్తి")) else ""
+    if not any(x in str(message).casefold() for x in ("grammar", "వ్యాకరణ", "వాక్యం", "case", "విభక్తి")):
+        return ""
+    return str(grammar_policy())[:5000]
 
 
 def _find_examples(message: str) -> str:
@@ -91,11 +92,10 @@ TOOLS = (
 
 
 def run_agent_tools(message: str, route: str, max_chars: int = 9000) -> str:
-    """Run only relevant deterministic tools; never treats retrieved text as instructions."""
+    """Run only relevant deterministic tools; retrieved text is always treated as data."""
     if route not in {"melimi", "standard"}:
         return ""
     parts = []
-    # Exact lexical lookup is cheap and should precede broad retrieval.
     for tool in TOOLS:
         if tool.name == "lookup_grammar_rule" and not any(x in message.casefold() for x in ("grammar", "వ్యాకరణ", "విభక్తి", "case")):
             continue
@@ -147,8 +147,6 @@ def install() -> None:
             if combined:
                 existing = str(kwargs.get("knowledge") or "").strip()
                 kwargs["knowledge"] = (existing + "\n" + combined).strip()
-            kwargs["agent_route"] = route
-            kwargs["agent_tools_used"] = agent_evidence or learned
         return original_build_prompt(*args, **kwargs)
 
     local_answer.answer = learned_answer
