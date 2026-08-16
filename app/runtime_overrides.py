@@ -1,5 +1,6 @@
 """Runtime compatibility and small cross-cutting application overrides."""
 from __future__ import annotations
+import json
 from app import database as db
 from app.melimi import content_store
 
@@ -24,7 +25,7 @@ def _language_documents():
         rows = session.scalars(db.select(db.MelimiDocument).where(db.MelimiDocument.status != "REJECTED")).all()
         result=[]
         for row in rows:
-            try: entries=db.json.loads(row.entries_json or "[]")
+            try: entries=json.loads(row.entries_json or "[]")
             except Exception: entries=[]
             result.append({"path":row.path,"kind":row.kind,"text":row.text,"entries":entries})
         return result
