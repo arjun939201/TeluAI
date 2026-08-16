@@ -24,9 +24,18 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
+class GuestRegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=80)
+    password: str = Field(min_length=8, max_length=128)
+
 class LoginRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=255)
     password: str = Field(min_length=1, max_length=128)
+
+class CredentialUpdateRequest(BaseModel):
+    username: Optional[str] = Field(default=None, min_length=3, max_length=80)
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
 class FeedbackRequest(BaseModel):
     message_id: int | None = None
@@ -59,14 +68,12 @@ class MemoryRequest(BaseModel):
     key: str = Field(min_length=1, max_length=160)
     value: str = Field(min_length=1, max_length=4000)
 
-
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 class VerifyResetCodeRequest(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
-
 
 class ResetPasswordRequest(BaseModel):
     token: str = Field(min_length=20, max_length=200)
