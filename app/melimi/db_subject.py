@@ -1,13 +1,13 @@
 """PostgreSQL-backed Melimi Language Space accessors.
 
-The application no longer depends on a repository corpus for runtime language
-knowledge. These read-only helpers keep the linguistic engines independent of
-the SQLAlchemy model implementation while making the database authoritative.
+PostgreSQL is authoritative for runtime language knowledge. Explicit chat
+commands (/word and /content) are represented here too, so newly entered
+knowledge becomes retrievable immediately without a separate file corpus.
 """
 from __future__ import annotations
 import json
 from sqlalchemy import select
-from app.database import SessionLocal, MelimiRoot, MelimiDocument, MelimiRule, MelimiAffix
+from app.database import SessionLocal, MelimiRoot, MelimiDocument, MelimiRule, MelimiAffix, KnowledgeEntry
 
 
 def language_roots() -> dict[str, str]:
@@ -26,6 +26,29 @@ def language_documents() -> list[dict]:
             except (TypeError, ValueError):
                 entries = []
             result.append({"path": row.path, "kind": row.kind, "text": row.text, "entries": entries})
+
+        # KnowledgeEntry is the direct-chat/content store. Expose it through
+        # the same read-only subject interface so retrieval and the morphology
+        # engines see newly entered knowledge without a separate index source.
+        knowledge_rows = db.scalars(
+            select(KnowledgeEntry)
+            .where(KnowledgeEntry.status != "REJECTED")
+            .order_by(KnowledgeEntry.id.desc())
+            .limit(5000)
+        ).all()
+        for row in knowledge_rows:
+            try:
+                metadata = json.loads(row.metadata_json or "{}")
+            except (TypeError, ValueError):
+                metadata = {}
+            kind = "vocabulary" if row.kind.upper() in {"VOCABULARY", "ROOT"} else "prose" if row.kind.upper() in {"CONTENT", "POST", "EXAMPLE"} else row.kind.lower()
+            entry = {"key": row.key, "value": row.value, **metadata}
+            if row.kind.upper() in {"VOCABULARY", "ROOT"}:
+                entry.setdefault("standard", metadata.get("standard", row.key))
+                entry.setdefault("melimi", metadata.get("melimi", row.value))
+            else:
+                entry.setdefault("content", row.value)
+            result.append({"path": f"knowledge/{row.id}:{row.key}", "kind": kind, "text": row.value, "entries": [entry]})
         return result
 
 
