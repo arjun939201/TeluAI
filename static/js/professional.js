@@ -1,45 +1,126 @@
-const $=s=>document.querySelector(s);
-const api=async(url,opt={})=>{const r=await fetch(url,{credentials:'same-origin',...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.detail||'Request failed');return d};
-let me=null,conversationId=null,history=[];const uiKey='teluai_ui_settings';let allConversations=[];
-function toast(t){const x=document.createElement('div');x.className='toast';x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),2800)}
-function esc(s){return String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[c]))}
-function closeMobileMenu(){const s=$('#sidebar'),b=$('#mobileBackdrop'),m=$('#mobileMenu');s?.classList.remove('mobile-open');b?.classList.add('hidden');m?.setAttribute('aria-expanded','false')}
-function toggleMobileMenu(){const s=$('#sidebar'),b=$('#mobileBackdrop'),m=$('#mobileMenu');const open=!s.classList.contains('mobile-open');s.classList.toggle('mobile-open',open);b.classList.toggle('hidden',!open);m?.setAttribute('aria-expanded',String(open))}
-function closeAccountMenu(){const m=$('#accountMenu');m?.classList.add('hidden');$('#profileLink')?.setAttribute('aria-expanded','false')}
-function toggleAccountMenu(e){e?.stopPropagation();const m=$('#accountMenu');if(!m)return;const open=m.classList.contains('hidden');m.classList.toggle('hidden',!open);$('#profileLink')?.setAttribute('aria-expanded',String(open))}
-function closeModal(id){$(id)?.classList.add('hidden')}
-function addMessage(value,role){const row=document.createElement('div');row.className='message '+role;row.innerHTML=`<div class="avatar">${role==='user'?'You':'T'}</div><div class="bubble">${esc(value)}</div>`;$('#chat')?.appendChild(row);$('#hero')?.classList.add('hidden');requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}))}
-function resetChat(){conversationId=null;history=[];if($('#chat'))$('#chat').innerHTML='';$('#hero')?.classList.remove('hidden');$('#input')?.focus();closeMobileMenu()}
-async function send(value){if(!value)return;addMessage(value,'user');$('#input').value='';$('#input').style.height='auto';$('#send').disabled=true;try{const d=await api('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:value,mode:'melimi',history,conversation_id:conversationId})});conversationId=d.conversation_id||conversationId;addMessage(d.reply||'No response.','assistant');history.push({role:'user',content:value},{role:'assistant',content:d.reply||''});loadHistory(false)}catch(e){toast(e.message)}finally{$('#send').disabled=false}}
-function showAuth(mode='guest'){const modes=['guest','login','register'];modes.forEach(x=>{$(`#${x}Form`)?.classList.toggle('hidden',x!==mode);$(`#${x}Tab`)?.classList.toggle('active',x===mode)});$('#authTitle').textContent=mode==='guest'?'TeluAIకి రండి':mode==='login'?'Login':'Emailతో account కట్టు';$('#authSubtitle').textContent=mode==='guest'?'Email అవసరం లేదు. ముందుగా మీ Guest account కట్టుకోండి.':mode==='login'?'Guest లేదా email accountతో username/password ఉపయోగించి Login చేయండి.':'Emailతో account కడితే password reset వంటి account recovery అందుబాటులో ఉంటుంది.';$('#auth')?.classList.remove('hidden')}
-async function loadMe(){try{me=await api('/auth/me');$('#auth')?.classList.add('hidden');const guest=me.role==='guest';$('#accountName').textContent=me.username;$('#accountRole').textContent=guest?'GUEST':'ACCOUNT';$('#avatar').textContent=me.username.slice(0,1).toUpperCase();if(['admin','owner'].includes(me.role))$('#adminLink')?.classList.remove('hidden');loadHistory(false)}catch(e){showAuth('guest')}}
-function historyPrefs(){const s=readUI();return {sort:s.historySort||'updated',density:s.historyDensity||'normal',visible:s.historyAlwaysVisible!==false}}
-function sortConversations(list,sort){const out=[...list];if(sort==='title')out.sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));else if(sort==='oldest')out.sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||'')));else out.sort((a,b)=>String(b.updated_at||b.created_at||'').localeCompare(String(a.updated_at||a.created_at||'')));return out}
-function renderHistory(){const p=historyPrefs(),query=(($('#historySearch')?.value||$('#historyModalSearch')?.value||'').trim().toLowerCase());let list=sortConversations(allConversations,p.sort);if(query)list=list.filter(c=>String(c.title||'Conversation').toLowerCase().includes(query));const limit=18;const recent=list.slice(0,limit);const sidebar=$('#sidebarHistoryList');const modal=$('#historyList');const html=list.length?list.map(c=>`<button class="history-item" data-id="${esc(c.id||c.conversation_id)}"><b>${esc(c.title||c.name||'Conversation')}</b><span>${esc(formatHistoryDate(c.updated_at||c.created_at))}</span></button>`).join(''):'<div class="empty-state">జరిమీలు లేవు.</div>';if(sidebar)sidebar.innerHTML=recent.length?recent.map(c=>`<button class="history-item" data-id="${esc(c.id||c.conversation_id)}"><b>${esc(c.title||c.name||'Conversation')}</b><span>${esc(formatHistoryDate(c.updated_at||c.created_at))}</span></button>`).join(''):'<div class="empty-state">జరిమీలు లేవు.</div>';if(modal)modal.innerHTML=html;document.querySelectorAll('.history-item').forEach(b=>b.onclick=()=>openConversation(b.dataset.id));document.body.classList.toggle('history-compact',p.density==='compact');document.body.classList.toggle('history-hidden',!p.visible);if($('#historyAll'))$('#historyAll').textContent=list.length>limit?`అన్ని జరిమీలు (${list.length})`:'అన్ని జరిమీలు'}
-function formatHistoryDate(value){if(!value)return '';const d=new Date(value);if(Number.isNaN(d.getTime()))return value;return d.toLocaleString([], {year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
-async function loadHistory(show=false){if(!me)return;try{const d=await api('/conversations');allConversations=d.conversations||[];renderHistory();if(show){$('#history').classList.remove('hidden');closeMobileMenu()}}catch(e){if(show)toast(e.message)}}
-async function openConversation(id){try{const d=await api('/conversations/'+encodeURIComponent(id));conversationId=id;history=[];$('#chat').innerHTML='';(d.messages||[]).forEach(m=>{const role=m.role||m.sender||'assistant';addMessage(m.content||m.message||'',role==='user'?'user':'assistant');history.push({role:role==='user'?'user':'assistant',content:m.content||m.message||''})});closeModal('#history');closeMobileMenu()}catch(e){toast(e.message)}}
-function readUI(){try{return JSON.parse(localStorage.getItem(uiKey)||'{}')}catch{return {}}}function effectiveTheme(theme){return theme==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):theme}
-function applyDisplay(){const s=readUI();document.documentElement.dataset.theme=effectiveTheme(s.theme||'dark');document.body.dataset.density=s.density||'normal';document.body.dataset.fontSize=s.fontSize||'normal';document.body.classList.toggle('history-compact',s.historyDensity==='compact');document.body.classList.toggle('history-hidden',s.historyAlwaysVisible===false)}
-function applyTheme(theme){const s={...readUI(),theme};localStorage.setItem(uiKey,JSON.stringify(s));document.querySelectorAll('[data-theme]').forEach(b=>b.classList.toggle('active',b.dataset.theme===theme));applyDisplay()}
-function openSettings(){closeMobileMenu();closeAccountMenu();$('#settings')?.classList.remove('hidden');loadSettings()}
-async function loadSettings(){const local=readUI();applyDisplay();document.querySelectorAll('[data-theme]').forEach(b=>b.classList.toggle('active',b.dataset.theme===(local.theme||'dark')));if($('#fontSize'))$('#fontSize').value=local.fontSize||'normal';if($('#density'))$('#density').value=local.density||'normal';if($('#enterToSend'))$('#enterToSend').checked=local.enterToSend!==false;if($('#historyAlwaysVisible'))$('#historyAlwaysVisible').checked=local.historyAlwaysVisible!==false;if($('#historyDensity'))$('#historyDensity').value=local.historyDensity||'normal';if($('#historySort'))$('#historySort').value=local.historySort||'updated';if($('#historyModalSort'))$('#historyModalSort').value=local.historySort||'updated';try{const s=await api('/me/settings');$('#preferredMode').value=s.preferred_mode||'melimi';$('#responseLength').value=s.response_length||'normal';$('#memoryEnabled').checked=s.memory_enabled!==false}catch(e){if(me&&$('#settingsStatus'))$('#settingsStatus').textContent=e.message}}
-async function saveSettings(){const selected=document.querySelector('[data-theme].active');const local={...readUI(),theme:selected?.dataset.theme||'dark',fontSize:$('#fontSize').value,density:$('#density').value,enterToSend:$('#enterToSend').checked,historyAlwaysVisible:$('#historyAlwaysVisible').checked,historyDensity:$('#historyDensity').value,historySort:$('#historySort').value};localStorage.setItem(uiKey,JSON.stringify(local));applyDisplay();if($('#historySearch'))$('#historySearch').value='';if($('#historySort'))$('#historySort').value=local.historySort;renderHistory();try{await api('/me/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({preferred_mode:$('#preferredMode').value,response_length:$('#responseLength').value,memory_enabled:$('#memoryEnabled').checked})});toast('Settings saved');closeModal('#settings')}catch(e){$('#settingsStatus').textContent=e.message}}
-function resetSettings(){localStorage.removeItem(uiKey);applyDisplay();loadSettings();renderHistory();toast('Settings reset')}
-function openProfile(){closeMobileMenu();closeAccountMenu();if(!me)return;$('#profileName').value=me.username;$('#profileEmail').value=me.role==='guest'?'Not linked — Guest account':me.email;$('#profileEmailWrap').style.display=me.role==='guest'?'none':'';$('#profileRole').value=me.role==='guest'?'GUEST':'ACCOUNT';$('#newUsername').value='';$('#newPassword').value='';$('#currentPassword').value='';$('#credentialStatus').textContent='';$('#profile').classList.remove('hidden')}
-async function saveCredentials(){const current=$('#currentPassword').value.trim();const username=$('#newUsername').value.trim();const password=$('#newPassword').value;if(!current){$('#credentialStatus').textContent='Current password is required.';return}if(!username&&!password){$('#credentialStatus').textContent='Enter a new username or password.';return}try{const d=await api('/me/credentials',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({current_password:current,username:username||null,new_password:password||null})});me.username=d.username;$('#accountName').textContent=me.username;$('#avatar').textContent=me.username.slice(0,1).toUpperCase();$('#profileName').value=me.username;$('#currentPassword').value='';$('#newUsername').value='';$('#newPassword').value='';$('#credentialStatus').textContent='Credentials updated successfully.';toast('Credentials updated')}catch(e){$('#credentialStatus').textContent=e.message}}
-async function logout(){try{await api('/auth/logout',{method:'POST'})}finally{location.reload()}}
-$('#mobileMenu')?.addEventListener('click',toggleMobileMenu);$('#mobileBackdrop')?.addEventListener('click',closeMobileMenu);$('#newChat')?.addEventListener('click',resetChat);$('#historyAll')?.addEventListener('click',()=>{$('#history')?.classList.remove('hidden');renderHistory();closeMobileMenu()});$('#historyRefresh')?.addEventListener('click',()=>loadHistory(false));$('#historySearch')?.addEventListener('input',renderHistory);$('#historyModalSearch')?.addEventListener('input',()=>{if($('#historySearch'))$('#historySearch').value=$('#historyModalSearch').value;renderHistory()});$('#historySort')?.addEventListener('change',e=>{const s={...readUI(),historySort:e.target.value};localStorage.setItem(uiKey,JSON.stringify(s));if($('#historyModalSort'))$('#historyModalSort').value=e.target.value;renderHistory()});$('#historyModalSort')?.addEventListener('change',e=>{const s={...readUI(),historySort:e.target.value};localStorage.setItem(uiKey,JSON.stringify(s));if($('#historySort'))$('#historySort').value=e.target.value;renderHistory()});$('#profileLink')?.addEventListener('click',toggleAccountMenu);$('#profileMenuItem')?.addEventListener('click',openProfile);$('#settingsLink')?.addEventListener('click',openSettings);$('#adminLink')?.addEventListener('click',()=>{closeAccountMenu();closeMobileMenu();location.href='/admin'});$('#logout')?.addEventListener('click',logout);$('#send')?.addEventListener('click',()=>send($('#input').value.trim()));$('#input')?.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('#settings');closeAccountMenu();closeMobileMenu()}if(e.key==='Enter'&&!e.shiftKey&&readUI().enterToSend!==false){e.preventDefault();send(e.target.value.trim())}});$('#input')?.addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,150)+'px'});document.querySelectorAll('.suggestion').forEach(x=>x.onclick=()=>send(x.dataset.message));$('#closeSettings')?.addEventListener('click',()=>closeModal('#settings'));$('#closeProfile')?.addEventListener('click',()=>closeModal('#profile'));$('#closeHistory')?.addEventListener('click',()=>closeModal('#history'));$('#saveSettings')?.addEventListener('click',saveSettings);$('#resetSettings')?.addEventListener('click',resetSettings);$('#saveCredentials')?.addEventListener('click',saveCredentials);document.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>applyTheme(b.dataset.theme));window.matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',()=>{if(readUI().theme==='system')applyDisplay()});
-function clearAuthErrors(){$('#guestError').textContent='';$('#loginError').textContent='';$('#registerError').textContent=''}
-$('#guestTab')?.addEventListener('click',()=>{clearAuthErrors();showAuth('guest')});$('#loginTab')?.addEventListener('click',()=>{clearAuthErrors();showAuth('login')});$('#registerTab')?.addEventListener('click',()=>{clearAuthErrors();showAuth('register')});$('#toRegister')?.addEventListener('click',()=>showAuth('register'));$('#toGuest')?.addEventListener('click',()=>showAuth('guest'));
-$('#guestForm')?.addEventListener('submit',async e=>{e.preventDefault();clearAuthErrors();try{const username=$('#guestUser').value.trim();const password=$('#guestPass').value;await api('/auth/guest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});location.reload()}catch(x){$('#guestError').textContent=x.message}});
-$('#loginForm')?.addEventListener('submit',async e=>{e.preventDefault();clearAuthErrors();try{await api('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:$('#loginIdentifier').value.trim(),password:$('#loginPass').value})});location.reload()}catch(x){$('#loginError').textContent=x.message}});
-$('#registerForm')?.addEventListener('submit',async e=>{e.preventDefault();clearAuthErrors();try{await api('/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#regUser').value.trim(),email:$('#regEmail').value.trim(),password:$('#regPass').value})});location.reload()}catch(x){$('#registerError').textContent=x.message}});
-document.addEventListener('click',e=>{if(!e.target.closest('#profileLink')&&!e.target.closest('#accountMenu'))closeAccountMenu();if(e.target.classList.contains('modal'))e.target.classList.add('hidden')});applyDisplay();loadMe();
-const _normalSend=send;
-function _parseLanguageCommand(value){const text=String(value||'').trim();const word=text.match(/^[/]word\s+(.+?)\s*(?:=|→|->)\s*(.+)$/is);if(word)return {kind:'word',source:word[1].trim(),melimi:word[2].trim()};const content=text.match(/^[/]content\s+(.+?)(?:\s*\(([^()]*)\))?$/is);if(content)return {kind:'content',content:content[1].trim(),meaning:(content[2]||'').trim()};if(/^[/](?:word|content)\b/i.test(text))return {error:'Invalid command syntax.'};return null}
-async function _sendLanguageCommand(value){const command=_parseLanguageCommand(value);if(!command)return false;addMessage(value,'user');$('#input').value='';$('#input').style.height='auto';$('#send').disabled=true;try{let d;if(command.error)throw Error(command.error);if(command.kind==='word'){d=await api('/melimi/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:command.source,root:command.source,meaning:'',part_of_speech:'',melimi_equivalent:command.melimi,formation:''})});addMessage(`✓ Word entry received. ${command.source} = ${command.melimi}\
-Status: ${d.status||d.entry?.status||'MASTER'}`,'assistant')}else{d=await api('/melimi/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'CHAT_COMMAND',content:command.content,kind:'CONTENT',meaning:command.meaning})});addMessage(`✓ Content entry received.\
-Status: ${d.status||'MASTER'}\
-${command.content}`,'assistant')}loadHistory(false)}catch(e){addMessage(`✗ ${e.message}`,'assistant')}finally{$('#send').disabled=false;$('#input').focus()}return true}
-send=async function(value){if(await _sendLanguageCommand(value))return;return _normalSend(value)};
+const $ = s => document.querySelector(s);
+const api = async (url, options={}) => { const r = await fetch(url,{credentials:'same-origin',...options}); const d=await r.json().catch(()=>({})); if(!r.ok) throw Error(d.detail||'Request failed'); return d; };
+let me=null, conversationId=null, messages=[], controller=null, generating=false, allConversations=[];
+const uiKey='teluai-ui-v2';
+
+function esc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[c]));}
+function toast(text){const x=document.createElement('div');x.className='toast';x.textContent=text;document.body.appendChild(x);setTimeout(()=>x.remove(),3000);}
+function settingsLocal(){try{return JSON.parse(localStorage.getItem(uiKey)||'{}')}catch{return {}}}
+function applyTheme(){const s=settingsLocal();let t=s.theme||'dark';if(t==='system')t=matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';document.documentElement.dataset.theme=t;}
+function openModal(id){$('#'+id)?.classList.remove('hidden');}
+function closeModal(id){$('#'+id)?.classList.add('hidden');}
+
+function markdown(text){
+  const value=String(text??'');
+  if(window.marked&&window.DOMPurify){
+    marked.setOptions({gfm:true,breaks:true});
+    return DOMPurify.sanitize(marked.parse(value),{USE_PROFILES:{html:true},ADD_ATTR:['target','rel','class','data-lang']});
+  }
+  return `<p>${esc(value).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</p>`;
+}
+function enhanceCode(container){
+  container.querySelectorAll('pre').forEach(pre=>{
+    const code=pre.querySelector('code'); if(!code)return;
+    const cls=[...code.classList].find(x=>x.startsWith('language-')); const lang=cls?cls.slice(9):'';
+    const bar=document.createElement('div');bar.className='code-bar';bar.innerHTML=`<span>${esc(lang||'code')}</span><button type="button">Copy</button>`;
+    bar.querySelector('button').onclick=async()=>{try{await navigator.clipboard.writeText(code.textContent);bar.querySelector('button').textContent='Copied';setTimeout(()=>bar.querySelector('button').textContent='Copy',1400)}catch{toast('Could not copy code')}};
+    pre.insertBefore(bar,code);
+  });
+}
+function scrollBottom(){requestAnimationFrame(()=>$('#chatViewport').scrollTo({top:$('#chatViewport').scrollHeight,behavior:'smooth'}));}
+
+function renderMessage(msg){
+  const row=document.createElement('article');row.className=`message ${msg.role}`;row.dataset.id=msg.id||'';
+  const body=document.createElement('div');body.className='message-body';
+  if(msg.role==='assistant'){
+    body.innerHTML=markdown(msg.content);enhanceCode(body);
+  }else{
+    const text=document.createElement('div');text.className='user-text';text.textContent=msg.content;body.appendChild(text);
+  }
+  row.appendChild(body);
+  const actions=document.createElement('div');actions.className='message-actions';
+  if(msg.role==='assistant'){
+    actions.innerHTML='<button data-action="copy">Copy</button><button data-action="regenerate">Regenerate</button><button data-action="good" aria-label="Good response">👍</button><button data-action="bad" aria-label="Bad response">👎</button>';
+  }else actions.innerHTML='<button data-action="edit">Edit</button>';
+  actions.querySelectorAll('button').forEach(b=>b.onclick=()=>messageAction(msg,b.dataset.action));
+  row.appendChild(actions);$('#chat').appendChild(row);return row;
+}
+function renderAll(){const chat=$('#chat');chat.innerHTML='';messages.forEach(renderMessage);$('#welcome').classList.toggle('hidden',messages.length>0);scrollBottom();}
+
+async function feedback(msg,rating){try{await api('/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message_id:msg.id,rating})});toast('Thanks for the feedback');}catch{toast('Feedback could not be saved');}}
+async function messageAction(msg,action){
+  if(action==='copy'){try{await navigator.clipboard.writeText(msg.content);toast('Copied');}catch{toast('Could not copy')}}
+  else if(action==='good')await feedback(msg,5);
+  else if(action==='bad')await feedback(msg,1);
+  else if(action==='regenerate'){if(!msg.id||!conversationId)return;await regenerate(msg.id);}
+  else if(action==='edit'){await editMessage(msg);}
+}
+async function editMessage(msg){
+  const row=document.querySelector(`.message[data-id="${CSS.escape(String(msg.id))}"]`);if(!row)return;
+  const editor=document.createElement('div');editor.className='edit-box';editor.innerHTML=`<textarea>${esc(msg.content)}</textarea><div><button class="secondary">Cancel</button><button class="primary">Save & resend</button></div>`;
+  row.querySelector('.message-body').replaceChildren(editor);const ta=editor.querySelector('textarea');ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+  editor.querySelector('.secondary').onclick=renderAll;
+  editor.querySelector('.primary').onclick=async()=>{const content=ta.value.trim();if(!content)return;try{await api(`/messages/${msg.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})});await loadConversation(conversationId);const userMsg=messages.find(x=>x.id===msg.id);if(userMsg)await regenerate(userMsg.id);}catch(e){toast(e.message)}};
+}
+
+async function regenerate(messageId){
+  if(generating)return;generating=true;controller=new AbortController();setGenerating(true);
+  const old=messages.find(m=>m.id===messageId);if(old&&old.role==='assistant'){messages=messages.filter(m=>m.id!==messageId);renderAll();}
+  const row={role:'assistant',content:'',id:null,streaming:true};messages.push(row);const el=renderMessage(row);const body=el.querySelector('.message-body');
+  try{await consumeStream(`/chat/${encodeURIComponent(conversationId)}/regenerate`,{message_id:messageId,mode:$('#modeSelect').value,response_length:currentLength() },body,row);}
+  finally{generating=false;controller=null;setGenerating(false);await loadConversation(conversationId);}
+}
+function currentLength(){return window.chatResponseLength||'normal';}
+
+async function sendMessage(){
+  if(generating)return;const input=$('#input');const text=input.value.trim();if(!text)return;
+  const mode=$('#modeSelect').value;const user={role:'user',content:text,id:null};messages.push(user);renderAll();input.value='';resize();
+  generating=true;controller=new AbortController();setGenerating(true);
+  const assistant={role:'assistant',content:'',id:null,streaming:true};messages.push(assistant);const el=renderMessage(assistant);const body=el.querySelector('.message-body');
+  try{await consumeStream('/chat/stream',{message:text,mode,conversation_id:conversationId,response_length:currentLength()},body,assistant);}
+  catch(e){if(e.name!=='AbortError')toast(e.message||'Could not reach the AI service');}
+  finally{generating=false;controller=null;setGenerating(false);if(conversationId)await loadConversation(conversationId);else await loadHistory();}
+}
+
+async function consumeStream(url,payload,body,assistant){
+  const response=await fetch(url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'text/event-stream'},body:JSON.stringify(payload),signal:controller?.signal});
+  if(!response.ok){const d=await response.json().catch(()=>({}));throw Error(d.detail||'Request failed');}
+  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+  while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const frames=buffer.split('\n\n');buffer=frames.pop()||'';for(const frame of frames){const line=frame.split('\n').find(x=>x.startsWith('data:'));if(!line)continue;let event;try{event=JSON.parse(line.slice(5).trim())}catch{continue}
+      if(event.type==='start'){conversationId=event.conversation_id||conversationId;assistant.mode=event.mode;$('#generationStatus').textContent='Generating…';}
+      else if(event.type==='delta'){assistant.content+=event.text;body.innerHTML=markdown(assistant.content);enhanceCode(body);scrollBottom();}
+      else if(event.type==='error'){throw Error(event.message||'Generation failed');}
+      else if(event.type==='done'){assistant.id=event.message_id||assistant.id;assistant.streaming=false;$('#generationStatus').textContent='';}
+    }}
+}
+function setGenerating(value){$('#send').textContent=value?'■':'↑';$('#send').classList.toggle('stop',value);$('#input').disabled=false;$('#generationStatus').textContent=value?'Generating…':'';}
+$('#composer').addEventListener('submit',e=>{e.preventDefault();if(generating){controller?.abort();generating=false;setGenerating(false);return}sendMessage();});
+$('#input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(generating){controller?.abort();generating=false;setGenerating(false)}else sendMessage();}});
+$('#input').addEventListener('input',resize);function resize(){const x=$('#input');x.style.height='auto';x.style.height=Math.min(x.scrollHeight,180)+'px';}
+document.querySelectorAll('.suggestions button').forEach(b=>b.onclick=()=>{$('#input').value=b.dataset.message;resize();sendMessage();});
+
+async function loadHistory(){try{const d=await api('/conversations');allConversations=d.conversations||[];renderHistory();}catch{}}
+function renderHistory(){const q=$('#historySearch').value.trim().toLowerCase();let list=[...allConversations];const sort=$('#historySort').value;if(sort==='oldest')list.sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));else if(sort==='title')list.sort((a,b)=>String(a.title).localeCompare(String(b.title)));else list.sort((a,b)=>String(b.updated_at).localeCompare(String(a.updated_at)));if(q)list=list.filter(x=>String(x.title).toLowerCase().includes(q));$('#historyList').innerHTML=list.slice(0,40).map(c=>`<button class="history-item ${c.id===conversationId?'active':''}" data-id="${esc(c.id)}"><strong>${esc(c.title||'New chat')}</strong><span>${esc(new Date(c.updated_at).toLocaleDateString())}</span></button>`).join('')||'<div class="history-empty">No chats yet</div>';document.querySelectorAll('.history-item').forEach(x=>x.onclick=()=>loadConversation(x.dataset.id));}
+async function loadConversation(id){try{const d=await api('/conversations/'+encodeURIComponent(id));conversationId=id;messages=(d.messages||[]).map(x=>({id:x.id,role:x.role,content:x.content}));renderAll();renderHistory();closeMobile();}catch(e){toast(e.message)}}
+function newChat(){conversationId=null;messages=[];renderAll();renderHistory();$('#input').focus();closeMobile();}
+$('#newChat').onclick=newChat;$('#historyRefresh').onclick=loadHistory;$('#historySearch').oninput=renderHistory;$('#historySort').onchange=renderHistory;
+
+function closeMobile(){const s=$('#sidebar');s.classList.remove('open');$('#mobileBackdrop').classList.add('hidden');}
+$('#mobileMenu').onclick=()=>{$('#sidebar').classList.add('open');$('#mobileBackdrop').classList.remove('hidden')};$('#mobileBackdrop').onclick=closeMobile;
+
+async function loadSettings(){try{const d=await api('/me/settings');$('#preferredMode').value=d.preferred_mode||'auto';$('#modeSelect').value=d.preferred_mode||'auto';window.chatResponseLength=d.response_length||'normal';$('#responseLength').value=window.chatResponseLength;$('#memoryEnabled').checked=d.memory_enabled!==false;}catch{}}
+$('#settingsButton').onclick=async()=>{await loadSettings();openModal('settings');};
+$('#saveSettings').onclick=async()=>{try{const mode=$('#preferredMode').value;const len=$('#responseLength').value;window.chatResponseLength=len;await api('/me/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({preferred_mode:mode,response_length:len,memory_enabled:$('#memoryEnabled').checked})});const local=settingsLocal();local.theme=$('#theme').value;localStorage.setItem(uiKey,JSON.stringify(local));applyTheme();$('#modeSelect').value=mode;closeModal('settings');toast('Settings saved');}catch(e){$('#settingsStatus').textContent=e.message}};
+$('#modeSelect').onchange=()=>{};$('#theme').value=settingsLocal().theme||'dark';$('#theme').onchange=()=>{const s=settingsLocal();s.theme=$('#theme').value;localStorage.setItem(uiKey,JSON.stringify(s));applyTheme();};document.querySelectorAll('[data-close]').forEach(x=>x.onclick=()=>closeModal(x.dataset.close));
+$('#logoutButton').onclick=async()=>{try{await api('/auth/logout',{method:'POST'})}finally{location.reload()}};
+
+function showAuth(mode){['guest','login','register'].forEach(x=>{$('#'+x+'Form').classList.toggle('hidden',x!==mode);$('#'+x+'Tab').classList.toggle('active',x===mode)});openModal('auth');}
+$('#guestTab').onclick=()=>showAuth('guest');$('#loginTab').onclick=()=>showAuth('login');$('#registerTab').onclick=()=>showAuth('register');
+async function authSubmit(kind,form,endpoint,payload,errorId){form.onsubmit=async e=>{e.preventDefault();try{await api(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload())});location.reload();}catch(x){$('#'+errorId).textContent=x.message}}}
+authSubmit('guest',$('#guestForm'),'/auth/guest',()=>({username:$('#guestUser').value.trim(),password:$('#guestPass').value}), 'guestError');
+authSubmit('login',$('#loginForm'),'/auth/login',()=>({identifier:$('#loginIdentifier').value.trim(),password:$('#loginPass').value}),'loginError');
+authSubmit('register',$('#registerForm'),'/auth/register',()=>({username:$('#regUser').value.trim(),email:$('#regEmail').value.trim(),password:$('#regPass').value}),'registerError');
+
+async function loadMe(){try{me=await api('/auth/me');$('#accountName').textContent=me.username;$('#accountRole').textContent=me.role;$('#avatar').textContent=(me.username||'T').slice(0,1).toUpperCase();if(['admin','owner'].includes(me.role))$('#adminButton').classList.remove('hidden');$('#auth').classList.add('hidden');await loadSettings();await loadHistory();}catch{showAuth('guest');}}
+$('#adminButton').onclick=()=>location.href='/admin';
+applyTheme();resize();loadMe();
