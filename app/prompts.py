@@ -61,7 +61,7 @@ def build_prompt(mode="auto",conversation="",linguistics="",memory="",knowledge=
     if conversation: pieces.append("INTERNAL CONVERSATION CONTEXT:\n"+_trim(conversation,5000))
     if memory: pieces.append("INTERNAL USER-CONTROLLED MEMORY:\n"+_trim(memory,1800))
     if mode != "melimi" and linguistics: pieces.append("INTERNAL LINGUISTIC HINTS:\n"+_trim(linguistics,1500))
-    if plan: pieces.append("INTERNAL RESPONSE GUIDANCE:\n"+_trim(plan,1200))
+    if plan: pieces.append("INTERNAL RESPONSE PLAN:\n"+_trim(plan,1200))
     pieces.append(f"REPLY LANGUAGE SIGNAL: {language}")
     pieces.append(OUTPUT_CONTRACT)
     return "\n\n".join(pieces)
