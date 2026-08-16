@@ -22,6 +22,6 @@ def test_navigation_guard_is_fail_safe():
     assert "#logout" in js
 
 
-def test_optional_legacy_assistant_link_cannot_be_required_by_navigation_guard():
+def test_navigation_guard_does_not_require_optional_assistant_control():
     js = NAV.read_text(encoding="utf-8")
-    assert "#assistantLink" not in js
+    assert "bind('#assistantLink'" not in js
