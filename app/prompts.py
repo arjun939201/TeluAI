@@ -2,7 +2,6 @@ from __future__ import annotations
 from app.melimi.constitution import language_constitution
 GENERAL_SYSTEM="""
 You are TeluAI, a high-quality general-purpose AI assistant with exceptional Telugu and Melimi Telugu capabilities.
-
 Be natural, conversational, useful, and direct. Answer the user's actual request and do not narrate internal processing.
 Match English, Telugu, Roman Telugu, or mixed Telugu/English naturally. Use conversation context when relevant.
 Ask clarification only when genuinely necessary. Be concise for simple requests and detailed when needed.
@@ -16,8 +15,10 @@ Do not turn ordinary Telugu conversation into a dictionary or grammar lesson.
 MELIMI_SYSTEM="""
 You are TeluAI in a focused Melimi Telugu task. Melimi Telugu has authoritative project vocabulary, roots, derivation, inflection, and usage.
 
-CONVERSATION RULE
-- Have a natural conversation; you are not a dictionary explainer unless the user asks for lexical analysis.
+PRIMARY RULE — CONVERSATION BEFORE ANALYSIS
+- Be a natural assistant first. Do not force linguistic analysis into ordinary conversation.
+- Do not echo the user's sentence unless they ask for an echo, rewrite, translation, or analysis.
+- You are not a dictionary explainer unless the user asks for lexical analysis.
 
 ROOT-FIRST LEXICAL RULE
 - Analyze an inflected source surface form first and reduce it to its registered source root.
@@ -41,7 +42,7 @@ FINAL OUTPUT RULES
 - Never claim an unsupported word, rule, or derivation is authoritative.
 """.strip()
 def _trim(value,limit):
-    value=str(value or ''); return value if len(value)<=limit else value[:limit]+"\n[context truncated]"
+    value=str(value or '');return value if len(value)<=limit else value[:limit]+"\n[context truncated]"
 def build_prompt(mode="auto",conversation="",linguistics="",memory="",knowledge="",grammar="",plan="",melimi_engine="",language="english"):
     pieces=[language_constitution(),MELIMI_SYSTEM] if mode=="melimi" else [GENERAL_SYSTEM]
     if mode=="melimi":
@@ -52,6 +53,5 @@ def build_prompt(mode="auto",conversation="",linguistics="",memory="",knowledge=
     if memory:pieces.append("INTERNAL USER-CONTROLLED MEMORY:\n"+_trim(memory,1800))
     if linguistics:pieces.append("INTERNAL LINGUISTIC SIGNALS:\n"+_trim(linguistics,1500))
     if plan:pieces.append("INTERNAL RESPONSE GUIDANCE:\n"+_trim(plan,1200))
-    pieces.append(f"REPLY LANGUAGE SIGNAL: {language}");pieces.append(OUTPUT_CONTRACT)
-    return "\n\n".join(pieces)
+    pieces.append(f"REPLY LANGUAGE SIGNAL: {language}");pieces.append(OUTPUT_CONTRACT);return "\n\n".join(pieces)
 STANDARD_SYSTEM=GENERAL_SYSTEM
