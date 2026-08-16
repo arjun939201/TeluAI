@@ -1,9 +1,16 @@
-"""Deterministic answers that require no Groq call."""
+"""Deterministic answers for authoritative Melimi lookups.
+
+This module is deliberately conservative: only MASTER Language Space data may
+be presented as established Melimi knowledge. Unknown vocabulary/content never
+falls through to the general model as if it were a confirmed definition.
+"""
 from __future__ import annotations
 
 import re
 from difflib import SequenceMatcher
+from sqlalchemy import select
 
+from app.database import SessionLocal, KnowledgeEntry, MelimiExample
 from app.melimi.root_morphology import load_root_dictionary
 from app.melimi.registry import lexical_inventory
 
@@ -35,7 +42,7 @@ def _lookup_standard(word: str, roots: dict[str, str]):
     if not word: return None
     if word in roots: return word, roots[word]
     for key, value in roots.items():
-        if key.lower() == word.lower(): return key, value
+        if key.casefold() == word.casefold(): return key, value
     if re.search(r"[\u0C00-\u0C7F]", word):
         needle=_romanize_telugu(word); best=None
         for key, value in roots.items():
@@ -47,13 +54,47 @@ def _lookup_standard(word: str, roots: dict[str, str]):
 
 
 def _extract_lookup_word(q: str):
-    patterns=(r"^(.+?)\s*=\s*\??$",r"^(.+?)\s+(?:ఏంటి|ఏమిటి)\??$",r"^(?:మేలిమి\s+తెలుగులో\s+)?(.+?)\s+ను?\s+ఏమంటారు\??$",r"^(.+?)\s+అంటే\s+ఏమిటి\??$",r"^(.+?)\s+అర్థం\s+ఏమిటి\??$")
+    patterns=(
+        r"^(.+?)\s*=\s*\??$",
+        r"^(.+?)\s+(?:ఏంటి|ఏమిటి)\??$",
+        r"^(?:మేలిమి\s+తెలుగులో\s+)?(.+?)\s+ను?\s+ఏమంటారు\??$",
+        r"^(.+?)\s+అంటే\s+ఏమిటి\??$",
+        r"^(.+?)\s+అర్థం\s+ఏమిటి\??$",
+        r"^(.+?)\s+కు\s+మేలిమి\s+తెలుగులో\s+ఏమంటారు\??$",
+    )
     for pattern in patterns:
         match=re.fullmatch(pattern,q)
         if match:
-            word=match.group(1).strip()
-            return re.sub(r"^మేలిమి\s+తెలుగులో\s+", "", word).strip()
+            return re.sub(r"^మేలిమి\s+తెలుగులో\s+", "", match.group(1).strip()).strip()
     return None
+
+
+def _lookup_content(q: str):
+    """Return an exact MASTER phrase/example meaning when explicitly asked."""
+    candidates=[]
+    with SessionLocal() as db:
+        rows=db.scalars(select(KnowledgeEntry).where(KnowledgeEntry.status=="MASTER")).all()
+        for row in rows:
+            if row.kind not in {"CONTENT","EXAMPLE","POST","FACT","NOTE"}: continue
+            value=(row.value or "").strip()
+            if not value: continue
+            if value.casefold()==q.casefold():
+                candidates.append((value,row.metadata_json or "{}"))
+        examples=db.scalars(select(MelimiExample).where(MelimiExample.status=="MASTER")).all()
+        for row in examples:
+            if (row.melimi_text or "").strip().casefold()==q.casefold():
+                candidates.append((row.melimi_text,row.standard_text))
+    if not candidates: return None
+    value,meta=candidates[0]
+    if isinstance(meta,str) and meta.strip().startswith("{"):
+        try:
+            import json
+            meaning=str(json.loads(meta).get("meaning","")).strip()
+        except Exception:
+            meaning=""
+    else:
+        meaning=str(meta).strip()
+    return f"{value}\n{meaning}" if meaning else value
 
 
 def answer(message: str, mode: str) -> str | None:
@@ -63,21 +104,25 @@ def answer(message: str, mode: str) -> str | None:
         return ("మేలిమి తెలుగు అనేది తెలుగు ఆధారిత వేఱైన నుడి రూపం. ఇందులో కుదిరిన మేలిమి మాటలు, "
                 "పదనిర్మాణ నియమాలు, పదార్థభేదాలు, వాడుకరీతులు ఉంటాయి. సాధారణ తెలుగు వ్యాకరణ నిర్మాణం "
                 "మేలిమి నియమాలతో పాటు కొనసాగుతుంది.")
+
     word=_extract_lookup_word(q)
     if word:
         roots=load_root_dictionary(); found=_lookup_standard(word,roots)
         if found: return found[1]
         inverse=lexical_inventory()["melimi_to_standard"].get(word)
         if inverse: return f"{word} అంటే {inverse}."
-        # A lexical lookup with no MASTER mapping must not fall through to the
-        # general LLM. Otherwise the model can hallucinate an "established"
-        # Melimi equivalent. Be explicit about the knowledge boundary.
         return "ఈ మాటకు మేలిమి తెలుగు సమానం ఇంకా భాషా నిలయంలో కుదరలేదు."
+
+    # Exact MASTER content is also deterministic. This prevents the LLM from
+    # inventing a meaning when the user supplies a phrase that Language Space
+    # already knows.
+    content=_lookup_content(q)
+    if content is not None:
+        return content
     return None
 
 
 async def try_deterministic_answer(message: str, mode: str, history_count: int = 0) -> str | None:
-    """Compatibility adapter for the previous local-first API."""
     if history_count:
         return None
     return answer(message, mode)
