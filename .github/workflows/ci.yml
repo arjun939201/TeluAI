@@ -15,15 +15,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Verify dependency consistency
+        run: pip check
       - name: Compile Python
-        run: python -m compileall -q app
+        run: python -m compileall -q app tests
       - name: Check frontend JavaScript syntax
         run: |
           for file in static/js/*.js; do node --check "$file"; done
-      - name: Run production smoke suite
+      - name: Run test suite
         env:
           PYTHONPATH: .:scripts
-        run: pytest -q tests/test_smoke.py --import-mode=importlib
+          CACHE_ENABLED: "false"
+        run: pytest -q --import-mode=importlib
