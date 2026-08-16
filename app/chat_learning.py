@@ -1,11 +1,4 @@
-"""Chat-native Melimi learning.
-
-Normal chat can teach TeluAI when the user provides language evidence. Explicit
-x = y mappings are authoritative user teaching; longer declarative content is
-mined into reusable lexical items, phrases, sentences, patterns, and
-loan/native signals. All learned items are persisted and immediately available
-to retrieval.
-"""
+"""Chat-native Melimi learning."""
 from __future__ import annotations
 
 import hashlib
@@ -27,6 +20,15 @@ _LOAN_HINTS = re.compile(r"(?:loan\s*word|loanword|borrowed|sanskrit\s*based|san
 _NATIVE_HINTS = re.compile(r"(?:native\s*telugu|native\s*word|pure\s*telugu|తెలుగు\s*మాట|నాటు\s*మాట|తెనుగు\s*మాట|మేలిమి\s*మాట)", re.I)
 _QUESTION_HINTS = re.compile(r"(?:\?|ఏమిటి|ఏంటి|ఏమంటారు|ఏమంటావు|ఎందుకు|ఎలా|ఎక్కడ|ఎప్పుడు|ఎవరు|ఎంత|ఎన్ని)", re.I)
 _LABEL_PAREN_RE = re.compile(r"\s*\((?:[^()]*(?:loan\s*word|loanword|borrowed|sanskrit|native|telugu|అరువు|రుణ|మేలిమి|నాటు)[^()]*)\)\s*$", re.I)
+
+
+def install_chat_learning() -> None:
+    """Compatibility hook used by startup migrations; installation is idempotent."""
+    try:
+        from app.chat_learning_runtime import install
+        install()
+    except Exception:
+        return None
 
 
 def parse_command(message: str):
@@ -98,11 +100,7 @@ def _mapping_pairs(text: str) -> list[tuple[str, str]]:
 
 
 def _sentence_parts(text: str) -> list[str]:
-    out = []
-    for raw in _SENTENCE_RE.findall(text or ""):
-        sentence = re.sub(r"\s+", " ", raw).strip()
-        if len(sentence) >= 3: out.append(sentence)
-    return out
+    return [re.sub(r"\s+", " ", raw).strip() for raw in _SENTENCE_RE.findall(text or "") if len(raw.strip()) >= 3]
 
 
 def _content_items(text: str) -> tuple[list[str], list[str], list[str]]:
@@ -116,7 +114,7 @@ def _content_items(text: str) -> tuple[list[str], list[str], list[str]]:
     for sentence in sentences:
         tokens = [t for t in _TOKEN_RE.findall(sentence) if _TELUGU_RE.fullmatch(t) and t not in FUNCTION_WORDS]
         for size in (2, 3):
-            for i in range(0, max(0, len(tokens) - size + 1)):
+            for i in range(max(0, len(tokens) - size + 1)):
                 phrase = " ".join(tokens[i:i + size])
                 if phrase not in phrases: phrases.append(phrase)
                 if len(phrases) >= 40: break
@@ -129,18 +127,17 @@ def _content_items(text: str) -> tuple[list[str], list[str], list[str]]:
 
 
 def _learn_mapping(standard: str, melimi: str, evidence: str, source_class: str = "unknown") -> bool:
-    source = "chat"; changed = False
+    changed = False
     with SessionLocal() as db:
         melimi_root = melimi.split("/")[0].strip(); row = _find_root(db, standard)
         if row:
-            if row.melimi_root != melimi_root or row.status != "MASTER" or row.source != source:
-                row.melimi_root = melimi_root; row.status = "MASTER"; row.source = source; row.version += 1; row.updated_at = now(); changed = True
+            if row.melimi_root != melimi_root or row.status != "MASTER" or row.source != "chat":
+                row.melimi_root = melimi_root; row.status = "MASTER"; row.source = "chat"; row.version += 1; row.updated_at = now(); changed = True
         else:
-            db.add(MelimiRoot(standard_root=standard, melimi_root=melimi_root, meaning=standard, status="MASTER", source=source)); changed = True
-        metadata = {"standard": standard, "melimi": melimi, "learning": "chat", "source_class": source_class, "evidence": evidence[:2000]}
-        changed = _upsert_knowledge(db, "VOCABULARY", f"word:{standard.casefold()}", melimi, metadata, source) or changed
+            db.add(MelimiRoot(standard_root=standard, melimi_root=melimi_root, meaning=standard, status="MASTER", source="chat")); changed = True
+        changed = _upsert_knowledge(db, "VOCABULARY", f"word:{standard.casefold()}", melimi, {"standard": standard, "melimi": melimi, "learning": "chat", "source_class": source_class, "evidence": evidence[:2000]}, "chat") or changed
         if changed:
-            latest = db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first(); db.add(KnowledgeVersion(version=(latest.version if latest else 0) + 1, source=source, checksum=hashlib.sha256(evidence.encode()).hexdigest()))
+            latest = db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first(); db.add(KnowledgeVersion(version=(latest.version if latest else 0) + 1, source="chat", checksum=hashlib.sha256(evidence.encode()).hexdigest()))
         db.commit()
     _store_learning("vocabulary", standard=standard, melimi=melimi, meaning=standard, evidence=evidence, metadata={"source_class": source_class, "method": "chat_mapping"})
     return changed
@@ -153,7 +150,7 @@ def learn_from_chat(message: str) -> dict:
     for standard, melimi in _mapping_pairs(text):
         changed = _learn_mapping(standard, melimi, text, _source_class(text, standard)) or changed; mappings += 1
     words, phrases, patterns = _content_items(text); sentences = _sentence_parts(text)
-    declarative = not _QUESTION_HINTS.search(text); rich_content = declarative and (len(text) >= 30 or len(sentences) >= 2 or len(words) >= 2)
+    rich_content = not _QUESTION_HINTS.search(text) and (len(text) >= 30 or len(sentences) >= 2 or len(words) >= 2)
     if rich_content:
         for sentence in sentences[:30]: _store_learning("sentence", melimi=sentence, evidence=text, confidence=0.9, metadata={"method": "chat_content"})
         for word in words: _store_learning("word_observation", melimi=word, evidence=text, confidence=0.75, metadata={"source_class": _source_class(text, word), "method": "chat_content"})
@@ -170,7 +167,6 @@ def learn_from_chat(message: str) -> dict:
 
 def retrieve_chat_knowledge(query: str, limit: int = 10) -> str:
     rows = approved_for_query(query, limit=max(1, min(limit, 20)))
-    if not rows: return ""
     lines = []
     for row in rows:
         kind = row.get("kind"); meta = row.get("metadata") or {}
@@ -188,27 +184,27 @@ def learn_explicit_teaching(message: str, user_id: int | None = None):
     kind, payload = parsed
     if kind == "word":
         standard = payload["source"].strip(); melimi = payload["melimi"].strip(); changed = _learn_mapping(standard, melimi, message, _source_class(message, standard)); return {"learned": True, "changed": changed, "roots": 1, "phrases": 0}
-    content = payload["content"]; meaning = payload.get("meaning", ""); command = payload.get("command", "content"); source = "chat"; changed = False; roots = phrases = 0
+    content = payload["content"]; meaning = payload.get("meaning", ""); command = payload.get("command", "content"); changed = False; roots = phrases = 0
     with SessionLocal() as db:
-        key = f"chat:{command}:{hashlib.sha256((content + chr(10) + meaning).encode()).hexdigest()}"; changed = _upsert_knowledge(db, {"example":"EXAMPLE","phrase":"PHRASE","note":"NOTE","content":"CONTENT","root":"ROOT","affix":"AFFIX","rule":"RULE"}.get(command, "CONTENT"), key, content, {"meaning": meaning, "command": command, "source": "chat"}, source) or changed
+        key = f"chat:{command}:{hashlib.sha256((content + chr(10) + meaning).encode()).hexdigest()}"; changed = _upsert_knowledge(db, {"example":"EXAMPLE","phrase":"PHRASE","note":"NOTE","content":"CONTENT","root":"ROOT","affix":"AFFIX","rule":"RULE"}.get(command, "CONTENT"), key, content, {"meaning": meaning, "command": command, "source": "chat"}, "chat") or changed
         if command in {"example", "content", "phrase"}:
-            if meaning and not db.scalar(select(MelimiExample).where((MelimiExample.melimi_text == content) & (MelimiExample.standard_text == meaning))): db.add(MelimiExample(standard_text=meaning, melimi_text=content, category=command, source=source, status="MASTER")); changed = True
+            if meaning and not db.scalar(select(MelimiExample).where((MelimiExample.melimi_text == content) & (MelimiExample.standard_text == meaning))): db.add(MelimiExample(standard_text=meaning, melimi_text=content, category=command, source="chat", status="MASTER")); changed = True
             phrases = 1
         elif command == "root":
             row = _find_root(db, content)
-            if row: row.melimi_root = meaning; row.meaning = meaning; row.status = "MASTER"; row.source = source; row.version += 1; row.updated_at = now(); changed = True
-            else: db.add(MelimiRoot(standard_root=content, melimi_root=meaning, meaning=meaning, status="MASTER", source=source)); changed = True
+            if row: row.melimi_root = meaning; row.meaning = meaning; row.status = "MASTER"; row.source = "chat"; row.version += 1; row.updated_at = now(); changed = True
+            else: db.add(MelimiRoot(standard_root=content, melimi_root=meaning, meaning=meaning, status="MASTER", source="chat")); changed = True
             roots = 1
         elif command == "affix":
             existing = db.scalar(select(MelimiAffix).where(MelimiAffix.form == content))
-            if existing: existing.meaning = meaning; existing.status = "MASTER"; existing.source = source; changed = True
-            else: db.add(MelimiAffix(form=content, kind="suffix", meaning=meaning, status="MASTER", source=source)); changed = True
+            if existing: existing.meaning = meaning; existing.status = "MASTER"; existing.source = "chat"; changed = True
+            else: db.add(MelimiAffix(form=content, kind="suffix", meaning=meaning, status="MASTER", source="chat")); changed = True
         elif command == "rule":
             existing = db.scalar(select(MelimiRule).where(MelimiRule.name == content))
-            if existing: existing.rule_text = meaning; existing.status = "MASTER"; existing.source = source; existing.version += 1; changed = True
-            else: db.add(MelimiRule(name=content, category="chat", rule_text=meaning, status="MASTER", source=source)); changed = True
+            if existing: existing.rule_text = meaning; existing.status = "MASTER"; existing.source = "chat"; existing.version += 1; changed = True
+            else: db.add(MelimiRule(name=content, category="chat", rule_text=meaning, status="MASTER", source="chat")); changed = True
         if changed:
-            latest = db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first(); db.add(KnowledgeVersion(version=(latest.version if latest else 0) + 1, source=source, checksum=hashlib.sha256(message.encode()).hexdigest()))
+            latest = db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first(); db.add(KnowledgeVersion(version=(latest.version if latest else 0) + 1, source="chat", checksum=hashlib.sha256(message.encode()).hexdigest()))
         db.commit()
     _store_learning(command, standard=content if command == "root" else "", melimi=content if command != "root" else meaning, rule=meaning if command == "rule" else "", meaning=meaning, evidence=message, metadata={"command": command})
     if changed: reload_indexes()
