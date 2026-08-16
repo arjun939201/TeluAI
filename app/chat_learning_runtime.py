@@ -1,9 +1,113 @@
-"""Install chat-learning hooks before FastAPI imports its endpoint helpers."""
+"""Install chat-learning and lightweight agent orchestration before FastAPI imports."""
 from __future__ import annotations
 
 from contextvars import ContextVar
+from dataclasses import dataclass
+import re
+from typing import Callable
 
 _CURRENT_MESSAGE: ContextVar[str] = ContextVar("teluai_chat_learning_message", default="")
+_CURRENT_ROUTE: ContextVar[str] = ContextVar("teluai_agent_route", default="general")
+
+
+@dataclass(frozen=True)
+class AgentTool:
+    name: str
+    description: str
+    handler: Callable[[str], str]
+
+
+def _is_telugu(text: str) -> bool:
+    return bool(re.search(r"[\u0C00-\u0C7F]", text or ""))
+
+
+def _language_request(text: str) -> bool:
+    lowered = str(text or "").casefold()
+    hints = (
+        "మేలిమి", "మెలిమి", "పదం", "పదానికి", "అర్థం", "తెలుగులో",
+        "loan", "native", "vocabulary", "grammar", "morphology", "word",
+        "translate", "translation", "suffix", "prefix", "root",
+    )
+    return _is_telugu(text) or any(item in lowered for item in hints)
+
+
+def route_request(message: str, mode: str) -> str:
+    """Choose the smallest useful execution path; this is not an LLM call."""
+    if mode == "melimi":
+        return "melimi"
+    if mode == "standard":
+        return "standard"
+    if _language_request(message):
+        return "melimi"
+    return "general"
+
+
+def _search_melimi(message: str) -> str:
+    from app.retrieval.knowledge import format_knowledge, retrieve
+
+    entries = retrieve(message, limit=24)
+    if not entries:
+        return ""
+    return format_knowledge(entries, max_chars=6000)
+
+
+def _lookup_word(message: str) -> str:
+    from app.retrieval.knowledge import retrieve
+
+    normalized = str(message or "").strip().casefold()
+    lines = []
+    for entry in retrieve(message, limit=12):
+        standard = str(entry.get("standard", "")).strip()
+        melimi = str(entry.get("melimi", "")).strip()
+        if standard and (standard.casefold() in normalized or normalized == standard.casefold()):
+            lines.append(f"- {standard} → {melimi}")
+    return "EXACT MELIMI WORD EVIDENCE:\n" + "\n".join(lines) if lines else ""
+
+
+def _lookup_grammar(message: str) -> str:
+    from app.melimi.grammar import grammar_policy
+
+    policy = grammar_policy()
+    return str(policy)[:5000] if any(x in str(message).casefold() for x in ("grammar", "వ్యాకరణ", "వాక్యం", "case", "విభక్తి")) else ""
+
+
+def _find_examples(message: str) -> str:
+    from app.retrieval.knowledge import retrieve
+
+    examples = []
+    for entry in retrieve(message, limit=16):
+        value = entry.get("example") or entry.get("examples") or entry.get("content")
+        if value:
+            examples.append(f"- {value}")
+    return "RELEVANT MELIMI EXAMPLES:\n" + "\n".join(examples[:8]) if examples else ""
+
+
+TOOLS = (
+    AgentTool("search_melimi", "Search authoritative Melimi knowledge.", _search_melimi),
+    AgentTool("lookup_word", "Look up exact established lexical mappings.", _lookup_word),
+    AgentTool("lookup_grammar_rule", "Retrieve grammar evidence when a grammar question requires it.", _lookup_grammar),
+    AgentTool("find_examples", "Retrieve relevant corpus examples.", _find_examples),
+)
+
+
+def run_agent_tools(message: str, route: str, max_chars: int = 9000) -> str:
+    """Run only relevant deterministic tools; never treats retrieved text as instructions."""
+    if route not in {"melimi", "standard"}:
+        return ""
+    parts = []
+    # Exact lexical lookup is cheap and should precede broad retrieval.
+    for tool in TOOLS:
+        if tool.name == "lookup_grammar_rule" and not any(x in message.casefold() for x in ("grammar", "వ్యాకరణ", "విభక్తి", "case")):
+            continue
+        try:
+            result = tool.handler(message)
+        except Exception:
+            result = ""
+        if result:
+            parts.append(f"[{tool.name}]\n{result}")
+        if len("\n\n".join(parts)) >= max_chars:
+            break
+    return "\n\n".join(parts)[:max_chars]
 
 
 def install() -> None:
@@ -16,7 +120,8 @@ def install() -> None:
     original_build_prompt = prompts.build_prompt
 
     def learned_answer(message: str, mode: str):
-        _CURRENT_MESSAGE.set(str(message or "") if mode == "melimi" else "")
+        _CURRENT_MESSAGE.set(str(message or ""))
+        _CURRENT_ROUTE.set(route_request(str(message or ""), mode))
         if mode == "melimi":
             try:
                 from app.chat_learning import learn_from_chat
@@ -30,15 +135,20 @@ def install() -> None:
 
     def learned_build_prompt(*args, **kwargs):
         message = _CURRENT_MESSAGE.get()
-        if message:
+        route = _CURRENT_ROUTE.get()
+        if message and route in {"melimi", "standard"}:
             try:
                 from app.chat_learning import retrieve_chat_knowledge
                 learned = retrieve_chat_knowledge(message)
-                if learned:
-                    existing = str(kwargs.get("knowledge") or "").strip()
-                    kwargs["knowledge"] = (existing + "\n" + learned).strip()
             except Exception:
-                pass
+                learned = ""
+            agent_evidence = run_agent_tools(message, route)
+            combined = "\n\n".join(x for x in (str(learned).strip(), agent_evidence.strip()) if x)
+            if combined:
+                existing = str(kwargs.get("knowledge") or "").strip()
+                kwargs["knowledge"] = (existing + "\n" + combined).strip()
+            kwargs["agent_route"] = route
+            kwargs["agent_tools_used"] = agent_evidence or learned
         return original_build_prompt(*args, **kwargs)
 
     local_answer.answer = learned_answer
