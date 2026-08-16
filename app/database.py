@@ -76,50 +76,41 @@ def update_credentials(user_id,current_password,username=None,new_password=None)
    u.username=username
   if new_password:u.password_hash=_hash_password(new_password)
   db.commit();return u
-
 def authenticate(identifier,password):
  with SessionLocal() as db:
   u=db.scalar(select(User).where((User.username==identifier)|(User.email==identifier.lower())))
   if not u or not u.is_active or not verify_password(password,u.password_hash):return None
   u.last_login=now();db.commit();return u
-
 def create_session(user_id,days=30):
  raw=secrets.token_urlsafe(32);h=hashlib.sha256(raw.encode()).hexdigest()
  with SessionLocal() as db:db.add(Session(token_hash=h,user_id=user_id,expires_at=now()+timedelta(days=days)));db.commit()
  return raw
-
 def get_user_by_session(raw):
  if not raw:return None
  h=hashlib.sha256(raw.encode()).hexdigest()
  with SessionLocal() as db:
   s=db.scalar(select(Session).where(Session.token_hash==h,Session.expires_at>now()))
   return db.get(User,s.user_id) if s else None
-
 def delete_session(raw):
  if not raw:return
  h=hashlib.sha256(raw.encode()).hexdigest()
  with SessionLocal() as db:db.execute(delete(Session).where(Session.token_hash==h));db.commit()
-
 def ensure_schema():Base.metadata.create_all(engine)
-
 def get_or_create_conversation(user_id,conversation_id=None,mode="melimi"):
  with SessionLocal() as db:
   if conversation_id:
    c=db.get(Conversation,str(conversation_id))
    if c and c.user_id==user_id:return c
   c=Conversation(id=str(uuid.uuid4()),user_id=user_id,mode=mode,title="New chat");db.add(c);db.commit();return c
-
 def save_message(conversation_id,user_id,role,content,model=None,input_tokens=None,output_tokens=None,latency_ms=None):
  with SessionLocal() as db:
   c=db.get(Conversation,str(conversation_id))
   if not c or c.user_id!=user_id:raise ValueError("Conversation not found")
   m=Message(conversation_id=c.id,user_id=user_id,role=role,content=content,model=model,input_tokens=input_tokens,output_tokens=output_tokens,latency_ms=latency_ms);db.add(m);c.updated_at=now();db.commit();return m
-
 def get_conversation_messages(user_id,conversation_id,limit=20):
  with SessionLocal() as db:
   c=db.get(Conversation,str(conversation_id))
   if not c or c.user_id!=user_id:return []
-  return list(db.scalars(select(Message).where(Message.conversation_id=c.id).order_by(Message.created_at.desc()).limit(limit)))[::-1]
-
+  return list(db.scalars(select(Message).where(Message.conversation_id==c.id).order_by(Message.created_at.desc()).limit(limit)))[::-1]
 def list_conversations(user_id,limit=50):
  with SessionLocal() as db:return list(db.scalars(select(Conversation).where(Conversation.user_id==user_id).order_by(Conversation.updated_at.desc()).limit(limit)))
