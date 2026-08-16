@@ -1,9 +1,8 @@
 """Generic root-first Melimi morphology backed by Language Space.
 
-The important distinction here is between a *lexical mapping* and a
-*grammatical operation*. The dictionary stores ``సంతోషం -> అలరిక`` once;
-inflected source forms such as ``సంతోషాన్ని`` must be reduced to the same root,
-then the grammatical operation must be reapplied to ``అలరిక``.
+A learned dictionary entry stores a lexical root once. Inflected source forms
+are analyzed into that root plus an abstract grammatical operation, and the
+same operation is then reapplied to the learned Melimi root.
 """
 from __future__ import annotations
 
@@ -14,33 +13,19 @@ from typing import Dict, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
 
-GRAMMATICAL_SUFFIXES = tuple(
-    sorted(
-        [
-            "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై", "లవల్ల",
-            "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల",
-            "మధ్య", "లోని", "పైన", "తో", "లో", "లు", "ను", "ని", "కు",
-            "కి", "గా", "పై", "ల",
-        ],
-        key=len,
-        reverse=True,
-    )
-)
+GRAMMATICAL_SUFFIXES = tuple(sorted([
+    "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై", "లవల్ల",
+    "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల",
+    "మధ్య", "లోని", "పైన", "తో", "లో", "లు", "ను", "ని", "కు",
+    "కి", "గా", "పై", "ల",
+], key=len, reverse=True))
 
-DERIVATIONAL_SUFFIXES = tuple(
-    sorted(
-        [
-            "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి",
-            "వాను", "వాన్", "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము",
-            "ఓరు", "ఆది", "ఓలి", "ఓజ", "అంగి", "ఇద", "ద", "అ",
-        ],
-        key=len,
-        reverse=True,
-    )
-)
+DERIVATIONAL_SUFFIXES = tuple(sorted([
+    "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి",
+    "వాను", "వాన్", "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము",
+    "ఓరు", "ఆది", "ఓలి", "ఓజ", "అంగి", "ఇద", "ద", "అ",
+], key=len, reverse=True))
 
-# Abstract operations are used instead of storing a source-language surface
-# suffix. One operation can therefore be reapplied to any learned target root.
 ACCUSATIVE = "ACCUSATIVE"
 DATIVE = "DATIVE"
 
@@ -77,27 +62,30 @@ def _candidate_strips(surface, suffixes, kind):
 
 
 def _case_candidate(surface):
-    """Recover abstract case operations from common Telugu -ం noun forms."""
-    # సంతోషం + ని -> సంతోషాన్ని
-    if surface.endswith("న్ని") and len(surface) > 4:
-        return surface[:-3] + "ం", ACCUSATIVE
-    # సంతోషం + కి -> సంతోషానికి
-    if surface.endswith("నికి") and len(surface) > 4:
-        return surface[:-3] + "ం", DATIVE
+    """Recover abstract case operations from Telugu -ం noun allomorphs.
+
+    The critical detail is to remove the complete Unicode suffix string rather
+    than a guessed character count. This recovers ``సంతోషం`` exactly from
+    ``సంతోషాన్ని`` and ``సంతోషానికి``.
+    """
+    if surface.endswith("న్ని") and len(surface) > len("న్ని") + 1:
+        return surface[:-len("న్ని")] + "ం", ACCUSATIVE
+    if surface.endswith("నికి") and len(surface) > len("నికి") + 1:
+        return surface[:-len("నికి")] + "ం", DATIVE
     return None
 
 
 def _adjectival_candidate(surface, roots):
-    if surface.endswith("మైన") and len(surface) > 4:
-        candidate = surface[:-3] + "ం"
+    if surface.endswith("మైన") and len(surface) > len("మైన") + 1:
+        candidate = surface[:-len("మైన")] + "ం"
         if candidate in roots:
             return candidate, "మైన", "adjective"
-    if surface.endswith("గా") and len(surface) > 3:
-        candidate = surface[:-2] + "ం"
+    if surface.endswith("గా") and len(surface) > len("గా") + 1:
+        candidate = surface[:-len("గా")] + "ం"
         if candidate in roots:
             return candidate, "గా", "adjective_predicate"
-    if surface.endswith("ా") and len(surface) > 2:
-        candidate = surface[:-1]
+    if surface.endswith("ా") and len(surface) > len("ా") + 1:
+        candidate = surface[:-len("ా")]
         if candidate in roots:
             return candidate, "ా", "adjective"
     return None
@@ -112,7 +100,6 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     if surface in roots:
         return MorphologicalForm(surface, surface)
 
-    # Morphophonemic case recovery must happen before ordinary suffix stripping.
     case = _case_candidate(surface)
     if case and case[0] in roots:
         root, operation = case
@@ -158,29 +145,19 @@ def apply_operation(root, kind, suffix):
     if kind == "case":
         if suffix == ACCUSATIVE:
             # Source: సంతోషం -> సంతోషాన్ని
-            # Target: అలరిక -> అలరికని; ఉల్లాసం -> ఉల్లాసాన్ని
-            if root.endswith("ం"):
-                return root[:-1] + "ాన్ని"
-            return root + "ని"
+            # Melimi: అలరిక -> అలరికని; ఉల్లాసం -> ఉల్లాసాన్ని
+            return root[:-1] + "ాన్ని" if root.endswith("ం") else root + "ని"
         if suffix == DATIVE:
             # Source: సంతోషం -> సంతోషానికి
-            # Target: అలరిక -> అలరికకి; ఉల్లాసం -> ఉల్లాసానికి
-            if root.endswith("ం"):
-                return root[:-1] + "ానికి"
-            return root + "కి"
+            # Melimi: అలరిక -> అలరికకి; ఉల్లాసం -> ఉల్లాసానికి
+            return root[:-1] + "ానికి" if root.endswith("ం") else root + "కి"
 
     if root.endswith("ం") and kind == "grammar":
         stem = root[:-1] + "ా"
         forms = {
-            "లు": stem + "లు",
-            "ల": stem + "ల",
-            "లను": stem + "లను",
-            "లని": stem + "లని",
-            "లకు": stem + "లకు",
-            "లకై": stem + "లకై",
-            "లపై": stem + "లపై",
-            "లతో": stem + "లతో",
-            "లలో": stem + "లలో",
+            "లు": stem + "లు", "ల": stem + "ల", "లను": stem + "లను",
+            "లని": stem + "లని", "లకు": stem + "లకు", "లకై": stem + "లకై",
+            "లపై": stem + "లపై", "లతో": stem + "లతో", "లలో": stem + "లలో",
         }
         if suffix in forms:
             return forms[suffix]
