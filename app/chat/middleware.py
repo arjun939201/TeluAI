@@ -4,7 +4,6 @@ from fastapi import Request
 from fastapi.responses import JSONResponse,StreamingResponse
 from app.auth import COOKIE_NAME
 from app.chat.persistence import append_assistant_message,append_user_message,branch_from_message,context_for,edit_user_message,ensure_conversation
-from app.chat.router import route_message
 from app.chat.service import prepare_prompt
 from app.config import settings
 from app.database import save_usage,user_from_session
@@ -13,7 +12,6 @@ from app.melimi.lexical import direct_lookup
 from app.response import clean_response
 from app.groq_client import call_groq_detailed,stream_groq
 from app.security import RATE_LIMITER,client_identifier,session_fingerprint
-
 def _sse(payload):return 'data: '+json.dumps(payload,ensure_ascii=False,separators=(',',':'))+'\n\n'
 def _friendly(exc):
     text=str(exc).lower()
@@ -22,28 +20,30 @@ def _friendly(exc):
     if 'timed out' in text:return 'The AI service took too long to respond. Please try again.'
     if 'connect' in text:return 'The AI service is temporarily unreachable. Please try again shortly.'
     return "I couldn't complete that response. Please try again."
-
-def _allow(request):
-    identity=f"{client_identifier(request)}:{session_fingerprint(request)}"
-    return RATE_LIMITER.check(f'/chat:{identity}',30,60)
+def _allow(request):return RATE_LIMITER.check(f'/chat:{client_identifier(request)}:{session_fingerprint(request)}',30,60)
 async def _prepare(data,user):
     message=str(data.get('message','')).strip()
     if not message:raise ValueError('Message cannot be empty.')
     requested_mode=str(data.get('mode','auto'))
     if requested_mode not in {'auto','standard','melimi'}:requested_mode='auto'
-    cid=ensure_conversation(user.id,data.get('conversation_id'),message,requested_mode)
-    history,summary=context_for(user.id,cid)
+    cid=ensure_conversation(user.id,data.get('conversation_id'),message,requested_mode);history,summary=context_for(user.id,cid)
     if summary:history=[{'role':'system','content':'Conversation summary: '+summary}]+history
     decision,prompt,meta=prepare_prompt(message,requested_mode,history,user.id,response_length=str(data.get('response_length','normal')))
     return message,cid,history,decision,prompt,meta
+async def _language_command(message,user,cid):
+    from app.main import _language_command_result
+    _,reply=_language_command_result(message,user);append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,reply,model='language-command')
+    return JSONResponse({'reply':reply,'mode':'melimi','intent':'language_command','language':'telugu','conversation_id':cid,'message_id':aid,'local':True})
 async def handle_json(request,user):
     try:
-        data=await request.json();message,cid,history,decision,prompt,meta=await _prepare(data,user);direct=direct_lookup(message) if decision.use_melimi else None
+        data=await request.json();message,cid,history,decision,prompt,meta=await _prepare(data,user)
+        if message.startswith('/'):
+            from app.chat_learning import parse_command
+            if parse_command(message):return await _language_command(message,user,cid)
+        direct=direct_lookup(message) if decision.use_melimi else None
         if direct is not None:
-            append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,direct,model='melimi-lexical',latency_ms=0)
-            return JSONResponse({'reply':direct,'mode':'melimi','intent':'melimi_lookup','language':decision.language,'conversation_id':cid,'message_id':aid,'local':True})
-        result=await call_groq_detailed(prompt,history,message);reply=clean_response(result['answer'])
-        if decision.mode=='melimi':reply=deterministic_repair(reply)
+            append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,direct,model='melimi-lexical',latency_ms=0);return JSONResponse({'reply':direct,'mode':'melimi','intent':'melimi_lookup','language':decision.language,'conversation_id':cid,'message_id':aid,'local':True})
+        result=await call_groq_detailed(prompt,history,message);reply=clean_response(result['answer']);reply=deterministic_repair(reply) if decision.mode=='melimi' else reply
         if not reply:raise RuntimeError('Empty response')
         append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,reply,model=result.get('model'),input_tokens=result.get('input_tokens'),output_tokens=result.get('output_tokens'),latency_ms=result.get('latency_ms'));save_usage(user.id,result.get('model'),result.get('input_tokens'),result.get('output_tokens'),'ok')
         return JSONResponse({'reply':reply,'mode':decision.mode,'intent':meta.get('intent','conversation'),'language':decision.language,'conversation_id':cid,'message_id':aid,'local':False})
@@ -58,10 +58,19 @@ async def handle_stream(request,user,data=None):
         except Exception:return StreamingResponse(iter([_sse({'type':'error','message':'Invalid request.'}),_sse({'type':'done'})]),media_type='text/event-stream',status_code=400)
     try:message,cid,history,decision,prompt,meta=await _prepare(data,user)
     except ValueError as exc:return StreamingResponse(iter([_sse({'type':'error','message':str(exc)}),_sse({'type':'done'})]),media_type='text/event-stream',status_code=400)
+    if message.startswith('/'):
+        try:
+            from app.chat_learning import parse_command
+            if parse_command(message):
+                from app.main import _language_command_result
+                _,reply=_language_command_result(message,user);append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,reply,model='language-command')
+                async def command_stream():
+                    yield _sse({'type':'start','conversation_id':cid,'mode':'melimi','intent':'language_command','language':'telugu'});yield _sse({'type':'delta','text':reply});yield _sse({'type':'done','message_id':aid,'local':True})
+                return StreamingResponse(command_stream(),media_type='text/event-stream',headers={'Cache-Control':'no-cache, no-transform'})
+        except ValueError as exc:return StreamingResponse(iter([_sse({'type':'error','message':str(exc)}),_sse({'type':'done'})]),media_type='text/event-stream',status_code=400)
     direct=direct_lookup(message) if decision.use_melimi else None
     async def generate():
-        started=time.perf_counter();append_user_message(user.id,cid,message)
-        yield _sse({'type':'start','conversation_id':cid,'mode':decision.mode,'intent':meta.get('intent','conversation'),'language':decision.language})
+        started=time.perf_counter();append_user_message(user.id,cid,message);yield _sse({'type':'start','conversation_id':cid,'mode':decision.mode,'intent':meta.get('intent','conversation'),'language':decision.language})
         if direct is not None:
             aid=append_assistant_message(user.id,cid,direct,model='melimi-lexical',latency_ms=0);yield _sse({'type':'delta','text':direct});yield _sse({'type':'done','message_id':aid,'local':True,'latency_ms':int((time.perf_counter()-started)*1000)});return
         parts=[];model=None;input_tokens=output_tokens=latency_ms=None
@@ -92,11 +101,9 @@ class ChatOverrideMiddleware:
         path=scope.get('path','');method=scope.get('method','').upper();intercept=(path=='/chat' and method=='POST') or (path=='/chat/stream' and method=='POST') or (path.startswith('/chat/') and method=='POST') or (path.startswith('/messages/') and method=='PATCH')
         if not intercept:await self.app(scope,receive,send);return
         request=Request(scope,receive);allowed,retry=_allow(request)
-        if not allowed:
-            response=JSONResponse(status_code=429,content={'detail':'Too many requests. Please try again shortly.'},headers={'Retry-After':str(retry)});await response(scope,receive,send);return
+        if not allowed:response=JSONResponse(status_code=429,content={'detail':'Too many requests. Please try again shortly.'},headers={'Retry-After':str(retry)});await response(scope,receive,send);return
         user=user_from_session(request.cookies.get(COOKIE_NAME))
-        if user is None:
-            response=JSONResponse({'detail':'Authentication required.'},status_code=401);await response(scope,receive,send);return
+        if user is None:response=JSONResponse({'detail':'Authentication required.'},status_code=401);await response(scope,receive,send);return
         if path=='/chat':response=await handle_json(request,user)
         elif path=='/chat/stream':response=await handle_stream(request,user)
         elif path.startswith('/messages/'):
