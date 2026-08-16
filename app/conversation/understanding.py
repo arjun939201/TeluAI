@@ -50,8 +50,8 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
         }
 
     low = normalized.lower()
-    if "ఎందుకు" in low:
-        intent = "why_question"
+    if re.match(r"^(ఏం|ఏమి)\b", normalized) or "ఎందుకు" in low:
+        intent = "why_question" if "ఎందుకు" in low else "what_question"
     elif "ఎలా" in low:
         intent = "how_question"
     elif "ఎక్కడ" in low:
@@ -86,7 +86,7 @@ def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
         f"- confidence: {result['confidence']}",
         f"- interpretation: {result['meaning']}",
         f"- previous assistant: {state.last_assistant() or '(none)'}",
-        f"- open question: {state.open_question or '(none)'}",
+        f"- open question: {state.open_question or '(none)' }",
         "",
         "INTERNAL CONVERSATION RULES:",
         "- Interpret short replies from the previous turn, not as isolated dictionary entries.",
