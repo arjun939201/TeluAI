@@ -46,9 +46,19 @@ def _knowledge_version() -> int:
         row = db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first()
         return int(row.version) if row else 0
 
-def _cache_key(message: str, mode: str) -> str:
+def _cache_key(message: str, mode: str, history=None) -> str:
     normalized = re.sub(r"\s+", " ", message.strip().lower())
-    return hashlib.sha256(f"chat-conversation-v3\n{mode}\n{_knowledge_version()}\n{normalized}".encode()).hexdigest()
+    # A response to "what is it?" is context-dependent. Never reuse a cached
+    # answer merely because the final user message happens to match.
+    recent = []
+    for item in (history or [])[-settings.max_history_turns:]:
+        if not isinstance(item, dict):
+            continue
+        role=str(item.get("role", "")); content=str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            recent.append(f"{role}:{content[:settings.max_history_chars_per_turn]}")
+    context_hash=hashlib.sha256("\n".join(recent).encode()).hexdigest()[:24]
+    return hashlib.sha256(f"chat-conversation-v4\n{mode}\n{_knowledge_version()}\n{context_hash}\n{normalized}".encode()).hexdigest()
 
 @app.on_event("startup")
 def startup():
@@ -241,22 +251,11 @@ async def melimi_content(payload:dict,user=Depends(current_user)):
     title=str(payload.get("title","")).strip(); content=str(payload.get("content","")).strip(); meaning=str(payload.get("meaning","")).strip()
     if not content: raise HTTPException(400,"Content is required.")
     if len(content)>50000: raise HTTPException(400,"Content is too large.")
-    try: result=submit_content(user.id,title,content,approved=True)
+    try: result=submit_content(title=title,content=content,meaning=meaning,user_id=user.id)
     except ValueError as exc: raise HTTPException(400,str(exc))
-    audit_log(user.id,"language.content.create","language_content",title or "CHAT_COMMAND",{"chars":len(content),"meaning_chars":len(meaning)}); return {"ok":True,"status":"MASTER",**result}
+    audit_log(user.id,"language.content_create","language_content",str(result.get("id", "")),{"title":title}); return {"ok":True,**result}
 
-@app.post("/melimi/register")
-async def melimi_register(payload:WordRegistration,user=Depends(current_user)):
-    try: return {"ok":True,**(await register_word(payload.model_dump(),user.id))}
-    except ValueError as exc: raise HTTPException(400,str(exc))
-    except GitHubSyncError as exc: raise HTTPException(502,str(exc))
-
-@app.post("/feedback")
-def feedback(payload:FeedbackRequest,user=Depends(current_user)):
-    with SessionLocal() as db: db.add(Feedback(user_id=user.id,message_id=payload.message_id,rating=payload.rating,text=payload.text)); db.commit()
-    return {"ok":True}
-
-@app.get("/health")
+@app.get("/health",response_model=HealthResponse)
 def health():
     db_url=settings.database_url.lower(); database="postgresql" if db_url.startswith(("postgres://","postgresql://","postgresql+psycopg://")) else "sqlite-fallback"
     return HealthResponse(status="ok",service="TeluAI",vocabulary_entries=len(load_vocabulary()),database=database)
@@ -279,7 +278,7 @@ async def chat(request:ChatRequest,user=Depends(current_user)):
     else:
         history=[turn.model_dump() for turn in request.history]; conversation_id=create_conversation(user.id,message[:70],request.mode)
     if settings.cache_enabled and not request.conversation_id:
-        cached=cache_get(_cache_key(message,request.mode),request.mode)
+        cached=cache_get(_cache_key(message,request.mode,history),request.mode)
         if cached:
             save_message(user.id,conversation_id,"user",message); aid=save_message(user.id,conversation_id,"assistant",cached,model="cache"); return ChatResponse(reply=cached,mode=request.mode,intent="cached",conversation_id=conversation_id,message_id=aid,local=True)
     local=local_answer(message,request.mode)
