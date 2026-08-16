@@ -23,5 +23,7 @@ jobs:
       - name: Check frontend JavaScript syntax
         run: |
           for file in static/js/*.js; do node --check "$file"; done
-      - name: Run smoke tests
-        run: pytest -q
+      - name: Run full test suite
+        env:
+          PYTHONPATH: .:scripts
+        run: pytest -q --import-mode=importlib
