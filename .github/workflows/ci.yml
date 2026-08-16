@@ -2,20 +2,28 @@ name: TeluAI CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - extreme-product-engineering-upgrade
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: teluai-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@5b0524f730db83f9513c18ab31a6c086c7239076 # v5
+      - uses: actions/setup-python@7a9a7b634ec348b35b882f1f14fcaa4d41836a8e # v6
         with:
           python-version: "3.12"
+          cache: pip
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Verify dependency consistency
@@ -25,6 +33,12 @@ jobs:
       - name: Check frontend JavaScript syntax
         run: |
           for file in static/js/*.js; do node --check "$file"; done
+      - name: Check repository hygiene
+        run: |
+          if git ls-files | grep -E '(^|/)(__pycache__/|.*\.py[cod]$)'; then
+            echo "Tracked Python cache artifacts found."
+            exit 1
+          fi
       - name: Run test suite
         env:
           PYTHONPATH: .:scripts
