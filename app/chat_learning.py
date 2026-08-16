@@ -1,17 +1,7 @@
 """Explicit Melimi teaching extracted from chat/content.
 
 Ordinary conversation is never treated as language authority. Only explicit
-teaching syntax is promoted immediately into the shared Language Space:
-
-  చేవీనం - cellphone, mobile
-  చేవీనం = cellphone
-  చేవీనం - cellphone
-  ముప్పుకాను చోటులు ఎన్నో మన ఒలవులో ఉన్నాయి
-  (ప్రమాదకరమైన ప్రదేశాలు ఎన్నో మన ప్రపంచంలో ఉన్నాయి)
-
-The last form stores the complete phrase and, when token alignment is safe,
-reusable word mappings. This gives chat a controlled learning mechanism without
-turning every user sentence into permanent language knowledge.
+teaching syntax is promoted immediately into the shared Language Space.
 """
 from __future__ import annotations
 
@@ -31,21 +21,38 @@ def _tokens(text: str) -> list[str]:
     return [x.strip(_PUNCT) for x in text.split() if x.strip(_PUNCT)]
 
 
-def _extract(text: str) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
-    roots: list[tuple[str, str]] = []
-    phrases: list[tuple[str, str]] = []
+def _has_telugu(text: str) -> bool:
+    return any("\u0c00" <= ch <= "\u0c7f" for ch in text)
+
+
+def _extract_one(text: str, roots: list[tuple[str, str]], phrases: list[tuple[str, str]]) -> None:
+    text = text.strip()
+    if not text:
+        return
     m = _ARROW.match(text)
     if m:
         left, right = m.group(1).strip(), m.group(2).strip()
+        lt, rt = _has_telugu(left), _has_telugu(right)
         if len(left.split()) == 1 and len(right.split()) <= 8:
-            roots.append((right, left))
+            if lt and not rt:
+                roots.append((right, left))
+            elif rt and not lt:
+                roots.append((left, right))
+            else:
+                roots.append((left, right))
         elif len(right.split()) == 1 and len(left.split()) <= 8:
-            roots.append((left, right))
+            if lt and not rt:
+                roots.append((right, left))
+            elif rt and not lt:
+                roots.append((left, right))
+            else:
+                roots.append((left, right))
         else:
             phrases.append((left, right))
 
     p = _PAIR.match(text)
     if p:
+        # Melimi sentence (standard Telugu sentence).
         melimi_text, standard_text = p.group(1).strip(), p.group(2).strip()
         if melimi_text and standard_text:
             phrases.append((standard_text, melimi_text))
@@ -54,6 +61,14 @@ def _extract(text: str) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
                 for melimi, standard in zip(mt, st):
                     if melimi and standard and melimi != standard and len(melimi) <= 160 and len(standard) <= 160:
                         roots.append((standard, melimi))
+
+
+def _extract(text: str) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    roots: list[tuple[str, str]] = []
+    phrases: list[tuple[str, str]] = []
+    # A pasted teaching block may contain many mappings/examples.
+    for line in re.split(r"\r?\n", text or ""):
+        _extract_one(line, roots, phrases)
     return roots, phrases
 
 
@@ -74,18 +89,28 @@ def _learn_in_session(db: SASession, message: str, user_id: int | None) -> bool:
             continue
         if row:
             if row.melimi_root != target or row.status != "APPROVED":
-                row.melimi_root = target; row.status = "APPROVED"; row.source = source; row.version += 1; row.updated_at = now(); changed = True
+                row.melimi_root = target
+                row.status = "APPROVED"
+                row.source = source
+                row.version += 1
+                row.updated_at = now()
+                changed = True
         else:
-            db.add(MelimiRoot(standard_root=standard, melimi_root=target, status="APPROVED", source=source)); changed = True
+            db.add(MelimiRoot(standard_root=standard, melimi_root=target, status="APPROVED", source=source))
+            changed = True
 
     for standard_text, melimi_text in phrases:
         key = f"{standard_text[:220]} → {melimi_text[:220]}"
         if not db.scalar(select(KnowledgeEntry).where((KnowledgeEntry.kind == "EXAMPLE") & (KnowledgeEntry.key == key))):
-            db.add(KnowledgeEntry(kind="EXAMPLE", key=key, value=melimi_text,
-                                  metadata_json=json.dumps({"standard": standard_text, "melimi": melimi_text, "source": "chat"}, ensure_ascii=False),
-                                  status="MASTER", source=source)); changed = True
+            db.add(KnowledgeEntry(
+                kind="EXAMPLE", key=key, value=melimi_text,
+                metadata_json=json.dumps({"standard": standard_text, "melimi": melimi_text, "source": "chat"}, ensure_ascii=False),
+                status="MASTER", source=source,
+            ))
+            changed = True
         if not db.scalar(select(MelimiExample).where((MelimiExample.standard_text == standard_text) & (MelimiExample.melimi_text == melimi_text))):
-            db.add(MelimiExample(standard_text=standard_text, melimi_text=melimi_text, category="chat-learned", source=source, status="MASTER")); changed = True
+            db.add(MelimiExample(standard_text=standard_text, melimi_text=melimi_text, category="chat-learned", source=source, status="MASTER"))
+            changed = True
 
     if changed:
         current = db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first()
@@ -95,7 +120,6 @@ def _learn_in_session(db: SASession, message: str, user_id: int | None) -> bool:
 
 
 def learn_explicit_teaching(message: str, user_id: int | None = None) -> dict:
-    """Synchronous helper for tests/admin tooling."""
     with SessionLocal() as db:
         changed = _learn_in_session(db, message, user_id)
         db.commit()
@@ -117,20 +141,18 @@ def reload_indexes() -> None:
 
 
 def install_chat_learning() -> None:
-    """Install a SQLAlchemy flush hook so saved user chat messages teach the space.
-
-    It runs in the same DB transaction as the message, so knowledge and the
-    message cannot drift apart. Only explicit mapping/translation syntax is
-    recognized; ordinary chat is ignored.
-    """
+    """Install a SQLAlchemy flush hook for explicit teaching in saved chats."""
     SessionClass = SessionLocal.class_
     if getattr(SessionClass, "_teluai_chat_learning_installed", False):
         return
 
     @event.listens_for(SessionClass, "after_flush")
     def _after_flush(session, flush_context):
+        learned = False
         for obj in list(session.new):
             if isinstance(obj, Message) and obj.role == "user":
-                _learn_in_session(session, obj.content, obj.user_id)
+                learned = _learn_in_session(session, obj.content, obj.user_id) or learned
+        if learned:
+            session.info["teluai_language_learned"] = True
 
     SessionClass._teluai_chat_learning_installed = True
