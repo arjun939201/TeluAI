@@ -1,4 +1,3 @@
-
 import re
 from typing import Dict, List
 
@@ -20,18 +19,18 @@ ROMAN_TELUGU = {
     "thanks": "ధన్యవాదాలు", "thankyou": "ధన్యవాదాలు",
     "thank you": "ధన్యవాదాలు",
     "cinemas": "సినిమాలు", "cinema": "సినిమా",
-    "gurinchi": "గురించి", "cheppu": "చెప్పు",
+    "gurinchi": "గురించి",
 }
 
 
 def normalize_roman_telugu(text: str) -> str:
-    text = str(text or "").strip()
-    if not text or TELUGU_RE.search(text):
-        return text
-    value = re.sub(r"\s+", " ", text.lower())
+    """Normalize conservative Roman-Telugu hints even in mixed-script input."""
+    value = re.sub(r"\s+", " ", str(text or "").strip())
+    if not value:
+        return ""
     for source in sorted(ROMAN_TELUGU, key=len, reverse=True):
         value = re.sub(
-            r"(?<![a-z])" + re.escape(source) + r"(?![a-z])",
+            r"(?<![A-Za-z])" + re.escape(source) + r"(?![A-Za-z])",
             ROMAN_TELUGU[source],
             value,
             flags=re.I,
@@ -44,13 +43,14 @@ def tokenize(text: str) -> List[str]:
 
 
 def analyze_input(text: str) -> Dict:
-    normalized = normalize_roman_telugu(text)
+    raw = str(text or "").strip()
+    normalized = normalize_roman_telugu(raw)
     toks = tokenize(normalized)
     return {
-        "raw": text.strip(),
+        "raw": raw,
         "normalized_hint": normalized,
         "tokens": toks,
-        "has_telugu_script": bool(TELUGU_RE.search(text or "")),
+        "has_telugu_script": bool(TELUGU_RE.search(raw)),
         "short": len(toks) <= 3,
-        "mixed_script": bool(TELUGU_RE.search(text or "")) and bool(re.search(r"[A-Za-z]", text or "")),
+        "mixed_script": bool(TELUGU_RE.search(raw)) and bool(re.search(r"[A-Za-z]", raw)),
     }
