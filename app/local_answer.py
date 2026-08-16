@@ -69,16 +69,15 @@ def answer(message: str, mode: str) -> str | None:
         if found: return found[1]
         inverse=lexical_inventory()["melimi_to_standard"].get(word)
         if inverse: return f"{word} అంటే {inverse}."
+        # A lexical lookup with no MASTER mapping must not fall through to the
+        # general LLM. Otherwise the model can hallucinate an "established"
+        # Melimi equivalent. Be explicit about the knowledge boundary.
+        return "ఈ మాటకు మేలిమి తెలుగు సమానం ఇంకా భాషా నిలయంలో కుదరలేదు."
     return None
 
 
 async def try_deterministic_answer(message: str, mode: str, history_count: int = 0) -> str | None:
-    """Compatibility adapter for the previous local-first API.
-
-    Context-free deterministic answers are intentionally used only when there
-    is no prior conversation history; contextual turns go through the main
-    conversational pipeline instead.
-    """
+    """Compatibility adapter for the previous local-first API."""
     if history_count:
         return None
     return answer(message, mode)
