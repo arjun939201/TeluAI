@@ -257,48 +257,56 @@ def auth_reset_password(payload: ResetPasswordRequest, response: Response):
     # Password reset revokes old sessions. Create a fresh authenticated session
     # so the user can continue directly to the website after resetting.
     session_token = create_session(user_id, settings.session_days)
-    response.set_cookie(
-        COOKIE_NAME,
-        session_token,
-        httponly=True,
-        samesite="lax",
-        secure=settings.cookie_secure,
-        max_age=settings.session_days * 86400,
-    )
-    return {"ok": True, "message": "Password reset successfully.", "authenticated": True}
+    response.set_cookie(COOKIE_NAME, session_token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400)
+    return {"ok": True}
 
-@app.post("/auth/logout")
-def auth_logout(response: Response, teluai_session: str | None = Cookie(default=None)):
-    delete_session(teluai_session)
+@app.get("/auth/logout")
+def auth_logout(response: Response, session: str | None = Cookie(default=None, alias=COOKIE_NAME)):
+    if session:
+        delete_session(session)
     response.delete_cookie(COOKIE_NAME)
-    return {"authenticated": False}
+    return {"ok": True}
 
 @app.get("/conversations")
 def conversations(user=Depends(current_user)):
     return {"conversations": get_conversations(user.id)}
 
 @app.get("/conversations/{conversation_id}")
-def conversation(conversation_id: str, user=Depends(current_user)):
+def conversation_detail(conversation_id: int, user=Depends(current_user)):
     try:
-        return {"conversation_id": conversation_id, "messages": get_history(user.id, conversation_id)}
+        return {"messages": get_history(user.id, conversation_id, limit=100)}
     except ValueError as exc:
         raise HTTPException(404, str(exc))
 
 @app.delete("/conversations/{conversation_id}")
-def remove_conversation(conversation_id: str, user=Depends(current_user)):
-    if not delete_conversation(user.id, conversation_id):
-        raise HTTPException(404, "Conversation not found.")
-    audit_log(user.id, "conversation.delete", "conversation", conversation_id)
-    return {"ok": True}
+def conversation_delete(conversation_id: int, user=Depends(current_user)):
+    try:
+        delete_conversation(user.id, conversation_id)
+        return {"ok": True}
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
 
-@app.get("/melimi/subject")
-def melimi_subject():
+@app.get("/github/status")
+def github_sync_status(user=Depends(require_admin)):
+    return github_status()
+
+@app.post("/github/sync")
+async def github_sync(user=Depends(require_admin)):
+    from app.github_sync import sync_repo
+    try:
+        result = await sync_repo()
+        audit_log(user.id, "github.sync", "repository", result.get("repository", ""), result)
+        return result
+    except GitHubSyncError as exc:
+        raise HTTPException(502, str(exc))
+
+@app.get("/melimi/subjects")
+def melimi_subjects(user=Depends(current_user)):
     return subject_inventory()
 
-@app.get("/melimi/word/{word}")
-def melimi_word(word: str):
+@app.get("/melimi/analyze")
+def melimi_analyze(word: str, user=Depends(current_user)):
     return analyze_word(word)
-
 
 @app.post("/melimi/content/upload")
 async def melimi_content_upload(file: UploadFile = File(...), user=Depends(current_user)):
@@ -380,10 +388,14 @@ def _extract_learning(message: str):
                 return {"source_root": left, "melimi_root": right}
     return None
 
+
 def _cache_key(message: str, mode: str) -> str:
     import hashlib
+    # Bump this when response behavior/prompt semantics change so old
+    # explanatory responses can never be served after a conversational fix.
+    cache_schema = "chat-conversation-v2"
     normalized = re.sub(r"\s+", " ", message.strip().lower())
-    return hashlib.sha256(f"{mode}\n{knowledge_version()}\n{normalized}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{cache_schema}\n{mode}\n{knowledge_version()}\n{normalized}".encode("utf-8")).hexdigest()
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, user=Depends(current_user)):
@@ -518,13 +530,4 @@ async def chat(request: ChatRequest, user=Depends(current_user)):
     audit = audit_melimi(reply) if request.mode == "melimi" else {}
     if settings.cache_enabled and not request.conversation_id and len(reply) >= settings.cache_min_chars:
         cache_put(_cache_key(message, request.mode), request.mode, reply)
-    return ChatResponse(
-        reply=reply,
-        mode=request.mode,
-        intent=understanding["intent"],
-        conversation_id=conversation_id,
-        message_id=assistant_id,
-        understanding={"meaning": understanding["meaning"], "confidence": understanding["confidence"], "linguistics": linguistic, "response_plan": plan},
-        language_audit=audit,
-        word_audit=audit_response(reply) if request.mode == "melimi" else [],
-    )
+    return ChatResponse(reply=reply, mode=request.mode, intent=understanding.get("intent"), conversation_id=conversation_id, message_id=assistant_id, local=False)
