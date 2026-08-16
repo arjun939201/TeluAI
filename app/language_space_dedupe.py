@@ -14,13 +14,21 @@ from typing import Any
 from app import language_space as _space
 
 
+_DICTIONARY_KINDS = {"DICTIONARY", "MELIMI_MAPPING", "ROOT", "VOCABULARY"}
+
+
 def _norm(value: Any) -> str:
     return " ".join(str(value or "").casefold().split())
 
 
+def _canonical_kind(value: Any) -> str:
+    kind = str(value or "").strip().upper()
+    return "DICTIONARY" if kind in _DICTIONARY_KINDS else kind
+
+
 def _canonical_key(entry: dict[str, Any]) -> tuple[str, str, str]:
     return (
-        _norm(entry.get("kind")),
+        _canonical_kind(entry.get("kind")),
         _norm(entry.get("key")),
         _norm(entry.get("value")),
     )
@@ -35,6 +43,8 @@ def _merge(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
             current = dict(item)
             current["source_count"] = 1
             current["sources"] = [item.get("source")] if item.get("source") else []
+            if _canonical_kind(item.get("kind")) == "DICTIONARY":
+                current["kind"] = "DICTIONARY"
             merged[key] = current
             continue
 
