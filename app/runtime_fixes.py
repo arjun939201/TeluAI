@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import Cookie, Depends, HTTPException, Response
 from app import database as db
 from app.auth import COOKIE_NAME, current_user
+from app.config import settings
 from app.models import CredentialUpdateRequest, GuestRegisterRequest
 
 
@@ -17,7 +18,6 @@ def install(app) -> None:
     if getattr(app.state, "runtime_fixes_installed", False):
         return
 
-    # Conversation IDs are UUID strings, not integers.
     _remove_routes(app, "/conversations/{conversation_id}", {"GET", "DELETE"})
 
     @app.get("/conversations/{conversation_id}")
@@ -35,8 +35,6 @@ def install(app) -> None:
         except ValueError as exc:
             raise HTTPException(404, str(exc))
 
-    # POST is the canonical logout method used by the web client; GET remains
-    # supported for compatibility with old links.
     _remove_routes(app, "/auth/logout", {"GET", "POST"})
 
     def logout_fixed(response: Response, session: str | None = Cookie(default=None, alias=COOKIE_NAME)):
@@ -47,8 +45,6 @@ def install(app) -> None:
 
     app.add_api_route("/auth/logout", logout_fixed, methods=["POST", "GET"])
 
-    # Guest identities are created server-side. The browser must never invent
-    # the synthetic email used internally by the legacy User schema.
     @app.post("/auth/guest")
     def guest_register(payload: GuestRegisterRequest, response: Response):
         try:
@@ -56,10 +52,16 @@ def install(app) -> None:
         except ValueError as exc:
             raise HTTPException(400, str(exc))
         token = db.create_session(user.id)
-        response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=False, max_age=30 * 86400)
+        response.set_cookie(
+            COOKIE_NAME,
+            token,
+            httponly=True,
+            samesite="lax",
+            secure=settings.cookie_secure,
+            max_age=settings.session_days * 86400,
+        )
         return {"authenticated": True, "id": user.id, "username": user.username, "email": None, "role": "guest"}
 
-    # Do not expose the internal guest email address through /auth/me.
     _remove_routes(app, "/auth/me", {"GET"})
 
     @app.get("/auth/me")
