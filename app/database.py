@@ -1,19 +1,17 @@
 """TeluAI persistent data layer with first-class guest accounts."""
 from __future__ import annotations
-import hashlib,json,os,secrets,uuid,io,zipfile
+import hashlib,json,os,secrets,uuid
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from sqlalchemy import Boolean,DateTime,ForeignKey,Integer,String,Text,create_engine,select,delete,func
 from sqlalchemy.orm import DeclarativeBase,Mapped,mapped_column,sessionmaker
-ROOT=Path(__file__).resolve().parents[1]
-DB_URL=os.getenv("DATABASE_URL","").strip()
-if not DB_URL and os.getenv("RENDER"): raise RuntimeError("DATABASE_URL is required on Render.")
-if DB_URL.startswith("postgres://"): DB_URL="postgresql+psycopg://"+DB_URL[len("postgres://"):]
-elif DB_URL.startswith("postgresql://"): DB_URL="postgresql+psycopg://"+DB_URL[len("postgresql://"):]
+ROOT=Path(__file__).resolve().parents[1];DB_URL=os.getenv("DATABASE_URL","").strip()
+if not DB_URL and os.getenv("RENDER"):raise RuntimeError("DATABASE_URL is required on Render.")
+if DB_URL.startswith("postgres://"):DB_URL="postgresql+psycopg://"+DB_URL[len("postgres://"):]
+elif DB_URL.startswith("postgresql://"):DB_URL="postgresql+psycopg://"+DB_URL[len("postgresql://"):]
 if not DB_URL:
-    p=ROOT/"data"/"teluai.sqlite3";p.parent.mkdir(parents=True,exist_ok=True);DB_URL=f"sqlite:///{p}"
-engine=create_engine(DB_URL,pool_pre_ping=True,connect_args={"check_same_thread":False} if DB_URL.startswith("sqlite") else {})
-SessionLocal=sessionmaker(bind=engine,autoflush=False,expire_on_commit=False)
+ p=ROOT/"data"/"teluai.sqlite3";p.parent.mkdir(parents=True,exist_ok=True);DB_URL=f"sqlite:///{p}"
+engine=create_engine(DB_URL,pool_pre_ping=True,connect_args={"check_same_thread":False} if DB_URL.startswith("sqlite") else {});SessionLocal=sessionmaker(bind=engine,autoflush=False,expire_on_commit=False)
 class Base(DeclarativeBase):pass
 def now():return datetime.now(timezone.utc)
 class MelimiRoot(Base):
@@ -54,22 +52,19 @@ class Usage(Base):
  __tablename__="usage";id:Mapped[int]=mapped_column(Integer,primary_key=True);user_id:Mapped[int|None]=mapped_column(ForeignKey("users.id",ondelete="SET NULL"),nullable=True,index=True);model:Mapped[str|None]=mapped_column(String(100),nullable=True);input_tokens:Mapped[int|None]=mapped_column(Integer,nullable=True);output_tokens:Mapped[int|None]=mapped_column(Integer,nullable=True);status:Mapped[str]=mapped_column(String(60),default="ok");created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,index=True)
 class AuditLog(Base):
  __tablename__="audit_logs";id:Mapped[int]=mapped_column(Integer,primary_key=True);actor_user_id:Mapped[int|None]=mapped_column(ForeignKey("users.id",ondelete="SET NULL"),nullable=True,index=True);action:Mapped[str]=mapped_column(String(100),index=True);target_type:Mapped[str]=mapped_column(String(80),default="");target_id:Mapped[str]=mapped_column(String(120),default="");details_json:Mapped[str]=mapped_column(Text,default="{}");created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,index=True)
-
 def _hash_password(p):
  salt=secrets.token_bytes(16);r=310000;d=hashlib.pbkdf2_hmac("sha256",p.encode(),salt,r);return f"pbkdf2_sha256${r}${salt.hex()}${d.hex()}"
 def verify_password(p,e):
- try:
-  _,r,s,d=e.split("$",3);x=hashlib.pbkdf2_hmac("sha256",p.encode(),bytes.fromhex(s),int(r));return secrets.compare_digest(x.hex(),d)
+ try:_,r,s,d=e.split("$",3);x=hashlib.pbkdf2_hmac("sha256",p.encode(),bytes.fromhex(s),int(r));return secrets.compare_digest(x.hex(),d)
  except Exception:return False
 def create_user(username,email,password):
  with SessionLocal() as db:
   if db.scalar(select(User).where((User.username==username)|(User.email==email))):raise ValueError("Username or email is already registered.")
-  u=User(username=username.strip(),email=email.lower(),password_hash=_hash_password(password),role="user",is_active=True);db.add(u);db.flush();db.add(UserSetting(user_id=u.id));db.commit();return u
+  role="guest" if email.lower().endswith("@guest.teluai.local") else "user";u=User(username=username.strip(),email=email.lower(),password_hash=_hash_password(password),role=role,is_active=True);db.add(u);db.flush();db.add(UserSetting(user_id=u.id));db.commit();return u
 def create_guest_user(username,password):
  with SessionLocal() as db:
-  username=username.strip()
-  if db.scalar(select(User).where(User.username==username)):raise ValueError("Username is already taken.")
-  email=f"guest+{uuid.uuid4().hex}@guest.teluai.local";u=User(username=username,email=email,password_hash=_hash_password(password),role="guest",is_active=True);db.add(u);db.flush();db.add(UserSetting(user_id=u.id));db.commit();return u
+  if db.scalar(select(User).where(User.username==username.strip())):raise ValueError("Username is already taken.")
+  u=User(username=username.strip(),email=f"guest+{uuid.uuid4().hex}@guest.teluai.local",password_hash=_hash_password(password),role="guest",is_active=True);db.add(u);db.flush();db.add(UserSetting(user_id=u.id));db.commit();return u
 def update_credentials(user_id,current_password,username=None,new_password=None):
  with SessionLocal() as db:
   u=db.get(User,user_id)
@@ -100,8 +95,7 @@ def user_from_session(raw):
   return db.get(User,row.user_id) if exp>=now() else None
 def delete_session(raw):
  if raw:
-  h=hashlib.sha256(raw.encode()).hexdigest()
-  with SessionLocal() as db:db.execute(delete(Session).where(Session.token_hash==h));db.commit()
+  with SessionLocal() as db:db.execute(delete(Session).where(Session.token_hash==hashlib.sha256(raw.encode()).hexdigest()));db.commit()
 def create_conversation(uid,title,mode):
  cid=str(uuid.uuid4());t=now()
  with SessionLocal() as db:db.add(Conversation(id=cid,user_id=uid,title=title[:200] or "New chat",mode=mode,created_at=t,updated_at=t));db.commit()
@@ -112,8 +106,7 @@ def save_message(uid,cid,role,content,model=None,input_tokens=None,output_tokens
   if not c:raise ValueError("Conversation not found.")
   m=Message(user_id=uid,conversation_id=cid,role=role,content=content,model=model,input_tokens=input_tokens,output_tokens=output_tokens,latency_ms=latency_ms);db.add(m);c.updated_at=now();db.commit();db.refresh(m);return m.id
 def get_conversations(uid):
- with SessionLocal() as db:
-  return [{"id":x.id,"title":x.title,"mode":x.mode,"summary":x.summary,"created_at":x.created_at.isoformat(),"updated_at":x.updated_at.isoformat()} for x in db.scalars(select(Conversation).where(Conversation.user_id==uid).order_by(Conversation.updated_at.desc())).all()]
+ with SessionLocal() as db:return [{"id":x.id,"title":x.title,"mode":x.mode,"summary":x.summary,"created_at":x.created_at.isoformat(),"updated_at":x.updated_at.isoformat()} for x in db.scalars(select(Conversation).where(Conversation.user_id==uid).order_by(Conversation.updated_at.desc())).all()]
 def get_history(uid,cid,limit=40):
  with SessionLocal() as db:
   if not db.scalar(select(Conversation).where((Conversation.id==cid)&(Conversation.user_id==uid))):raise ValueError("Conversation not found.")
@@ -141,14 +134,7 @@ def review_candidate(cid,approve,note=""):
  with SessionLocal() as db:
   x=db.get(LearningCandidate,cid)
   if not x:return None
-  p=json.loads(x.payload_json or "{}");p["reviewer_note"]=note;x.status="APPROVED" if approve else "REJECTED";x.reviewed_at=now();x.payload_json=json.dumps(p,ensure_ascii=False)
-  if approve and x.knowledge_type in {"ROOT","VOCABULARY"}:
-   s=str(p.get("source_root") or p.get("standard_root") or p.get("word") or "").strip();t=str(p.get("melimi_root") or p.get("melimi_equivalent") or "").strip()
-   if s and t:
-    r=db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root==s));
-    if r:r.melimi_root=t.split("/")[0].strip();r.status="APPROVED";r.version+=1;r.updated_at=now()
-    else:db.add(MelimiRoot(standard_root=s,melimi_root=t.split("/")[0].strip(),meaning=str(p.get("meaning","")),category=str(p.get("part_of_speech","")),status="APPROVED",source="approved_chat_learning"))
-  db.commit();return {"id":x.id,"status":x.status,"payload":p}
+  p=json.loads(x.payload_json or "{}");p["reviewer_note"]=note;x.status="APPROVED" if approve else "REJECTED";x.reviewed_at=now();x.payload_json=json.dumps(p,ensure_ascii=False);db.commit();return {"id":x.id,"status":x.status,"payload":p}
 def approved_learning():
  with SessionLocal() as db:return [json.loads(x.payload_json or "{}")|{"knowledge_type":x.knowledge_type} for x in db.scalars(select(LearningCandidate).where(LearningCandidate.status=="APPROVED").order_by(LearningCandidate.created_at.asc())).all()]
 def remember_user_memory(uid,key,value):
@@ -159,43 +145,40 @@ def remember_user_memory(uid,key,value):
   db.commit()
 def recall_user_memory(uid,limit=12):
  with SessionLocal() as db:return [{"key":x.key,"value":x.value} for x in db.scalars(select(UserMemory).where(UserMemory.user_id==uid).order_by(UserMemory.created_at.desc()).limit(limit)).all()]
+def knowledge_version():
+ with SessionLocal() as db:return db.scalar(select(func.max(KnowledgeVersion.version))) or 1
 def cache_get(key,mode):
- with SessionLocal() as db:
-  x=db.scalar(select(ResponseCache).where((ResponseCache.cache_key==key)&(ResponseCache.mode==mode)));return x.response if x else None
+ with SessionLocal() as db:x=db.scalar(select(ResponseCache).where((ResponseCache.cache_key==key)&(ResponseCache.mode==mode)));return x.response if x else None
 def cache_put(key,mode,response):
  with SessionLocal() as db:
   x=db.scalar(select(ResponseCache).where(ResponseCache.cache_key==key))
-  if x:x.response=response;x.knowledge_version=knowledge_version()
+  if x:x.response=response
   else:db.add(ResponseCache(cache_key=key,mode=mode,knowledge_version=knowledge_version(),response=response))
   db.commit()
-def knowledge_version():
- with SessionLocal() as db:return (db.scalar(select(func.max(KnowledgeVersion.version))) or 1)
 def audit_log(uid,action,target_type="",target_id="",details=None):
- with SessionLocal() as db:db.add(AuditLog(actor_user_id=uid,action=action,target_type=target_type,target_id=target_id,details_json=json.dumps(details or {},ensure_ascii=False));db.commit()
+ with SessionLocal() as db:db.add(AuditLog(actor_user_id=uid,action=action,target_type=target_type,target_id=target_id,details_json=json.dumps(details or {},ensure_ascii=False)));db.commit()
 def get_user_by_id(uid):
  with SessionLocal() as db:return db.get(User,uid)
 def list_users():
- with SessionLocal() as db:return [{"id":x.id,"username":x.username,"email":x.email if x.role!="guest" else None,"role":x.role,"is_active":x.is_active,"created_at":x.created_at.isoformat()} for x in db.scalars(select(User).order_by(User.created_at.desc())).all()]
+ with SessionLocal() as db:return [{"id":x.id,"username":x.username,"email":None if x.role=="guest" else x.email,"role":x.role,"is_active":x.is_active,"created_at":x.created_at.isoformat()} for x in db.scalars(select(User).order_by(User.created_at.desc())).all()]
 def set_user_role(uid,role):
- role=role.lower()
- if role not in {"guest","user","admin","owner"}:raise ValueError("Invalid role.")
- with SessionLocal() as db:r=db.get(User,uid);r.role=role;db.commit();return {"id":r.id,"username":r.username,"role":r.role}
+ if role.lower() not in {"guest","user","admin","owner"}:raise ValueError("Invalid role.")
+ with SessionLocal() as db:r=db.get(User,uid);r.role=role.lower();db.commit();return {"id":r.id,"username":r.username,"role":r.role}
 def set_user_active(uid,active):
  with SessionLocal() as db:r=db.get(User,uid);r.is_active=active;db.commit();return {"id":r.id,"username":r.username,"is_active":r.is_active}
 def delete_user(uid):
- with SessionLocal() as db:r=db.get(User,uid);db.delete(r);db.commit();return bool(r)
+ with SessionLocal() as db:r=db.get(User,uid);db.delete(r);db.commit();return True
 def database_stats():
  with SessionLocal() as db:return {"users":db.scalar(select(func.count(User.id))) or 0,"guests":db.scalar(select(func.count(User.id)).where(User.role=="guest")) or 0,"conversations":db.scalar(select(func.count(Conversation.id))) or 0,"messages":db.scalar(select(func.count(Message.id))) or 0,"language_roots":db.scalar(select(func.count(MelimiRoot.id))) or 0}
 def list_audit_logs(limit=100):
  with SessionLocal() as db:return [{"id":x.id,"actor_user_id":x.actor_user_id,"action":x.action,"target_type":x.target_type,"target_id":x.target_id,"details":json.loads(x.details_json or "{}"),"created_at":x.created_at.isoformat()} for x in db.scalars(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit)).all()]
 def language_snapshot(limit=50):
- with SessionLocal() as db:return {"roots":[{"standard_root":x.standard_root,"melimi_root":x.melimi_root,"meaning":x.meaning,"category":x.category,"status":x.status} for x in db.scalars(select(MelimiRoot).order_by(MelimiRoot.updated_at.desc()).limit(limit)).all()]}
+ with SessionLocal() as db:return {"roots":[{"standard_root":x.standard_root,"melimi_root":x.melimi_root,"meaning":x.meaning,"category":x.category,"status":x.status} for x in db.scalars(select(MelimiRoot).limit(limit)).all()]}
 def bootstrap_owner(email):
  with SessionLocal() as db:
   u=db.scalar(select(User).where(User.email==email.lower()))
   if not u:return None,"Owner account not found."
-  existing=db.scalar(select(User).where(User.role=="owner"))
-  if existing and existing.id!=u.id:return None,"An owner already exists."
+  if db.scalar(select(User).where(User.role=="owner")):return None,"An owner already exists."
   u.role="owner";db.commit();return u,None
 def promote_configured_owners(emails):
  with SessionLocal() as db:
@@ -211,15 +194,13 @@ def create_password_reset_token(email):
   db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id==u.id));db.add(PasswordResetToken(token_hash=hashlib.sha256(code.encode()).hexdigest(),user_id=u.id,expires_at=now()+timedelta(minutes=10)));db.commit()
  return code
 def verify_password_reset_code(email,code):
- h=hashlib.sha256(code.encode()).hexdigest()
  with SessionLocal() as db:
-  u=db.scalar(select(User).where(User.email==email.lower()));r=db.scalar(select(PasswordResetToken).where((PasswordResetToken.user_id==u.id)&(PasswordResetToken.token_hash==h))) if u else None
+  u=db.scalar(select(User).where(User.email==email.lower()));r=db.scalar(select(PasswordResetToken).where((PasswordResetToken.user_id==u.id)&(PasswordResetToken.token_hash==hashlib.sha256(code.encode()).hexdigest()))) if u else None
   if not u or not r or r.expires_at<now():return None
   token=secrets.token_urlsafe(48);db.delete(r);db.add(PasswordResetToken(token_hash=hashlib.sha256(token.encode()).hexdigest(),user_id=u.id,expires_at=now()+timedelta(minutes=10)));db.commit();return token
 def reset_password(token,password):
- h=hashlib.sha256(token.encode()).hexdigest()
  with SessionLocal() as db:
-  r=db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash==h));
+  r=db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash==hashlib.sha256(token.encode()).hexdigest()))
   if not r or r.expires_at<now():return None
   u=db.get(User,r.user_id);u.password_hash=_hash_password(password);r.used_at=now();db.execute(delete(Session).where(Session.user_id==u.id));db.commit();return u.id
 def init_db():
