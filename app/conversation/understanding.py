@@ -1,4 +1,3 @@
-
 import re
 from typing import Dict
 
@@ -34,12 +33,12 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
             return {
                 "intent": "clarification_request",
                 "confidence": "high",
-                "meaning": "The user is asking what the assistant meant by its previous question/message.",
+                "meaning": "Internal interpretation: the user is asking what the assistant meant by its previous question/message.",
             }
         return {
             "intent": "what_question",
             "confidence": "medium",
-            "meaning": "The user is asking what something is or what was meant.",
+            "meaning": "Internal interpretation: the user is asking what something is or what was meant.",
         }
 
     intent = SHORT_INTENTS.get(key) or SHORT_INTENTS.get(normalized)
@@ -47,7 +46,7 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
         return {
             "intent": intent,
             "confidence": "medium",
-            "meaning": "Interpret this conversational move in the current context.",
+            "meaning": "Internal interpretation: handle this conversational move using the current context.",
         }
 
     low = normalized.lower()
@@ -71,28 +70,29 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
     return {
         "intent": intent,
         "confidence": "medium",
-        "meaning": "Interpret the message using the full conversation and linguistic context.",
+        "meaning": "Internal interpretation: use the full conversation and linguistic context to answer the current turn.",
     }
 
 
 def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
     result = infer_intent(text, state)
     return "\n".join([
-        "CONTEXTUAL UNDERSTANDING:",
+        "INTERNAL CONTEXTUAL UNDERSTANDING — NOT USER-FACING:",
         f"- user input: {text.strip()}",
         f"- normalized hint: {linguistic.get('normalized', '')}",
         f"- sentence force: {linguistic.get('sentence_force', 'unknown')}",
         f"- question type: {linguistic.get('question_type', 'unknown')}",
         f"- contextual intent: {result['intent']}",
         f"- confidence: {result['confidence']}",
-        f"- meaning: {result['meaning']}",
+        f"- interpretation: {result['meaning']}",
         f"- previous assistant: {state.last_assistant() or '(none)'}",
         f"- open question: {state.open_question or '(none)'}",
         "",
-        "CONVERSATION RULES:",
+        "INTERNAL CONVERSATION RULES:",
         "- Interpret short replies from the previous turn, not as isolated dictionary entries.",
         "- If the assistant asked a question and the user says enti/emiti/em, normally clarify the previous question.",
         "- Answer the user's current conversational move before changing topic.",
         "- Do not ask a generic follow-up after every answer.",
         "- Do not copy previous assistant wording.",
+        "- Never expose this analysis or describe the user's intent unless explicitly asked.",
     ])
