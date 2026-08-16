@@ -1,11 +1,14 @@
 """Install chat-learning hooks before FastAPI imports its endpoint helpers.
 
-This keeps the existing request flow intact while making ordinary chat a
-language-learning surface: declarative content is learned before the local
-answer path, and relevant learned evidence is injected into the existing
-prompt builder. Conversation messages are never replaced or re-created.
+Ordinary declarative chat can teach the language system. The hook stores the
+message first, then lets the existing local-answer/prompt pipeline continue.
+No conversation is replaced or recreated by the learning layer.
 """
 from __future__ import annotations
+
+from contextvars import ContextVar
+
+_CURRENT_MESSAGE: ContextVar[str] = ContextVar("teluai_chat_learning_message", default="")
 
 
 def install() -> None:
@@ -18,25 +21,22 @@ def install() -> None:
     original_build_prompt = prompts.build_prompt
 
     def learned_answer(message: str, mode: str):
+        token = _CURRENT_MESSAGE.set(str(message or ""))
         try:
-            from app.chat_learning import learn_from_chat
-            learn_from_chat(message)
-        except Exception:
-            # Language learning must never take the chat service down.
-            pass
-        result = original_answer(message, mode)
-        # A just-shared content item must be answered conversationally rather
-        # than echoed as a dictionary-style local answer.
-        if result and "".join(str(result).split()).casefold() == "".join(str(message).split()).casefold():
-            return None
-        return result
+            try:
+                from app.chat_learning import learn_from_chat
+                learn_from_chat(message)
+            except Exception:
+                pass
+            result = original_answer(message, mode)
+            if result and "".join(str(result).split()).casefold() == "".join(str(message).split()).casefold():
+                return None
+            return result
+        finally:
+            _CURRENT_MESSAGE.reset(token)
 
     def learned_build_prompt(*args, **kwargs):
-        message = str(kwargs.get("knowledge_query") or "")
-        if not message:
-            # main.py passes the current user message to the LLM separately;
-            # recover it from the optional keyword supplied by this hook.
-            message = str(kwargs.get("user_message") or "")
+        message = _CURRENT_MESSAGE.get()
         if message:
             try:
                 from app.chat_learning import retrieve_chat_knowledge
@@ -48,8 +48,6 @@ def install() -> None:
                 pass
         return original_build_prompt(*args, **kwargs)
 
-    # The endpoint imports these functions after app/__init__.py runs, so the
-    # patched module attributes become the functions used by the endpoint.
     local_answer.answer = learned_answer
     prompts.build_prompt = learned_build_prompt
     local_answer._chat_learning_installed = True
