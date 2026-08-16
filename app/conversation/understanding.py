@@ -26,9 +26,10 @@ def _key(text: str) -> str:
 def infer_intent(text: str, state: ConversationState) -> Dict:
     key = _key(text)
     normalized = normalize_roman_telugu(text)
+    normalized_key = _key(normalized)
 
     # Contextual clarification is intentionally checked before generic "what".
-    if key in {"enti", "emiti", "em"} or normalized in {"ఏంటి", "ఏమిటి", "ఏం"}:
+    if normalized_key in {"ఏంటి", "ఏమిటి", "ఏం", "ఏమి"} or key in {"enti", "emiti", "em"}:
         if state.open_question:
             return {
                 "intent": "clarification_request",
@@ -41,7 +42,7 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
             "meaning": "Internal interpretation: the user is asking what something is or what was meant.",
         }
 
-    intent = SHORT_INTENTS.get(key) or SHORT_INTENTS.get(normalized)
+    intent = SHORT_INTENTS.get(key) or SHORT_INTENTS.get(normalized_key)
     if intent:
         return {
             "intent": intent,
@@ -49,8 +50,8 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
             "meaning": "Internal interpretation: handle this conversational move using the current context.",
         }
 
-    low = normalized.lower()
-    if re.match(r"^(ఏం|ఏమి)\b", normalized) or "ఎందుకు" in low:
+    low = normalized_key
+    if low.startswith("ఏం") or low.startswith("ఏమి") or "ఎందుకు" in low:
         intent = "why_question" if "ఎందుకు" in low else "what_question"
     elif "ఎలా" in low:
         intent = "how_question"

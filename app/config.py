@@ -9,6 +9,7 @@ class Settings:
     max_history_turns: int = int(os.getenv("MAX_HISTORY_TURNS", "4"))
     max_history_chars_per_turn: int = int(os.getenv("MAX_HISTORY_CHARS_PER_TURN", "700"))
     max_context_chars: int = int(os.getenv("MAX_CONTEXT_CHARS", "5200"))
+    max_system_chars: int = int(os.getenv("MAX_SYSTEM_CHARS", "4200"))
     max_memory_items: int = int(os.getenv("MAX_MEMORY_ITEMS", "8"))
     melimi_profile_chars: int = int(os.getenv("MELIMI_PROFILE_CHARS", "1500"))
     melimi_relevant_chars: int = int(os.getenv("MELIMI_RELEVANT_CHARS", "2200"))
