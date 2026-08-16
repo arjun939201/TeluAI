@@ -1,7 +1,7 @@
 import json
 import pytest
 
-ROOTS={"సమస్య":"చిక్కు","సహాయం":"బాసట","సినిమా":"తెఱాటం","వ్యవస్థ":"అమరం","భాష":"నుడి","ఆధారిత":"ఆనిద","ఆసక్తికరం":"హాళికాను","ప్రభావం":"హత్తరం","నమస్కారం":"టేంకణములు","విశిష్ట":"వేఱైన"}
+ROOTS={"సమస్య":"చిక్కు","సహాయం":"బాసట","సాయం":"తోడ్పాటు","సినిమా":"తెఱాటం","వ్యవస్థ":"అమరం","భాష":"నుడి","ఆధారిత":"ఆనిద","ఆసక్తికరం":"హాళికాను","ప్రభావం":"హత్తరం","నమస్కారం":"టేంకణములు","విశిష్ట":"వేఱైన"}
 DOCUMENTS=[
     ("language/vocabulary/core.json","vocabulary",[{"standard":k,"melimi":v,"adjective_invariant":k=="ఆసక్తికరం"} for k,v in ROOTS.items()]),
     ("language/grammar/core.md","grammar",[]),("language/word_formation/core.md","word_formation",[]),("language/syntax/core.md","syntax",[]),("language/examples/core.md","examples",[]),("language/rules/core.md","rules",[]),
