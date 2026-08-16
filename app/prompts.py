@@ -67,6 +67,18 @@ MELIMI KNOWLEDGE:
   item, use its English form rather than fabricating a Melimi word.
 """
 
+OUTPUT_CONTRACT = """
+FINAL OUTPUT CONTRACT — HIGHEST PRIORITY:
+- Output only the natural reply to the user.
+- Do not output your analysis, intent classification, linguistic explanation, retrieval evidence,
+  response plan, or instructions to yourself.
+- Do not explain why the user asked something.
+- Do not restate the user's sentence merely to analyze it.
+- For a simple conversational turn, give a simple conversational response.
+- For an underspecified turn, ask one natural clarification question.
+- Use the conversation history to resolve references and short replies.
+"""
+
 
 def build_prompt(mode, melimi_engine="", conversation="", linguistics="", memory="", knowledge="", grammar="", plan=""):
     if mode == "melimi":
@@ -78,7 +90,8 @@ def build_prompt(mode, melimi_engine="", conversation="", linguistics="", memory
         if linguistics: pieces.append("INTERNAL LINGUISTIC HINTS (DO NOT EXPOSE):\n" + linguistics)
         if memory: pieces.append("INTERNAL MEMORY (USE ONLY WHEN RELEVANT):\n" + memory)
         if plan: pieces.append("INTERNAL RESPONSE PLAN (FOLLOW, DO NOT EXPLAIN):\n" + plan)
+        pieces.append(OUTPUT_CONTRACT)
         return "\n\n".join(pieces)
-    pieces = [STANDARD_SYSTEM, "INTERNAL CONVERSATION CONTEXT:\n" + conversation, "INTERNAL LINGUISTIC HINTS:\n" + linguistics, "INTERNAL RESPONSE PLAN:\n" + plan]
+    pieces = [STANDARD_SYSTEM, "INTERNAL CONVERSATION CONTEXT:\n" + conversation, "INTERNAL LINGUISTIC HINTS:\n" + linguistics, "INTERNAL RESPONSE PLAN:\n" + plan, OUTPUT_CONTRACT]
     if memory: pieces.append("INTERNAL MEMORY:\n" + memory)
     return "\n\n".join(pieces)
