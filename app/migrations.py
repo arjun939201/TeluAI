@@ -22,41 +22,28 @@ MIGRATIONS: list[tuple[int, tuple[str, ...]]] = [
 
 def _apply_registered_migrations(engine) -> None:
     with engine.begin() as conn:
-        conn.execute(
-            text(
-                "CREATE TABLE IF NOT EXISTS schema_migrations ("
-                "version INTEGER PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
-            )
-        )
+        conn.execute(text("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
         applied = {row[0] for row in conn.execute(text("SELECT version FROM schema_migrations"))}
         for version, statements in MIGRATIONS:
             if version in applied:
                 continue
             for statement in statements:
-                try:
-                    conn.execute(text(statement))
-                except Exception:
-                    # Some development databases may not yet contain every
-                    # production table. The next startup can retry the same
-                    # migration after the base schema is created.
-                    raise
+                conn.execute(text(statement))
             conn.execute(text("INSERT INTO schema_migrations(version) VALUES (:version)"), {"version": version})
 
 
 def run_migrations() -> None:
-    # Base.metadata.create_all remains the bootstrap mechanism for a fresh
-    # database; registered migrations then make incremental production changes
-    # durable and auditable instead of relying on ad-hoc ALTER statements.
     from app.database import Base, engine
-
     Base.metadata.create_all(engine)
     _apply_registered_migrations(engine)
 
-    from app.language_space import install_routes
+    from app.language_space import install_routes as install_language_space
     from app.chat_learning import install_chat_learning
+    from app.melimi.registration_routes import install_routes as install_registration_routes
     from app.main import app
 
     install_chat_learning()
     if not getattr(app.state, "language_space_installed", False):
-        install_routes(app)
+        install_language_space(app)
         app.state.language_space_installed = True
+    install_registration_routes(app)
