@@ -1,8 +1,8 @@
 """Generic root-first Melimi morphology backed by Language Space.
 
-A learned dictionary entry stores a lexical root once. Inflected source forms
-are analyzed into that root plus an abstract grammatical operation, and the
-same operation is then reapplied to the learned Melimi root.
+The dictionary stores a lexical mapping once. Inflected source forms are
+reduced to that same root, then the grammatical operation is reapplied to the
+learned Melimi root.
 """
 from __future__ import annotations
 
@@ -62,30 +62,27 @@ def _candidate_strips(surface, suffixes, kind):
 
 
 def _case_candidate(surface):
-    """Recover abstract case operations from Telugu -ం noun allomorphs.
-
-    The critical detail is to remove the complete Unicode suffix string rather
-    than a guessed character count. This recovers ``సంతోషం`` exactly from
-    ``సంతోషాన్ని`` and ``సంతోషానికి``.
-    """
-    if surface.endswith("న్ని") and len(surface) > len("న్ని") + 1:
-        return surface[:-len("న్ని")] + "ం", ACCUSATIVE
-    if surface.endswith("నికి") and len(surface) > len("నికి") + 1:
-        return surface[:-len("నికి")] + "ం", DATIVE
+    """Reverse common Telugu case allomorphs produced from an -ం noun."""
+    # సంతోషం + ని -> సంతోషాన్ని
+    if surface.endswith("ాన్ని") and len(surface) > len("ాన్ని") + 1:
+        return surface[:-len("ాన్ని")] + "ం", ACCUSATIVE
+    # సంతోషం + కి -> సంతోషానికి
+    if surface.endswith("ానికి") and len(surface) > len("ానికి") + 1:
+        return surface[:-len("ానికి")] + "ం", DATIVE
     return None
 
 
 def _adjectival_candidate(surface, roots):
-    if surface.endswith("మైన") and len(surface) > len("మైన") + 1:
-        candidate = surface[:-len("మైన")] + "ం"
+    if surface.endswith("మైన") and len(surface) > 4:
+        candidate = surface[:-3] + "ం"
         if candidate in roots:
             return candidate, "మైన", "adjective"
-    if surface.endswith("గా") and len(surface) > len("గా") + 1:
-        candidate = surface[:-len("గా")] + "ం"
+    if surface.endswith("గా") and len(surface) > 3:
+        candidate = surface[:-2] + "ం"
         if candidate in roots:
             return candidate, "గా", "adjective_predicate"
-    if surface.endswith("ా") and len(surface) > len("ా") + 1:
-        candidate = surface[:-len("ా")]
+    if surface.endswith("ా") and len(surface) > 2:
+        candidate = surface[:-1]
         if candidate in roots:
             return candidate, "ా", "adjective"
     return None
@@ -144,12 +141,10 @@ def apply_operation(root, kind, suffix):
 
     if kind == "case":
         if suffix == ACCUSATIVE:
-            # Source: సంతోషం -> సంతోషాన్ని
-            # Melimi: అలరిక -> అలరికని; ఉల్లాసం -> ఉల్లాసాన్ని
+            # Target-side reinflection: non-ం roots take ని; -ం roots take -ాన్ని.
             return root[:-1] + "ాన్ని" if root.endswith("ం") else root + "ని"
         if suffix == DATIVE:
-            # Source: సంతోషం -> సంతోషానికి
-            # Melimi: అలరిక -> అలరికకి; ఉల్లాసం -> ఉల్లాసానికి
+            # Target-side reinflection: non-ం roots take కి; -ం roots take -ానికి.
             return root[:-1] + "ానికి" if root.endswith("ం") else root + "కి"
 
     if root.endswith("ం") and kind == "grammar":
