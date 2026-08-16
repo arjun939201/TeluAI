@@ -33,6 +33,10 @@ jobs:
       - name: Check frontend JavaScript syntax
         run: |
           for file in static/js/*.js; do node --check "$file"; done
+      - name: Clean generated Python caches
+        run: |
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          find . -type f \( -name '*.pyc' -o -name '*.pyo' -o -name '*.pyd' \) -delete
       - name: Check repository hygiene
         run: |
           if git ls-files | grep -E '(^|/)(__pycache__/|.*\.py[cod]$)'; then
@@ -43,4 +47,5 @@ jobs:
         env:
           PYTHONPATH: .:scripts
           CACHE_ENABLED: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
         run: pytest -q --import-mode=importlib
