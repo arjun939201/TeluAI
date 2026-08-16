@@ -1,0 +1,33 @@
+/* Familiar, low-surprise UI layer for the main TeluAI workspace. */
+:root{--ui-radius:10px;--ui-radius-lg:14px}
+html,body{background:var(--bg);}
+.sidebar{background:var(--panel);backdrop-filter:none}
+html[data-theme="light"] .sidebar{background:var(--panel)}
+.brand{padding-bottom:16px}
+.new-chat{border-radius:var(--ui-radius);font-weight:600}
+.nav{gap:3px}
+.nav button{display:flex;align-items:center;gap:10px;min-height:42px;border:1px solid transparent;font-weight:600}
+.nav button.active{border-color:var(--line)}
+.account-button{border-radius:var(--ui-radius);padding:0}
+.account-card{min-height:54px}
+.account-menu{border-radius:var(--ui-radius-lg);backdrop-filter:none}
+.account-menu button{min-height:42px}
+.topbar{background:var(--panel);backdrop-filter:none}
+html[data-theme="light"] .topbar{background:var(--panel)}
+.content{padding-top:34px}
+.hero h1{letter-spacing:-.025em}
+.suggestion{border-radius:var(--ui-radius);box-shadow:none;transition:border-color .15s,background .15s}
+.suggestion:hover{transform:none;background:var(--panel2)}
+.composer-wrap{background:linear-gradient(transparent,var(--bg) 32%)}
+html[data-theme="light"] .composer-wrap{background:linear-gradient(transparent,var(--bg) 32%)}
+.composer{border-radius:var(--ui-radius-lg);box-shadow:0 8px 28px rgba(0,0,0,.12)}
+.send{border-radius:var(--ui-radius)}
+.modal{backdrop-filter:none;background:rgba(0,0,0,.48)}
+.modal-card{border-radius:var(--ui-radius-lg);box-shadow:0 16px 48px rgba(0,0,0,.18)}
+.settings-section-title{font-size:11px}
+.settings-row{min-height:58px}
+.primary,.secondary,.pill-btn{border-radius:var(--ui-radius);min-height:40px}
+.close{width:40px;height:40px;border-radius:50%}
+.close:hover{background:var(--panel2);color:var(--text)}
+.history-item{border-radius:var(--ui-radius);box-shadow:none}
+@media(max-width:800px){.sidebar{box-shadow:12px 0 32px rgba(0,0,0,.24)}.content{padding-top:20px}.topbar{background:var(--panel)}.composer-wrap{padding-top:8px}.account-card{min-height:56px}}
