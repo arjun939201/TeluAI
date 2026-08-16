@@ -1,10 +1,9 @@
-from app.database import init_db
-
-
 def run_migrations() -> None:
-    init_db()
-    # Install the unified language-space API and chat-learning hook after the
-    # FastAPI application exists. The hook learns only explicit teaching syntax.
+    # Keep startup schema creation non-recursive. app.main calls this after the
+    # FastAPI app exists; database.init_db is intentionally not called here.
+    from app.database import Base, engine
+    Base.metadata.create_all(engine)
+
     from app.language_space import install_routes
     from app.chat_learning import install_chat_learning
     from app.main import app
