@@ -32,3 +32,36 @@ $('#guestForm').onsubmit=async e=>{e.preventDefault();clearAuthErrors();try{cons
 $('#loginForm').onsubmit=async e=>{e.preventDefault();clearAuthErrors();try{await api('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:$('#loginIdentifier').value.trim(),password:$('#loginPass').value})});location.reload()}catch(x){$('#loginError').textContent=x.message}};
 $('#registerForm').onsubmit=async e=>{e.preventDefault();clearAuthErrors();try{await api('/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#regUser').value.trim(),email:$('#regEmail').value.trim(),password:$('#regPass').value})});location.reload()}catch(x){$('#registerError').textContent=x.message}};
 document.addEventListener('click',e=>{if(!e.target.closest('#profileLink')&&!e.target.closest('#accountMenu'))closeAccountMenu();if(e.target.classList.contains('modal'))e.target.classList.add('hidden')});applyDisplay();loadMe();
+
+/* Explicit language-space commands. Ordinary chat never uses these endpoints. */
+const _normalSend=send;
+function _parseLanguageCommand(value){
+  const text=String(value||'').trim();
+  const word=text.match(/^\/word\s+(.+?)\s*(?:=|→|->)\s*(.+)$/is);
+  if(word)return {kind:'word',source:word[1].trim(),melimi:word[2].trim()};
+  const content=text.match(/^\/content\s+(.+?)(?:\s*\(([^()]*)\))?$/is);
+  if(content)return {kind:'content',content:content[1].trim(),meaning:(content[2]||'').trim()};
+  if(/^\/(?:word|content)\b/i.test(text))return {error:'Invalid command syntax.'};
+  return null;
+}
+async function _sendLanguageCommand(value){
+  const command=_parseLanguageCommand(value);
+  if(!command)return false;
+  addMessage(value,'user');
+  $('#input').value='';$('#input').style.height='auto';$('#send').disabled=true;
+  try{
+    let d;
+    if(command.error)throw Error(command.error);
+    if(command.kind==='word'){
+      d=await api('/melimi/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:command.source,root:command.source,meaning:'',part_of_speech:'',melimi_equivalent:command.melimi,formation:''})});
+      addMessage(`✓ Word entry received. ${command.source} = ${command.melimi}\nStatus: ${d.status||d.entry?.status||'PENDING'}`,'assistant');
+    }else{
+      d=await api('/melimi/content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'CHAT_COMMAND',content:command.content,kind:'CONTENT',meaning:command.meaning})});
+      addMessage(`✓ Content entry received.\nStatus: ${d.status||'PENDING'}\n${command.content}`,'assistant');
+    }
+    loadHistory(false);
+  }catch(e){addMessage(`✗ ${e.message}`,'assistant')}
+  finally{$('#send').disabled=false;$('#input').focus()}
+  return true;
+}
+send=async function(value){if(await _sendLanguageCommand(value))return;return _normalSend(value)};
