@@ -1,9 +1,10 @@
 """Chat-native Melimi learning.
 
 Normal chat can teach TeluAI when the user provides language evidence. Explicit
-x = y mappings are authoritative user teaching; longer content is mined into
-reusable lexical items, phrases, sentences, patterns, and loan/native signals.
-All learned items are persisted and immediately available to retrieval.
+x = y mappings are authoritative user teaching; longer declarative content is
+mined into reusable lexical items, phrases, sentences, patterns, and
+loan/native signals. All learned items are persisted and immediately available
+to retrieval.
 """
 from __future__ import annotations
 
@@ -13,22 +14,10 @@ import re
 
 from sqlalchemy import select
 
-from app.database import (
-    KnowledgeEntry,
-    KnowledgeVersion,
-    MelimiAffix,
-    MelimiExample,
-    MelimiRoot,
-    MelimiRule,
-    SessionLocal,
-    now,
-)
+from app.database import KnowledgeEntry, KnowledgeVersion, MelimiAffix, MelimiExample, MelimiRoot, MelimiRule, SessionLocal, now
 from app.learner_store import add_learning, approved_for_query
 
-_COMMAND_RE = re.compile(
-    r"^\s*/(?P<kind>word|meaning|content|example|root|affix|rule|phrase|note|correct)\b(?P<body>.*?)\s*$",
-    re.I | re.S,
-)
+_COMMAND_RE = re.compile(r"^\s*/(?P<kind>word|meaning|content|example|root|affix|rule|phrase|note|correct)\b(?P<body>.*?)\s*$", re.I | re.S)
 _MAPPING_RE = re.compile(r"^\s*(?P<source>.+?)\s*(?:=|→|->)\s*(?P<melimi>.+?)\s*$", re.S)
 _INLINE_MAPPING_RE = re.compile(r"(?<!\w)([^=→➜⇒\n]{1,100}?)(?:\s*=\s*|\s*(?:→|➜|⇒|->)\s*)([^=→➜⇒\n]{1,120})(?=$|[.!?;\n])")
 _TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
@@ -36,14 +25,14 @@ _TOKEN_RE = re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 _SENTENCE_RE = re.compile(r"[^.!?。！？\n]+[.!?。！？]?", re.S)
 _LOAN_HINTS = re.compile(r"(?:loan\s*word|loanword|borrowed|sanskrit\s*based|sanskrit-derived|foreign\s*word|అరువు\s*మాట|రుణ\s*మాట|సంస్కృత|అరువుమాట)", re.I)
 _NATIVE_HINTS = re.compile(r"(?:native\s*telugu|native\s*word|pure\s*telugu|తెలుగు\s*మాట|నాటు\s*మాట|తెనుగు\s*మాట|మేలిమి\s*మాట)", re.I)
+_QUESTION_HINTS = re.compile(r"(?:\?|ఏమిటి|ఏంటి|ఏమంటారు|ఏమంటావు|ఎందుకు|ఎలా|ఎక్కడ|ఎప్పుడు|ఎవరు|ఎంత|ఎన్ని)", re.I)
 
 
 def parse_command(message: str):
     match = _COMMAND_RE.match(message or "")
     if not match:
         return None
-    raw_kind = match.group("kind").lower()
-    body = match.group("body").strip()
+    raw_kind = match.group("kind").lower(); body = match.group("body").strip()
     if raw_kind in {"word", "meaning", "correct"}:
         parsed = _MAPPING_RE.match(body)
         if not parsed:
@@ -115,9 +104,7 @@ def _mapping_pairs(text: str) -> list[tuple[str, str]]:
     pairs = []
     for match in _INLINE_MAPPING_RE.finditer(text or ""):
         left = match.group(1).strip(" \t.,:;()[]{}"); right = match.group(2).strip(" \t.,:;()[]{}")
-        if not left or not right or len(left) > 100 or len(right) > 120:
-            continue
-        if len(left.split()) > 8 or len(right.split()) > 8:
+        if not left or not right or len(left) > 100 or len(right) > 120 or len(left.split()) > 8 or len(right.split()) > 8:
             continue
         pairs.append((left, right))
     seen = set(); out = []
@@ -189,7 +176,7 @@ def _learn_mapping(standard: str, melimi: str, evidence: str, source_class: str 
 
 
 def learn_from_chat(message: str) -> dict:
-    """Learn explicit mappings and useful linguistic evidence from ordinary chat."""
+    """Learn explicit mappings and declarative language evidence from ordinary chat."""
     text = (message or "").strip()
     if not text or text.startswith("/"):
         return {"changed": False, "mappings": 0, "words": 0, "phrases": 0, "sentences": 0, "patterns": 0}
@@ -197,7 +184,8 @@ def learn_from_chat(message: str) -> dict:
     for standard, melimi in _mapping_pairs(text):
         changed = _learn_mapping(standard, melimi, text, _source_class(text, standard)) or changed; mappings += 1
     words, phrases, patterns = _content_items(text); sentences = _sentence_parts(text)
-    rich_content = len(text) >= 30 or len(sentences) >= 2 or bool(words)
+    declarative = not _QUESTION_HINTS.search(text)
+    rich_content = declarative and (len(text) >= 30 or len(sentences) >= 2 or len(words) >= 2)
     if rich_content:
         for sentence in sentences[:30]:
             _store_learning("sentence", melimi=sentence, evidence=text, confidence=0.9, metadata={"method": "chat_content"})
@@ -225,8 +213,7 @@ def retrieve_chat_knowledge(query: str, limit: int = 10) -> str:
         return ""
     lines = []
     for row in rows:
-        kind = row.get("kind")
-        meta = row.get("metadata") or {}
+        kind = row.get("kind"); meta = row.get("metadata") or {}
         if kind == "vocabulary":
             lines.append(f"- USER-TAUGHT WORD: {row.get('standard','')} → {row.get('melimi','')} ({meta.get('source_class','unknown')})")
         elif kind == "sentence":
@@ -247,7 +234,8 @@ def learn_explicit_teaching(message: str, user_id: int | None = None):
     kind, payload = parsed
     if kind == "word":
         standard = payload["source"].strip(); melimi = payload["melimi"].strip()
-        changed = _learn_mapping(standard, melimi, message, _source_class(message, standard)); return {"learned": True, "changed": changed, "roots": 1, "phrases": 0}
+        changed = _learn_mapping(standard, melimi, message, _source_class(message, standard))
+        return {"learned": True, "changed": changed, "roots": 1, "phrases": 0}
     content = payload["content"]; meaning = payload.get("meaning", ""); command = payload.get("command", "content")
     source = "chat"; changed = False; roots = phrases = 0
     with SessionLocal() as db:
@@ -287,13 +275,7 @@ def learn_explicit_teaching(message: str, user_id: int | None = None):
 
 
 def reload_indexes():
-    for module, name in (
-        ("app.melimi.root_morphology", "reload_root_dictionary"),
-        ("app.melimi.registry", "reload_registry"),
-        ("app.melimi.index", "reload_index"),
-        ("app.melimi.firewall", "reload_firewall"),
-        ("app.retrieval.knowledge", "reload_vocabulary"),
-    ):
+    for module, name in (("app.melimi.root_morphology", "reload_root_dictionary"), ("app.melimi.registry", "reload_registry"), ("app.melimi.index", "reload_index"), ("app.melimi.firewall", "reload_firewall"), ("app.retrieval.knowledge", "reload_vocabulary")):
         try:
             getattr(__import__(module, fromlist=[name]), name)()
         except Exception:
