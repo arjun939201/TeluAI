@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import Cookie, Depends, HTTPException, Response
 from app import database as db
+from app.account_service import create_guest_user, update_credentials
 from app.auth import COOKIE_NAME, current_user
 from app.config import settings
 from app.models import CredentialUpdateRequest, GuestRegisterRequest
@@ -48,42 +49,28 @@ def install(app) -> None:
     @app.post("/auth/guest")
     def guest_register(payload: GuestRegisterRequest, response: Response):
         try:
-            user = db.create_guest_user(payload.username.strip(), payload.password)
+            user = create_guest_user(payload.username, payload.password)
         except ValueError as exc:
             raise HTTPException(400, str(exc))
-        token = db.create_session(user.id)
-        response.set_cookie(
-            COOKIE_NAME,
-            token,
-            httponly=True,
-            samesite="lax",
-            secure=settings.cookie_secure,
-            max_age=settings.session_days * 86400,
-        )
+        token = db.create_session(user.id, settings.session_days)
+        response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400)
         return {"authenticated": True, "id": user.id, "username": user.username, "email": None, "role": "guest"}
 
     _remove_routes(app, "/auth/me", {"GET"})
 
     @app.get("/auth/me")
     def auth_me_fixed(user=Depends(current_user)):
-        return {
-            "authenticated": True,
-            "id": user.id,
-            "username": user.username,
-            "email": None if user.role == "guest" else user.email,
-            "role": user.role,
-        }
+        return {"authenticated": True, "id": user.id, "username": user.username, "email": None if user.role == "guest" else user.email, "role": user.role}
+
+    _remove_routes(app, "/me/credentials", {"PUT"})
 
     @app.put("/me/credentials")
     def credentials_fixed(payload: CredentialUpdateRequest, user=Depends(current_user)):
         try:
-            updated = db.update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
+            updated = update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
         except ValueError as exc:
             raise HTTPException(400, str(exc))
-        db.audit_log(user.id, "account.credentials_change", "user", str(user.id), {
-            "username_changed": bool(payload.username),
-            "password_changed": bool(payload.new_password),
-        })
+        db.audit_log(user.id, "account.credentials_change", "user", str(user.id), {"username_changed": bool(payload.username), "password_changed": bool(payload.new_password)})
         return {"ok": True, "username": updated.username, "role": updated.role}
 
     app.state.runtime_fixes_installed = True
