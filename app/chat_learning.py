@@ -6,12 +6,10 @@ straight to the master knowledge store and become retrievable immediately.
 from __future__ import annotations
 import hashlib,json,re
 from sqlalchemy import select
-from sqlalchemy.orm import Session as SASession
 from app.database import SessionLocal,MelimiRoot,MelimiExample,KnowledgeEntry,KnowledgeVersion,now
 
 _COMMAND_RE=re.compile(r"^\s*/(?P<kind>word|content)\b(?P<body>.*?)\s*$",re.I|re.S)
 _MAPPING_RE=re.compile(r"^\s*(?P<source>.+?)\s*(?:=|→|->)\s*(?P<melimi>.+?)\s*$",re.S)
-
 
 def parse_command(message:str):
     m=_COMMAND_RE.match(message or "")
@@ -29,35 +27,46 @@ def parse_command(message:str):
 
 
 def learn_explicit_teaching(message:str,user_id:int|None=None):
+    """Apply an explicit language command immediately.
+
+    /word is authoritative: an unknown source word is added, while an existing
+    source-word mapping is replaced by the newly supplied Melimi equivalent.
+    Ordinary chat never reaches this function.
+    """
     parsed=parse_command(message)
     if not parsed:return {"learned":False,"changed":False,"roots":0,"phrases":0}
     kind,payload=parsed;source=f"chat_command:user:{user_id or 'unknown'}";changed=False;roots=phrases=0
     with SessionLocal() as db:
         if kind=="word":
-            standard,melimi=payload["source"],payload["melimi"]
+            standard,melimi=payload["source"].strip(),payload["melimi"].strip()
             if not standard or not melimi or len(standard)>160 or len(melimi)>160:raise ValueError("Invalid word entry.")
             melimi_root=melimi.split("/")[0].strip()
-            row=db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root==standard))
+            # Source words are canonicalized by trimmed, case-insensitive text.
+            # This makes a repeated /word entry replace the existing mapping
+            # instead of creating a competing dictionary entry.
+            row=None
+            for candidate in db.scalars(select(MelimiRoot)).all():
+                if str(candidate.standard_root or "").strip().casefold()==standard.casefold():
+                    row=candidate;break
             if row:
                 if row.melimi_root!=melimi_root or row.status!="MASTER" or row.source!=source:
-                    row.melimi_root=melimi_root;row.status="MASTER";row.source=source;row.version+=1;row.updated_at=now();changed=True
+                    row.standard_root=standard;row.melimi_root=melimi_root;row.status="MASTER";row.source=source;row.version+=1;row.updated_at=now();changed=True
             else:
                 db.add(MelimiRoot(standard_root=standard,melimi_root=melimi_root,status="MASTER",source=source));changed=True
-            # One canonical vocabulary record per source root. This prevents
-            # an older mapping from competing with a newer direct entry.
-            entries=db.scalars(select(KnowledgeEntry).where(KnowledgeEntry.kind.in_(["VOCABULARY","ROOT"]))).all()
+            # Replace the canonical vocabulary record for this source word.
             record=None
-            for item in entries:
+            for item in db.scalars(select(KnowledgeEntry).where(KnowledgeEntry.kind.in_(["VOCABULARY","ROOT"]))).all():
                 try: metadata=json.loads(item.metadata_json or "{}")
                 except (TypeError,ValueError): metadata={}
-                if str(metadata.get("standard", "")).strip()==standard:
+                if str(metadata.get("standard", "")).strip().casefold()==standard.casefold():
                     record=item;break
+            metadata={"standard":standard,"melimi":melimi,"source":"chat-command"}
+            encoded=json.dumps(metadata,ensure_ascii=False)
             if record:
-                metadata={"standard":standard,"melimi":melimi,"source":"chat-command"}
-                if record.value!=melimi or record.metadata_json!=json.dumps(metadata,ensure_ascii=False) or record.status!="MASTER":
-                    record.kind="VOCABULARY";record.key=f"word:{standard}";record.value=melimi;record.metadata_json=json.dumps(metadata,ensure_ascii=False);record.status="MASTER";record.source=source;record.version+=1;changed=True
+                if record.value!=melimi or record.metadata_json!=encoded or record.status!="MASTER":
+                    record.kind="VOCABULARY";record.key=f"word:{standard.casefold()}";record.value=melimi;record.metadata_json=encoded;record.status="MASTER";record.source=source;record.version+=1;changed=True
             else:
-                db.add(KnowledgeEntry(kind="VOCABULARY",key=f"word:{standard}",value=melimi,metadata_json=json.dumps({"standard":standard,"melimi":melimi,"source":"chat-command"},ensure_ascii=False),status="MASTER",source=source));changed=True
+                db.add(KnowledgeEntry(kind="VOCABULARY",key=f"word:{standard.casefold()}",value=melimi,metadata_json=encoded,status="MASTER",source=source));changed=True
             roots=1
         else:
             content,meaning=payload["content"],payload["meaning"]
