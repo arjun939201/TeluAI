@@ -3,25 +3,43 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "static" / "index.html"
-NAV = ROOT / "static" / "js" / "navigation-fix.js"
+JS = ROOT / "static" / "js" / "professional.js"
 
 
-def test_main_ui_has_core_navigation_controls():
+def test_main_ui_has_current_navigation_controls():
     html = INDEX.read_text(encoding="utf-8")
-    for element_id in ("historyLink", "profileLink", "profileMenuItem", "settingsLink", "logout", "history", "profile", "settings"):
+    for element_id in (
+        "newChat",
+        "profileLink",
+        "profileMenuItem",
+        "settingsLink",
+        "logout",
+        "history",
+        "profile",
+        "settings",
+        "historySearch",
+        "historySort",
+        "historyAll",
+    ):
         assert f'id="{element_id}"' in html
-    assert 'navigation-fix.js' in html
+    assert 'professional.js' in html
 
 
-def test_navigation_guard_is_fail_safe():
-    js = NAV.read_text(encoding="utf-8")
-    assert "if (!node) return" in js
-    assert "openHistory" in js
-    assert "openProfileSafe" in js
-    assert "#settingsLink" in js
-    assert "#logout" in js
+def test_current_frontend_contains_contextual_history_and_account_handlers():
+    js = JS.read_text(encoding="utf-8")
+    for token in (
+        "loadHistory",
+        "openConversation",
+        "openProfile",
+        "openSettings",
+        "saveCredentials",
+        "logout",
+        "formatHistoryDate",
+    ):
+        assert token in js
 
 
-def test_navigation_guard_does_not_require_optional_assistant_control():
-    js = NAV.read_text(encoding="utf-8")
-    assert "bind('#assistantLink'" not in js
+def test_frontend_escapes_rendered_user_content():
+    js = JS.read_text(encoding="utf-8")
+    assert "function esc" in js
+    assert "&lt;" in js or "&amp;" in js
