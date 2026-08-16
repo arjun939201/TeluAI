@@ -1,7 +1,7 @@
 """Generic root-first Melimi morphology backed by Language Space.
 
 The important distinction here is between a *lexical mapping* and a
-*grammatical operation*.  The dictionary stores ``సంతోషం -> అలరిక`` once;
+*grammatical operation*. The dictionary stores ``సంతోషం -> అలరిక`` once;
 inflected source forms such as ``సంతోషాన్ని`` must be reduced to the same root,
 then the grammatical operation must be reapplied to ``అలరిక``.
 """
@@ -14,7 +14,6 @@ from typing import Dict, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
 
-# Surface suffixes which can be removed without a major morphophonemic change.
 GRAMMATICAL_SUFFIXES = tuple(
     sorted(
         [
@@ -41,8 +40,8 @@ DERIVATIONAL_SUFFIXES = tuple(
 )
 
 # Abstract operations are used instead of storing a source-language surface
-# suffix.  This is what lets one operation have different surface realizations
-# in different lexical classes.
+# suffix. This lets one operation have different surface realizations in
+# different lexical classes.
 ACCUSATIVE = "ACCUSATIVE"
 DATIVE = "DATIVE"
 
@@ -81,19 +80,14 @@ def _candidate_strips(surface, suffixes, kind):
 def _case_candidate(surface):
     """Reverse common Telugu case allomorphs produced from an -ం noun.
 
-    Example::
-
-        సంతోషం + ACCUSATIVE -> సంతోషాన్ని
-        సంతోషం + DATIVE     -> సంతోషానికి
-
-    The surface endings ``న్ని`` and ``నికి`` cannot be handled by blindly
-    stripping ``ని``/``కి`` because the source noun's ``ం`` participates in
-    the morphophonemic change.  We therefore recover the abstract operation.
+    ``సంతోషం`` + accusative becomes ``సంతోషాన్ని`` and ``సంతోషం`` + dative
+    becomes ``సంతోషానికి``. The visible endings include the stem vowel, so
+    blindly stripping ``ని`` or ``కి`` cannot recover the lexical root.
     """
-    if surface.endswith("న్ని") and len(surface) > 4:
-        return surface[:-3] + "ం", ACCUSATIVE
-    if surface.endswith("నికి") and len(surface) > 4:
-        return surface[:-3] + "ం", DATIVE
+    if surface.endswith("ాన్ని") and len(surface) > 5:
+        return surface[:-5] + "ం", ACCUSATIVE
+    if surface.endswith("ానికి") and len(surface) > 5:
+        return surface[:-5] + "ం", DATIVE
     return None
 
 
@@ -122,7 +116,6 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     if surface in roots:
         return MorphologicalForm(surface, surface)
 
-    # Recover morphophonemic case operations before ordinary suffix stripping.
     case = _case_candidate(surface)
     if case and case[0] in roots:
         root, operation = case
@@ -166,8 +159,8 @@ def apply_operation(root, kind, suffix):
     if suffix == "గా" and kind == "adjective_predicate":
         return root + "గా"
 
-    # Abstract case operations.  The Melimi surface is selected from the
-    # target root, not copied from the source-language spelling.
+    # Abstract case operations. The Melimi surface is selected from the target
+    # root, not copied from the source-language spelling.
     if kind == "case":
         if suffix == ACCUSATIVE:
             # Source: సంతోషం -> సంతోషాన్ని
