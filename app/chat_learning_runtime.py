@@ -1,9 +1,4 @@
-"""Install chat-learning hooks before FastAPI imports its endpoint helpers.
-
-Ordinary declarative chat in MELIMI mode can teach the language system. The
-hook stores the message first, then lets the existing local-answer/prompt
-pipeline continue. No conversation is replaced or recreated.
-"""
+"""Install chat-learning hooks before FastAPI imports its endpoint helpers."""
 from __future__ import annotations
 
 from contextvars import ContextVar
@@ -21,13 +16,12 @@ def install() -> None:
     original_build_prompt = prompts.build_prompt
 
     def learned_answer(message: str, mode: str):
-        _CURRENT_MESSAGE.set(str(message or ""))
+        _CURRENT_MESSAGE.set(str(message or "") if mode == "melimi" else "")
         if mode == "melimi":
             try:
                 from app.chat_learning import learn_from_chat
                 learn_from_chat(message)
             except Exception:
-                # Learning must never take the chat service down.
                 pass
         result = original_answer(message, mode)
         if result and "".join(str(result).split()).casefold() == "".join(str(message).split()).casefold():
