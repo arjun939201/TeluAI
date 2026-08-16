@@ -1,12 +1,5 @@
-"""Runtime compatibility bridge for PostgreSQL-backed Melimi content.
-
-The current application imports persistence functions directly from app.database.
-This module swaps only the language-content paths before app.main is imported,
-so the existing architecture remains intact while language content moves out
-of Git and into PostgreSQL.
-"""
+"""Runtime compatibility and small cross-cutting application overrides."""
 from __future__ import annotations
-
 from app import database as db
 from app.melimi import content_store
 
@@ -15,31 +8,46 @@ def _content_candidate_or_approved(user_id, knowledge_type, source_text, payload
     if knowledge_type == "CONTENT" and isinstance(payload, dict):
         user = None
         if user_id is not None:
-            with db.SessionLocal() as session:
-                user = session.get(db.User, user_id)
-        approved = bool(user and user.role in {"owner", "admin"})
-        result = content_store.submit_content(
-            user_id or 0,
-            str(payload.get("title", "")),
-            str(payload.get("content", "")),
-            approved=approved,
-        )
+            with db.SessionLocal() as session: user = session.get(db.User, user_id)
+        result = content_store.submit_content(user_id or 0, str(payload.get("title", "")), str(payload.get("content", "")), approved=bool(user and user.role in {"owner", "admin"}))
         return result.get("candidate_id", 0)
     return _original_add_learning_candidate(user_id, knowledge_type, source_text, payload)
+
+
+def _install_credential_route():
+    """Install /me/credentials without forcing a large rewrite of main.py."""
+    try:
+        from fastapi import Depends, HTTPException
+        from app.auth import current_user
+        from app.models import CredentialUpdateRequest
+        from fastapi.applications import FastAPI
+        original_init = FastAPI.__init__
+        if getattr(FastAPI, "_teluai_guest_route_hook", False): return
+        def patched_init(self, *args, **kwargs):
+            original_init(self, *args, **kwargs)
+            if getattr(self, "title", "") == "TeluAI — Melimi Telugu AI":
+                def update_credentials(payload: CredentialUpdateRequest, user=Depends(current_user)):
+                    try:
+                        u = db.update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
+                    except ValueError as exc:
+                        raise HTTPException(400, str(exc))
+                    db.audit_log(user.id, "account.credentials_change", "user", str(user.id), {"username_changed": bool(payload.username), "password_changed": bool(payload.new_password)})
+                    return {"ok": True, "username": u.username, "role": u.role}
+                self.add_api_route("/me/credentials", update_credentials, methods=["PUT"])
+        FastAPI.__init__ = patched_init
+        FastAPI._teluai_guest_route_hook = True
+    except Exception:
+        pass
 
 
 def apply() -> None:
     global _original_add_learning_candidate
     _original_add_learning_candidate = db.add_learning_candidate
-
-    # Git is no longer an authoritative Melimi data source.
     db._read_seed = lambda: {}
     db._seed_language = lambda: None
-
-    # New ingestion/approval layer for uploaded language content.
     db.ingest_language_package = content_store.ingest_language_package
     db.review_candidate = content_store.review_candidate
     db.add_learning_candidate = _content_candidate_or_approved
-
+    _install_credential_route()
 
 apply()
