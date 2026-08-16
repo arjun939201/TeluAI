@@ -70,3 +70,15 @@ def answer(message: str, mode: str) -> str | None:
         inverse=lexical_inventory()["melimi_to_standard"].get(word)
         if inverse: return f"{word} అంటే {inverse}."
     return None
+
+
+async def try_deterministic_answer(message: str, mode: str, history_count: int = 0) -> str | None:
+    """Compatibility adapter for the previous local-first API.
+
+    Context-free deterministic answers are intentionally used only when there
+    is no prior conversation history; contextual turns go through the main
+    conversational pipeline instead.
+    """
+    if history_count:
+        return None
+    return answer(message, mode)
