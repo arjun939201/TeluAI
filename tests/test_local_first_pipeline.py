@@ -25,7 +25,10 @@ def test_detect_teaching_no_match():
 
 
 @pytest.mark.asyncio
-async def test_deterministic_answer_known_word():
+async def test_deterministic_answer_known_word(monkeypatch):
+    # Keep this unit test independent of external/database seed state while
+    # still exercising the production deterministic-answer path.
+    monkeypatch.setattr("app.local_answer.load_root_dictionary", lambda: {"సాయం": "తోడ్పాటు"})
     reply = await try_deterministic_answer("సాయం అంటే ఏమిటి?", "melimi", 0)
     assert reply is not None
     assert "తోడ్పాటు" in reply
@@ -44,7 +47,8 @@ async def test_deterministic_answer_requires_melimi_mode():
 
 
 @pytest.mark.asyncio
-async def test_deterministic_answer_unknown_word():
+async def test_deterministic_answer_unknown_word(monkeypatch):
+    monkeypatch.setattr("app.local_answer.load_root_dictionary", lambda: {})
     reply = await try_deterministic_answer("ఆకాశగంగ అంటే ఏమిటి?", "melimi", 0)
     assert reply is None
 
