@@ -1,13 +1,17 @@
 def run_migrations() -> None:
-    # Keep startup schema creation non-recursive. app.main calls this after the
-    # FastAPI app exists; database.init_db is intentionally not called here.
+    # Startup schema creation must be non-recursive. The old init_db ->
+    # run_migrations -> init_db cycle could prevent the server from starting.
     from app.database import Base, engine
     Base.metadata.create_all(engine)
 
     from app.language_space import install_routes
     from app.chat_learning import install_chat_learning
     from app.main import app
+
     install_chat_learning()
     if not getattr(app.state, "language_space_installed", False):
         install_routes(app)
         app.state.language_space_installed = True
+
+    from app.runtime_fixes import install as install_runtime_fixes
+    install_runtime_fixes(app)
