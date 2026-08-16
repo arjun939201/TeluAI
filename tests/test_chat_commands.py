@@ -2,7 +2,7 @@ from app.chat_commands import parse_chat_command
 
 
 def test_word_command_parses_mapping():
-    command = parse_chat_command("/word દ્વેષస్పదం = కంటుపాదు")
+    command = parse_chat_command("/word ద్వేషస్పదం = కంటుపాదు")
     assert command.kind == "word"
     assert command.payload["standard_or_source"] == "ద్వేషస్పదం"
     assert command.payload["melimi_root"] == "కంటుపాదు"
