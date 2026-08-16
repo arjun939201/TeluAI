@@ -1,8 +1,8 @@
 """Install chat-learning hooks before FastAPI imports its endpoint helpers.
 
-Ordinary declarative chat can teach the language system. The hook stores the
-message first, then lets the existing local-answer/prompt pipeline continue.
-No conversation is replaced or recreated by the learning layer.
+Ordinary declarative chat in MELIMI mode can teach the language system. The
+hook stores the message first, then lets the existing local-answer/prompt
+pipeline continue. No conversation is replaced or recreated.
 """
 from __future__ import annotations
 
@@ -21,14 +21,14 @@ def install() -> None:
     original_build_prompt = prompts.build_prompt
 
     def learned_answer(message: str, mode: str):
-        # Keep this value for the rest of the current request so the later
-        # prompt-builder hook can retrieve language knowledge for this turn.
         _CURRENT_MESSAGE.set(str(message or ""))
-        try:
-            from app.chat_learning import learn_from_chat
-            learn_from_chat(message)
-        except Exception:
-            pass
+        if mode == "melimi":
+            try:
+                from app.chat_learning import learn_from_chat
+                learn_from_chat(message)
+            except Exception:
+                # Learning must never take the chat service down.
+                pass
         result = original_answer(message, mode)
         if result and "".join(str(result).split()).casefold() == "".join(str(message).split()).casefold():
             return None
