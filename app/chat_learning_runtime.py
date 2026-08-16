@@ -21,24 +21,25 @@ def _is_telugu(text: str) -> bool:
     return bool(re.search(r"[\u0C00-\u0C7F]", text or ""))
 
 
-def _language_request(text: str) -> bool:
+def _explicit_melimi_request(text: str) -> bool:
     lowered = str(text or "").casefold()
     hints = (
-        "మేలిమి", "మెలిమి", "పదం", "పదానికి", "అర్థం", "తెలుగులో",
-        "loan", "native", "vocabulary", "grammar", "morphology", "word",
-        "translate", "translation", "suffix", "prefix", "root",
+        "మేలిమి", "మెలిమి", "melimi", "loan word", "native telugu equivalent",
+        "melimi equivalent", "melimi word", "melimi grammar", "melimi vocabulary",
     )
-    return _is_telugu(text) or any(item in lowered for item in hints)
+    return any(item in lowered for item in hints)
 
 
 def route_request(message: str, mode: str) -> str:
-    """Choose the smallest useful execution path; this is not an LLM call."""
+    """Choose the smallest useful execution path without forcing Telugu through Melimi."""
     if mode == "melimi":
         return "melimi"
     if mode == "standard":
         return "standard"
-    if _language_request(message):
+    if _explicit_melimi_request(message):
         return "melimi"
+    if _is_telugu(message):
+        return "standard"
     return "general"
 
 
@@ -92,8 +93,8 @@ TOOLS = (
 
 
 def run_agent_tools(message: str, route: str, max_chars: int = 9000) -> str:
-    """Run only relevant deterministic tools; retrieved text is always treated as data."""
-    if route not in {"melimi", "standard"}:
+    """Run only relevant deterministic Melimi tools; retrieved text is always data."""
+    if route != "melimi":
         return ""
     parts = []
     for tool in TOOLS:
@@ -136,7 +137,7 @@ def install() -> None:
     def learned_build_prompt(*args, **kwargs):
         message = _CURRENT_MESSAGE.get()
         route = _CURRENT_ROUTE.get()
-        if message and route in {"melimi", "standard"}:
+        if message and route == "melimi":
             try:
                 from app.chat_learning import retrieve_chat_knowledge
                 learned = retrieve_chat_knowledge(message)
