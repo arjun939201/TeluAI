@@ -1,444 +1,344 @@
-
-### Configured owners
-
-The default configured owner emails are:
-- `throwuse829@gmail.com`
-- `draftusagw93@gmail.com`
-
-Set `OWNER_EMAILS` in Render to a comma-separated list if you want to change them. A matching registered account is automatically promoted to `owner`.
-
-
-## External Melimi language content
-
-The repository no longer ships `data/melimi_seed.json`. Melimi language content is maintained separately and imported into PostgreSQL through the `＋ కొత్తగా చేర్చు` content uploader.
-
-Supported uploads:
-- TXT
-- MD
-- JSON
-- ZIP containing TXT/MD/JSON
-
-Owner/admin uploads are imported as authoritative database content. Regular-user uploads are stored as pending learning candidates for approval.
-
-## TeluAI v1
-
-TeluAI v1 is the stable Melimi-language platform baseline.
-
-Core v1 behavior:
-- Melimi Telugu is an authoritative language lens, not a forced replacement mode.
-- Root-first morphology is used for supported grammatical/derivational transformations.
-- Authoritative Melimi knowledge is retrieved before generation.
-- Normal Telugu conversation remains natural; Melimi-only output is used when requested.
-- PostgreSQL stores users, conversations, learning candidates, and language knowledge in production.
-- New knowledge is pending until owner/admin approval.
-- `＋ కొత్తగా చేర్చు` provides:
-  - `కొత్త మేలిమి తెలుగు కంటెంట్`
-  - `కొత్త మేలిమి తెలుగు పలుకు`
-- Mobile and desktop share the same application UI.
-- Password recovery, roles, audit logging, and conversation history are included.
-
-Production deployment:
-1. Keep the Render PostgreSQL service separate from the Web Service.
-2. Set the Web Service `DATABASE_URL` to the Render PostgreSQL connection string.
-3. Configure Groq and SMTP environment variables in Render.
-4. Run database migrations on startup.
-5. Never commit secrets or production database credentials to GitHub.
-
-## Current release
-
-**TeluAI — Add Content Menu**
-
-The knowledge-add UI is consolidated under **＋ కొత్తగా చేర్చు**:
-- **కొత్త మేలిమి తెలుగు కంటెంట్**
-- **కొత్త మేలిమి తెలుగు పలుకు**
-
-The previous standalone **＋ కొత్త మేలిమి పలుకు జోడించు** button has been removed.
-
 # TeluAI
 
-> **UI preservation:** This release restores the original TeluAI dark chat interface (sidebar, mode switch, welcome screen, suggestions, composer, responsive layout). The UI is intentionally kept separate from the language-engineering work.
+**Telugu-first AI conversation and Melimi Telugu language intelligence platform.**
 
-**TeluAI is an AI-powered Telugu conversational web application with two
-language modes: Standard Telugu and strict Melimi Telugu.**
+TeluAI combines a conversational FastAPI application with PostgreSQL-backed
+language knowledge, contextual Telugu understanding, Melimi morphology, a
+curated Language Space, authentication, learning/approval workflows, history,
+memory, admin operations, and Groq generation.
 
-## What this version is trying to achieve
-
-TeluAI is not designed as:
-
-`input → dictionary lookup → copied phrase → LLM`
-
-It is designed as:
+The product goal is not dictionary substitution. The core pipeline is:
 
 ```text
-User
- ↓
-Input normalization
- ↓
-Telugu linguistic analysis
- ↓
-Conversation state
- ↓
-Contextual meaning / intent
- ↓
+User message
+    ↓
+Normalization + Roman-Telugu hints
+    ↓
+Conversation state + intent
+    ↓
 Response planning
- ↓
-Relevant language knowledge
- ↓
-LLM generation
- ↓
-Melimi language policy (Melimi mode)
- ↓
-Language audit
- ↓
+    ↓
+Relevant authoritative language evidence
+    ↓
+Groq generation
+    ↓
+Melimi policy / bounded lexical audit
+    ↓
 Natural response
 ```
 
-The LLM remains responsible for broad language reasoning and original
-generation. Local Python code supplies compact, relevant linguistic context.
+## Product principles
 
-## Standard Telugu mode
+- **Conversation before analysis.** Short inputs such as `enti`, `haa`, `sare`,
+  and `cheppu` are interpreted using the current conversation.
+- **Language Space is authoritative.** MASTER entries outrank generic model
+  knowledge.
+- **No blind replacement.** Melimi output preserves grammatical function,
+  meaning, tense, case, number, agreement, and context.
+- **Root-first morphology.** Supported inflections/derivations are reduced to
+  an authoritative root and the same grammatical operation is reapplied.
+- **No invented authority.** Unknown or unsupported Melimi vocabulary is not
+  silently invented merely to avoid a Standard Telugu word.
+- **Uploaded/user language data is untrusted until reviewed.** Regular-user
+  contributions enter the learning queue; admin/owner uploads may become
+  MASTER data.
 
-- Natural modern Standard Telugu.
-- Understands Roman-Telugu hints.
-- Keeps conversation context.
-- Does not inject Melimi vocabulary.
+## Architecture
 
-## Melimi Telugu mode
+### Backend
 
-Melimi mode is intentionally strict:
+- Python 3.12
+- FastAPI
+- Pydantic
+- SQLAlchemy 2.x
+- PostgreSQL with psycopg
+- Uvicorn
+- Groq-compatible OpenAI-style chat API
 
-- Prefer established Melimi vocabulary wherever it fits.
-- Use Melimi grammar and established word-formation rules.
-- Avoid unnecessary Standard Telugu/loan vocabulary.
-- Preserve meaning and grammatical function.
-- Do not blind-replace strings.
-- Do not stitch dictionary words.
-- Do not copy corpus sentences.
-- Do not invent unsupported Melimi words simply to remove a loanword.
-- Compose an original response appropriate to the conversation.
-
-## Linguistic intelligence
-
-The project now separates:
-
-- normalization
-- tokenization
-- sentence force
-- question type
-- basic morphological surface hints
-- contextual intent
-- conversation state
-- response planning
-- vocabulary retrieval
-- Melimi grammar policy
-- Melimi validation
-
-This is deliberately not presented as a complete computational grammar.
-It is a framework that can grow as the authoritative Melimi grammar/corpus
-grows.
-
-## Conversation intelligence
-
-Short messages are context-sensitive.
-
-Example:
+Important application areas:
 
 ```text
-AI: నీవు ఏమైనా ఆలోచిస్తున్నావా?
-User: enti
+app/
+├── main.py                  API, lifecycle, chat orchestration
+├── auth.py                  session authentication + authorization
+├── database.py              PostgreSQL/SQLAlchemy persistence
+├── learning/                unified contribution/review workflow
+├── memory/                  memory extraction + explicit memory storage
+├── conversation/            state, intent, planning
+├── linguistics/             normalization and Telugu linguistic hints
+├── melimi/                  grammar, roots, registry, firewall, index
+├── language_space.py        unified curated language knowledge view
+├── retrieval/               generic retrieval helpers
+├── prompts.py               language/system output contracts
+├── groq_client.py           resilient LLM client
+├── github_sync.py           optional GitHub language synchronization
+└── security.py              request limits + security headers
 ```
 
-The system supplies the model with:
+### Frontend
+
+The UI is a static, mobile-first application under `static/`:
+
+- `index.html` — main chat shell
+- `js/professional.js` — chat, auth, history, settings, account interactions
+- `admin.html` — admin shell
+- `admin-*.html` — operational admin views
+- `css/` — shared visual system
+
+The frontend is intentionally separate from the language engine.
+
+## Authentication and roles
+
+Supported account roles:
+
+- `guest`
+- `user`
+- `admin`
+- `owner`
+
+Authorization is enforced server-side through FastAPI dependencies. Client-side
+role visibility is only a UX convenience and is never trusted for permissions.
+
+Sessions use HttpOnly cookies with configurable Secure/SameSite behavior.
+Passwords are stored as salted PBKDF2-SHA256 hashes. Password reset codes are
+short-lived and reset operations revoke existing sessions.
+
+## Conversation and memory
+
+Conversation history is persisted per user. The chat pipeline uses bounded
+recent history rather than blindly sending an unlimited transcript.
+
+Persistent memory is user-controlled and is separate from temporary conversation
+context. TeluAI does not silently convert arbitrary model output into permanent
+personal memory.
+
+## Melimi Telugu Language Space
+
+The PostgreSQL language layer supports:
+
+- dictionary roots
+- grammar
+- derivational rules
+- affixes
+- examples
+- posts/content
+- facts and notes
+- uploaded language documents
+- version records
+- learning candidates
+- audit history
+
+The admin Language Space exposes these records through a unified interface with
+search, filtering by type, version/status information, and provenance/source
+information.
+
+### Authority levels
 
 ```text
-intent = clarification_request
+PENDING / PROPOSED
+        ↓ review
+MASTER
+        ↓ runtime retrieval
+Melimi language engine
 ```
 
-rather than treating `enti` as an isolated "what" lookup.
+A missing lexical entry is treated as missing evidence, not as permission to
+invent a word.
 
-The same principle is intended for:
+## Learning workflow
 
-- haa
-- sare
-- cheppu
-- em
-- emledhu
-- short answers
-- fragments
-- references to previous turns
+Regular-user language contributions follow:
 
-## Memory
-
-Conversation memory is conservative. Explicit facts can be marked as
-candidates, but arbitrary chat output is not silently converted into permanent
-user memory.
-
-## Knowledge
-
-`data/melimi_seed.json` contains a small seed corpus so the repository can boot.
-
-To restore the current full public vocabulary:
-
-```bash
-python scripts/restore_full_corpus.py
+```text
+Contribution
+   ↓
+Validation / size limits
+   ↓
+Learning Candidate
+   ↓
+Admin review
+   ├── reject
+   └── approve
+          ↓
+     authoritative language data
+          ↓
+       index refresh
 ```
 
-Run this before production deployment if the full corpus is not already in
-the repository.
+Explicit `/word` and `/content` commands retain their syntax. Admin/owner
+commands may write authoritative language data directly; regular-user commands
+are queued for review to protect the language authority from poisoning.
 
-## Run locally
+## Upload security
+
+Supported language packages:
+
+- TXT
+- Markdown
+- JSON
+- ZIP containing supported files
+
+Upload limits include:
+
+- 10 MB request limit
+- 5 MB per ZIP member
+- 10 MB total uncompressed ZIP content
+- 50 ZIP members
+- supported extensions only
+
+Regular users cannot directly promote an upload to MASTER.
+
+## AI reliability
+
+The Groq client includes:
+
+- bounded conversation/history sizes
+- request timeouts
+- retry handling for rate limiting
+- Retry-After support
+- exponential backoff
+- optional model fallback
+- bounded concurrent requests
+- safe, non-secret error messages
+
+The application also caches only context-independent new-chat responses. User
+memory disables cross-request response caching to prevent personalization leaks.
+
+## Security baseline
+
+TeluAI includes:
+
+- HttpOnly session cookies
+- configurable Secure cookies
+- SameSite protection
+- server-side role authorization
+- request rate limiting for authentication, chat, and uploads
+- security response headers
+- restricted CORS when explicitly configured
+- disabled API docs by default in production
+- bounded uploads and ZIP extraction
+- audit logging for important account/language/admin actions
+- no secrets committed to the repository
+
+The old unpinned third-party ChatGPT GitHub Action was removed from this release
+because it used a moving `main` reference and did not match its documented
+inputs. GitHub repository synchronization remains a separate server-side
+capability using `GITHUB_TOKEN`.
+
+## Configuration
+
+Copy `.env.example` and configure the required production values.
+
+Important variables:
+
+```text
+GROQ_TOKEN
+GROQ_MODEL
+DATABASE_URL
+OWNER_EMAILS
+SESSION_DAYS
+COOKIE_SECURE
+CORS_ORIGINS
+TRUST_PROXY_HEADERS
+SMTP_HOST / SMTP_PORT / SMTP_USERNAME / SMTP_PASSWORD / SMTP_FROM
+GITHUB_TOKEN / GITHUB_REPO / GITHUB_BRANCH / GITHUB_LANGUAGE_FILE
+```
+
+For same-origin Render deployment, leave `CORS_ORIGINS` empty.
+
+## Local development
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/restore_full_corpus.py
 pytest -q
-python scripts/check_project.py
 uvicorn app.main:app --reload
 ```
 
-Set:
+The application can run its database migration/bootstrap sequence during
+startup. For production, point `DATABASE_URL` at the Render PostgreSQL service.
 
-```text
-GROQ_TOKEN=...
-GROQ_MODEL=llama-3.3-70b-versatile
+## Testing
+
+The CI pipeline performs:
+
+1. dependency installation
+2. `pip check`
+3. Python compilation
+4. frontend JavaScript syntax checking
+5. repository hygiene checks
+6. the full pytest suite
+
+Run locally:
+
+```bash
+pytest -q --import-mode=importlib
 ```
 
-## Render
+## Production deployment
 
-Build:
+Recommended Render layout:
 
 ```text
-pip install -r requirements.txt
+Render Web Service
+        │
+        ├── DATABASE_URL ──→ Render PostgreSQL
+        ├── GROQ_TOKEN
+        ├── SMTP_* (optional password reset)
+        └── OWNER_EMAILS
 ```
 
-Start:
+Start command:
 
 ```text
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-## Melimi Telugu is now a language subject
-
-The the PostgreSQL-backed Melimi language store is the dedicated language subject. The engine
-reads vocabulary, grammar, word formation, syntax, examples, prose and rules
-from this subject instead of treating a single vocabulary JSON as the language.
-
-The mode switch changes the **expression language** used by the response engine:
+Health endpoints:
 
 ```text
-Standard mode:
-meaning -> Standard Telugu
-
-Melimi mode:
-meaning -> Melimi language subject -> Melimi expression -> Melimi audit
+GET /health
+GET /health/ready
 ```
 
-The subject loader supports Markdown, text, JSON and CSV. Structured vocabulary
-entries and unstructured grammar/prose are both indexed.
+`/health/ready` verifies database connectivity and is appropriate for readiness
+checks.
 
-For a repository containing your existing full corpus:
+## Corpus status
 
-```bash
-python scripts/import_existing_corpus.py
-python scripts/check_melimi_subject.py
-```
+The current repository does **not** contain the historical full Melimi corpus.
+It contains `data/CORPUS_NOTE.txt`, which documents that the authoritative
+language material was moved out of the repository and must be restored/imported
+through the Language Space/content workflow.
 
-For the real project, put your complete authoritative Melimi language material
-inside the PostgreSQL-backed Melimi language store. The application should not silently replace it with
-small seed data.
+TeluAI deliberately does not fabricate a replacement corpus. If you have the
+original authoritative corpus, import it through an admin/owner-approved
+Language Space package before treating those entries as production language
+knowledge.
 
-The old UI remains unchanged; this release changes the language architecture
-underneath it.
+## GitHub language synchronization
 
-## Next major linguistic work
+GitHub synchronization is optional and server-side. The application can read
+and write the configured language file through the GitHub Contents API when
+`GITHUB_TOKEN` is configured with the required repository Contents permission.
 
-The architecture is ready for deeper:
+Never expose the GitHub token to the browser or commit it to the repository.
 
-1. Telugu dependency parsing
-2. full morphological analysis
-3. tense/aspect/mood analysis
-4. case-role analysis
-5. clause analysis
-6. Telugu idiom handling
-7. Melimi derivational grammar
-8. Melimi inflection rules
-9. semantic representation
-10. context-aware generation
-11. strict loanword audit
-12. corpus-based naturalness evaluation
-13. controlled language learning
-14. long-context summaries
-15. automated Standard/Melimi regression tests
+## Design roadmap
 
-The goal is to make TeluAI understand **language and conversation**, then use
-Melimi as a real language-expression system rather than a word-replacement
-layer.
+The architecture is intended to grow toward:
 
+1. full Telugu morphological parsing
+2. richer dependency/clause analysis
+3. semantic retrieval and ranking
+4. language-entry confidence/provenance scoring
+5. stronger learning conflict detection
+6. shared/distributed rate limiting for multi-instance deployments
+7. migration tooling with a formal migration history
+8. automated Melimi naturalness evaluation
+9. richer message actions and Markdown/code rendering
+10. production observability/metrics and alerting
 
-## Release principle
-
-The frontend is preserved from the earlier working TeluAI interface. New work is
-concentrated in language and conversation intelligence.
-
-Do not redesign the UI as part of language-engine changes unless explicitly requested.
-
-## Melimi quality principle
-
-Melimi mode must not be implemented as a handful of word substitutions. It must
-understand the conversational meaning first and then compose the response under
-Melimi lexical and grammatical constraints.
-
-The model is allowed to keep a word only when an appropriate established Melimi
-equivalent is unavailable; it must not invent unsupported vocabulary merely to
-make a response look "pure".
-
-## Corpus safety
-
-If you already have the full `data/melimi_seed.json` in your GitHub repository,
-KEEP IT. This ZIP contains the development seed from the previous package because
-the connector cannot download the full corpus into the build environment.
-
-Before replacing a repository wholesale, preserve your existing full corpus.
-
-
-## V6 language-subject architecture
-
-The Melimi folder is now treated as a **language subject**, not a collection of
-retrieval files.
-
-At startup, TeluAI builds a local index of every supported file in:
-
-```text
-data/melimi_seed.json
-  vocabulary/
-  grammar/
-  word_formation/
-  syntax/
-  examples/
-  prose/
-  rules/
-```
-
-For a Melimi request, the engine sends Groq two compact layers:
-
-1. a cached language profile containing the most important grammar/rules;
-2. query-specific subject evidence selected from the complete subject index.
-
-This keeps the whole corpus out of every API request while still making the
-corpus the source of language knowledge.
-
-The generation contract is:
-
-```text
-conversation understanding
-        ↓
-response meaning
-        ↓
-Melimi language selection
-        ↓
-subject grammar + vocabulary + usage
-        ↓
-original Melimi generation
-        ↓
-silent Melimi audit
-```
-
-The system is deliberately prevented from using corpus sentences as canned
-answers.
-
-### Add the full corpus
-
-Copy your real Melimi language files into the PostgreSQL-backed Melimi language store while preserving
-their original content. Then run:
-
-```bash
-python scripts/check_melimi_subject.py
-pytest -q
-python scripts/check_project.py
-```
-
-The `/melimi/subject` endpoint reports what the running service actually indexed.
-\n## Wiki-style language development
-
-Melimi responses now expose lexical gaps directly in chat:
-registered words are normal; unregistered lexical words are red and clickable.
-The user can enter root, meaning, word type, Melimi equivalent and formation
-rule, then register the word into the Git-tracked language subject.
-
-
-## Smart word marking
-
-The wiki-style marking was refined. Missing from the Melimi vocabulary does NOT
-mean "loanword". Ordinary Telugu words such as `ఏమిటి` and `అనుకుంటున్నారు`
-remain normal.
-
-Red/clickable marking is now reserved for:
-1. words explicitly classified as loan/loanword/borrowed/foreign in the language
-   subject; or
-2. an explicitly registered Standard->Melimi mapping whose Melimi equivalent
-   is missing from the registry.
-
-This prevents the UI from treating the entire Telugu language as unregistered.
-
-## v10 strict Melimi + GitHub teaching
-
-### Two independent language modes
-- Standard mode uses natural Standard Telugu and does not run Melimi lexical constraints.
-- Melimi mode uses the Melimi language subject, conversation state, relevant corpus retrieval, grammar/word-formation rules, and a deterministic lexical gate.
-
-### Strict Melimi gate
-Known Standard→Melimi mappings and explicitly classified loanwords are checked after generation. If a known Melimi equivalent was available but the model used the Standard/loan form, TeluAI performs a bounded repair generation. Ordinary Telugu words that merely are absent from the corpus are not marked or banned.
-
-### Wiki-style teaching
-The sidebar now has `＋ మేలిమి పదం జోడించు`. A red word in Melimi mode opens the same registration dialog. Submit commits the user-verified record directly to the configured GitHub language file.
-
-### Render environment variables
-Set the variables from `.env.example`. `GITHUB_TOKEN` must be a GitHub token with repository Contents read/write permission. The token is server-side only and is never sent to the browser.
-
-
-## Strict file-content authority
-
-Melimi mode now treats the vocabulary files as an enforceable lexical
-specification. Every explicit Standard/source -> Melimi mapping is loaded into
-a file-derived lexical firewall. The mapping is supplied to generation, checked
-after generation, regenerated if violated, and protected by a final exact
-replacement barrier derived from the files.
-
-Example:
-
-```text
-సహాయం -> బాసట
-```
-
-If a model produces `సహాయం` in Melimi mode, that output cannot pass the final
-Melimi gate.
-
-This is intentionally different from marking every unknown Telugu word as a
-loanword. Only explicit file evidence creates a lexical constraint.
-
-## v13: one-Groq architecture
-
-Melimi lexical validation and repair are local. A chat turn makes one Groq generation request at most. Explicit mappings such as `సహాయం -> బాసట` are enforced without another Groq call.
-
-
-## Password reset flow
-
-1. User clicks **Forgot password?** on the login page.
-2. The user must provide a valid email address; the field is required.
-3. TeluAI sends a 6-digit password-reset verification code to that email.
-4. The user enters the code on the verification step.
-5. A valid code takes the user to the password-reset page.
-6. The user enters and confirms a new password.
-7. TeluAI updates the password, revokes old sessions, creates a fresh authenticated session, and returns the user to the website.
-
-Required Render environment variables for email delivery:
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USERNAME`
-- `SMTP_PASSWORD`
-- `SMTP_FROM`
-
-The verification code expires after 10 minutes. The code is never returned to the browser by the request endpoint.
-
-### Melimi lens
-TeluAI uses Melimi as an authoritative language lens for understanding and lookup while keeping normal Telugu conversation natural. Melimi-only generation is used when the user explicitly asks for Melimi output.
+The goal remains the same: **excellent AI-powered Telugu and Melimi Telugu
+language intelligence**, not a generic AI wrapper.
