@@ -1,8 +1,8 @@
 from app.config import settings
 from app.melimi.firewall import subject_lexicon
-
 from app.melimi.index import language_profile, relevant_language_context
 from app.melimi.registry import lexical_inventory
+from app.language_space import language_space_context
 
 
 def build_language_engine_context(
@@ -32,6 +32,9 @@ def build_language_engine_context(
         mapping_lines.append(f"- {source} => {preferred}")
     file_authority = "\n".join(mapping_lines)[:2000]
     relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
+    # The unified language space is the living, curated layer for posts,
+    # dictionary entries, grammar, examples and other Melimi knowledge.
+    space = language_space_context(user_message, max_chars=min(5000, max_relevant_chars))
 
     return f"""
 MELIMI TELUGU LENS
@@ -52,6 +55,9 @@ Melimi noun-based suffixes such as కాను, మారి, వాను, ప
 
 Do not interpret Melimi formations as ordinary Telugu phrases merely because their spelling resembles Telugu.
 
+UNIFIED MELIMI LANGUAGE SPACE:
+This is the curated, persistent language knowledge layer maintained by the owner and approved administrators. It contains dictionary entries, posts, grammar, rules, examples, facts, notes and other approved language knowledge. Use relevant entries as first-class evidence. Do not contradict them or invent replacements when an entry is authoritative.
+
 COMPACT CONVERSATION:
 {conversation_context}
 
@@ -66,6 +72,9 @@ AUTHORITATIVE LANGUAGE PROFILE:
 
 RELEVANT SUBJECT EVIDENCE:
 {relevant}
+
+UNIFIED LANGUAGE-SPACE EVIDENCE:
+{space}
 
 REGISTERED ROOT MAPPINGS:
 {file_authority}
