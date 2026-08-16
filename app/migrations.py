@@ -12,6 +12,3 @@ def run_migrations() -> None:
     if not getattr(app.state, "language_space_installed", False):
         install_routes(app)
         app.state.language_space_installed = True
-
-    from app.runtime_fixes import install as install_runtime_fixes
-    install_runtime_fixes(app)
