@@ -14,7 +14,6 @@ from typing import Dict, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
 
-# Surface suffixes which can be removed without a major morphophonemic change.
 GRAMMATICAL_SUFFIXES = tuple(
     sorted(
         [
@@ -41,8 +40,7 @@ DERIVATIONAL_SUFFIXES = tuple(
 )
 
 # Abstract operations are used instead of storing a source-language surface
-# suffix. This is what lets one operation have different surface realizations
-# in different lexical classes.
+# suffix. One operation can therefore be reapplied to any learned target root.
 ACCUSATIVE = "ACCUSATIVE"
 DATIVE = "DATIVE"
 
@@ -79,19 +77,11 @@ def _candidate_strips(surface, suffixes, kind):
 
 
 def _case_candidate(surface):
-    """Reverse common Telugu case allomorphs produced from an -ం noun.
-
-    Example::
-
-        సంతోషం + ACCUSATIVE -> సంతోషాన్ని
-        సంతోషం + DATIVE     -> సంతోషానికి
-
-    The surface endings ``న్ని`` and ``నికి`` cannot be handled by blindly
-    stripping ``ని``/``కి`` because the source noun's ``ం`` participates in
-    the morphophonemic change. We therefore recover the abstract operation.
-    """
+    """Recover abstract case operations from common Telugu -ం noun forms."""
+    # సంతోషం + ని -> సంతోషాన్ని
     if surface.endswith("న్ని") and len(surface) > 4:
         return surface[:-3] + "ం", ACCUSATIVE
+    # సంతోషం + కి -> సంతోషానికి
     if surface.endswith("నికి") and len(surface) > 4:
         return surface[:-3] + "ం", DATIVE
     return None
@@ -122,7 +112,7 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     if surface in roots:
         return MorphologicalForm(surface, surface)
 
-    # Recover morphophonemic case operations before ordinary suffix stripping.
+    # Morphophonemic case recovery must happen before ordinary suffix stripping.
     case = _case_candidate(surface)
     if case and case[0] in roots:
         root, operation = case
@@ -137,7 +127,6 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
             return current, operations
         if depth >= 3:
             return None
-
         candidates = list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar"))
         candidates += list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation"))
         candidates.sort(key=lambda x: (-len(x[1]), x[0]))
@@ -166,18 +155,18 @@ def apply_operation(root, kind, suffix):
     if suffix == "గా" and kind == "adjective_predicate":
         return root + "గా"
 
-    # Abstract case operations. The Melimi surface is selected from the
-    # target root, not copied from the source-language spelling.
     if kind == "case":
         if suffix == ACCUSATIVE:
             # Source: సంతోషం -> సంతోషాన్ని
-            # Melimi: అలరిక -> అలరికని
+            # Target: అలరిక -> అలరికని; ఉల్లాసం -> ఉల్లాసాన్ని
             if root.endswith("ం"):
-                return root[:-1] + "న్ని"
+                return root[:-1] + "ాన్ని"
             return root + "ని"
         if suffix == DATIVE:
+            # Source: సంతోషం -> సంతోషానికి
+            # Target: అలరిక -> అలరికకి; ఉల్లాసం -> ఉల్లాసానికి
             if root.endswith("ం"):
-                return root[:-1] + "నికి"
+                return root[:-1] + "ానికి"
             return root + "కి"
 
     if root.endswith("ం") and kind == "grammar":
