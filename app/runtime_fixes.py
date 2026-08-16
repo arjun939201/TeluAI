@@ -3,10 +3,10 @@ from __future__ import annotations
 import inspect
 import os
 
-from fastapi import Cookie, Depends, File, HTTPException, Response, UploadFile
+from fastapi import Cookie, Depends, File, Header, HTTPException, Response, UploadFile
 from app import database as db
 from app.account_service import create_guest_user, update_credentials
-from app.auth import COOKIE_NAME, current_user
+from app.auth import COOKIE_NAME, current_user, require_owner
 from app.chat_commands import parse_chat_command
 from app.chat_learning import learn_explicit_teaching
 from app.config import settings
@@ -104,12 +104,44 @@ def _install_direct_content_routes(app) -> None:
         return {"ok": True, **result, "status": "MASTER"}
 
 
+def _install_owner_bootstrap_guard(app) -> None:
+    # The previous startup behavior promoted any public registration matching
+    # OWNER_EMAILS. Because those emails are not proof of identity, disable the
+    # automatic promotion path. Existing owner rows remain owners.
+    globals_map = getattr(app, "__dict__", {})
+    main_module = __import__("app.main", fromlist=["app"])
+    main_globals = getattr(main_module.startup, "__globals__", {})
+    main_globals["promote_configured_owners"] = lambda emails=None: []
+
+    _remove_routes(app, "/auth/bootstrap-owner", {"POST"})
+
+    @app.post("/auth/bootstrap-owner")
+    def secure_owner_bootstrap(x_owner_bootstrap_token: str | None = Header(default=None, alias="X-Owner-Bootstrap-Token"), user=Depends(current_user)):
+        configured = os.getenv("OWNER_EMAILS", "").split(",")
+        configured = {email.strip().lower() for email in configured if email.strip()}
+        if not configured:
+            raise HTTPException(503, "OWNER_EMAILS is not configured.")
+        expected = os.getenv("OWNER_BOOTSTRAP_TOKEN", "").strip()
+        if not expected or x_owner_bootstrap_token != expected:
+            raise HTTPException(403, "Owner bootstrap token is required.")
+        if user.email.lower() not in configured:
+            raise HTTPException(403, "This account is not configured as an owner.")
+        with db.SessionLocal() as session:
+            row = session.get(db.User, user.id)
+            row.role = "owner"
+            session.commit()
+            session.refresh(row)
+        db.audit_log(user.id, "owner.bootstrap", "user", str(user.id), {"email": user.email})
+        return {"ok": True, "id": user.id, "username": user.username, "role": "owner"}
+
+
 def install(app) -> None:
     if getattr(app.state, "runtime_fixes_installed", False):
         return
 
     _install_chat_command_gateway(app)
     _install_direct_content_routes(app)
+    _install_owner_bootstrap_guard(app)
 
     _remove_routes(app, "/conversations/{conversation_id}", {"GET", "DELETE"})
 
