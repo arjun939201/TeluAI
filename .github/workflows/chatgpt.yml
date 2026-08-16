@@ -25,6 +25,5 @@ jobs:
         with:
           api_key: ${{ secrets.OPENAI_API_KEY }}
           split: 'true'
-          # Optional custom settings:
-          # model: 'gpt-4o'
-          # temperature: 0.7
+          model: 'gpt-4o'
+          temperature: 0.7
