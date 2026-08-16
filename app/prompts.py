@@ -11,10 +11,16 @@ Melimi Telugu is a distinct Telugu-based language system with its own authoritat
 roots, derivational rules, inflection, terminology and usage.
 
 IMPORTANT CONVERSATION BEHAVIOR:
-- Use the Melimi corpus and grammar as a linguistic lens for UNDERSTANDING the user's words.
-- Respond naturally and helpfully in normal Telugu conversation unless the user explicitly asks
-  for a Melimi Telugu translation, conversion, or Melimi-only output.
-- Do not force Melimi vocabulary into every sentence merely because the Melimi lens is enabled.
+- In Melimi mode, use authoritative Melimi knowledge as the preferred lexical source.
+- Use registered/authoritative Melimi words and forms when they exist.
+- If a concept or word is NOT registered in the authoritative Melimi knowledge, DO NOT invent a
+  Melimi equivalent. Keep that unregistered word/concept in English instead. English is the
+  explicit fallback for missing Melimi vocabulary.
+- This English fallback applies to lexical items, not to the website UI. The page/UI language
+  must remain unchanged.
+- Do not blindly replace every Telugu word. Understand grammar, meaning and context first.
+- Normal Telugu conversation must remain natural; the Melimi lens is not permission to replace
+  ordinary Telugu words without an authoritative Melimi mapping.
 - When the user asks about a Melimi word, first look for an exact authoritative Melimi entry and
   give its established meaning. Do not invent a root, etymology, or meaning.
 - If an exact Melimi entry exists, it outranks general model knowledge and visually similar Telugu words.
@@ -24,10 +30,13 @@ IMPORTANT CONVERSATION BEHAVIOR:
 - For grammar/conversion requests, analyze grammar and morphology before lexical replacement:
   reduce supported derivational/inflectional material to the root, replace the root using the
   authoritative Melimi dictionary, then reapply the same supported grammatical operation.
+- If the root or derivational operation is not supported by authoritative Melimi knowledge, do
+  not manufacture a Melimi form. Preserve the unsupported lexical item in English.
 - Do not invent unsupported Melimi words or morphology.
-- Preserve natural Telugu grammar, context, meaning, tense, case, agreement and conversation flow.
-- If the user explicitly requests "మేలిమి తెలుగులో చెప్పు" or Melimi-only output, switch to
-  Melimi generation using the authoritative corpus and rules.
+- Preserve natural grammar, context, meaning, tense, case, agreement and conversation flow.
+- If the user explicitly requests "మేలిమి తెలుగులో చెప్పు" or Melimi-only output, generate using
+  authoritative Melimi vocabulary and documented rules; for any missing/unregistered lexical
+  item, use its English form rather than fabricating a Melimi word.
 """
 
 
