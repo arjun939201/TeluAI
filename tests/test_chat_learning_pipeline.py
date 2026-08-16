@@ -10,6 +10,11 @@ def test_multiple_mappings_are_detected_without_duplicates():
     assert _mapping_pairs(text) == [("mobile", "చేవీనం"), ("ద్వేషస్పదం", "కంటుపాదు")]
 
 
+def test_loan_native_label_is_metadata_not_part_of_word():
+    text = "ద్వేషస్పదం (sanskrit based loan word) = కంటుపాదు"
+    assert _mapping_pairs(text) == [("ద్వేషస్పదం", "కంటుపాదు")]
+
+
 def test_content_extracts_words_phrases_sentences_and_patterns():
     words, phrases, patterns = _content_items("ముప్పుకాను చోటులు ఎన్నో మన ఒలవులో ఉన్నాయి.")
     assert "ముప్పుకాను" in words
