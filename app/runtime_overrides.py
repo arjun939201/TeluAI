@@ -5,11 +5,20 @@ from app import database as db
 from app.melimi import content_store
 
 
+def _fallback_add_learning_candidate(user_id, knowledge_type, source_text, payload):
+    """Compatibility API for older callers; persist a normal pending candidate."""
+    with db.SessionLocal() as session:
+        candidate = db.LearningCandidate(user_id=user_id, knowledge_type=knowledge_type, source_text=source_text, payload_json=json.dumps(payload or {}, ensure_ascii=False), status="PENDING")
+        session.add(candidate); session.commit(); session.refresh(candidate)
+        return candidate.id
+
+
 def _content_candidate_or_approved(user_id, knowledge_type, source_text, payload):
     if knowledge_type == "CONTENT" and isinstance(payload, dict):
         user = None
         if user_id is not None:
-            with db.SessionLocal() as session: user = session.get(db.User, user_id)
+            with db.SessionLocal() as session:
+                user = session.get(db.User, user_id)
         result = content_store.submit_content(user_id or 0, str(payload.get("title", "")), str(payload.get("content", "")), approved=bool(user and user.role in {"owner", "admin"}))
         return result.get("candidate_id", 0)
     return _original_add_learning_candidate(user_id, knowledge_type, source_text, payload)
@@ -54,7 +63,7 @@ def _install_credential_route():
 
 def apply():
     global _original_add_learning_candidate
-    _original_add_learning_candidate=db.add_learning_candidate
+    _original_add_learning_candidate=getattr(db,"add_learning_candidate",_fallback_add_learning_candidate)
     db._read_seed=lambda:{};db._seed_language=lambda:None
     db.ingest_language_package=content_store.ingest_language_package
     db.review_candidate=content_store.review_candidate
