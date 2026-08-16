@@ -16,7 +16,7 @@ def test_explicit_word_command_is_master_and_normal_mapping_is_ignored():
 
         command = client.post("/chat", json={"message": "/word ద్వేషస్పదం = కంటుపాదు", "mode": "melimi"})
         assert command.status_code == 200, command.text
-        assert "కంటుపాదు" in command.json()["reply"]
+        assert "MASTER" in command.json()["reply"]
         with db.SessionLocal() as session:
             row = session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == "ద్వేషస్పదం"))
             assert row is not None
