@@ -31,3 +31,11 @@ html[data-theme="light"] .composer-wrap{background:linear-gradient(transparent,v
 .close:hover{background:var(--panel2);color:var(--text)}
 .history-item{border-radius:var(--ui-radius);box-shadow:none}
 @media(max-width:800px){.sidebar{box-shadow:12px 0 32px rgba(0,0,0,.24)}.content{padding-top:20px}.topbar{background:var(--panel)}.composer-wrap{padding-top:8px}.account-card{min-height:56px}}
+
+/* History is already visible below the new-chat action; avoid duplicating the old nav entry. */
+#historyLink{display:none!important}
+/* Use the user's preferred Melimi terminology for the visible recent-history heading. */
+.history-drawer-head b{font-size:0;display:inline-flex;align-items:center;gap:7px}
+.history-drawer-head b::before{content:"◷";font-size:15px;line-height:1}
+.history-drawer-head b::after{content:"ఇటీవలి జరిమీలు";font-size:inherit;line-height:1}
+@media(max-width:800px){#historyLink{display:none!important}}
