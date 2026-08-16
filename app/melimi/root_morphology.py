@@ -6,15 +6,8 @@ from functools import lru_cache
 from typing import Dict, Iterable, Optional, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
-GRAMMATICAL_SUFFIXES = tuple(sorted([
-    "లతో","లలో","లకు","లను","లని","లపై","లకై","లవల్ల","నుంచి","నుండి","యొక్క",
-    "తోటి","గురించి","కోసం","వల్ల","మధ్య","లోని","పైన","తో","లో","లు","ను","ని",
-    "కు","కి","గా","పై","ల",
-], key=len, reverse=True))
-DERIVATIONAL_SUFFIXES = tuple(sorted([
-    "అలవి","అల్వి","అరిది","అర్ది","కాను","కాన్","మారి","వాను","వాన్","పాదు","పఱ",
-    "కము","ఇకము","మాలు","గము","ఓరు","ఆది","ఓలి","ఓజ","అంగి","ఇద","ద","అ",
-], key=len, reverse=True))
+GRAMMATICAL_SUFFIXES = tuple(sorted(["లతో","లలో","లకు","లను","లని","లపై","లకై","లవల్ల","నుంచి","నుండి","యొక్క","తోటి","గురించి","కోసం","వల్ల","మధ్య","లోని","పైన","తో","లో","లు","ను","ని","కు","కి","గా","పై","ల"], key=len, reverse=True))
+DERIVATIONAL_SUFFIXES = tuple(sorted(["అలవి","అల్వి","అరిది","అర్ది","కాను","కాన్","మారి","వాను","వాన్","పాదు","పఱ","కము","ఇకము","మాలు","గము","ఓరు","ఆది","ఓలి","ఓజ","అంగి","ఇద","ద","అ"], key=len, reverse=True))
 
 @dataclass(frozen=True)
 class MorphologicalForm:
@@ -44,6 +37,9 @@ def _adjectival_candidate(surface: str, roots: Dict[str,str]):
     if surface.endswith("మైన") and len(surface) > 4:
         candidate = surface[:-3] + "ం"
         if candidate in roots: return candidate, "మైన", "adjective"
+    if surface.endswith("గా") and len(surface) > 3:
+        candidate = surface[:-2] + "ం"
+        if candidate in roots: return candidate, "గా", "adjective_predicate"
     if surface.endswith("ా") and len(surface) > 2:
         candidate = surface[:-1]
         if candidate in roots: return candidate, "ా", "adjective"
@@ -72,6 +68,7 @@ def reduce_to_root(word: str, roots: Optional[Dict[str,str]]=None) -> Morphologi
 
 def apply_operation(root: str, kind: str, suffix: str) -> str:
     if suffix in {"ా", "మైన"} and kind == "adjective": return root
+    if suffix == "గా" and kind == "adjective_predicate": return root + "గా"
     if root.endswith("ం") and kind == "grammar":
         stem = root[:-1] + "ా"
         forms = {"లు": stem+"లు", "ల": stem+"ల", "లను": stem+"లను", "లని": stem+"లని", "లకు": stem+"లకు", "లకై": stem+"లకై", "లపై": stem+"లపై", "లతో": stem+"లతో", "లలో": stem+"లలో"}
@@ -83,13 +80,11 @@ def apply_operation(root: str, kind: str, suffix: str) -> str:
 
 def reapply_operations(melimi_root: str, form: MorphologicalForm) -> str:
     result = melimi_root
-    for kind, suffix in reversed(form.operations):
-        result = apply_operation(result, kind, suffix)
+    for kind, suffix in reversed(form.operations): result = apply_operation(result, kind, suffix)
     return result
 
 def convert_surface(word: str, roots: Optional[Dict[str,str]]=None) -> str:
-    roots = roots or load_root_dictionary()
-    form = reduce_to_root(word, roots)
+    roots = roots or load_root_dictionary(); form = reduce_to_root(word, roots)
     if form.root not in roots: return word
     return reapply_operations(roots[form.root], form)
 
