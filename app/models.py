@@ -7,9 +7,32 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=12000)
-    mode: Literal["standard", "melimi"] = "melimi"
+    mode: Literal["auto", "standard", "melimi"] = "auto"
     history: List[ChatTurn] = Field(default_factory=list)
     conversation_id: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    reply: str
+    mode: str
+    intent: str
+    language: str = "english"
+    conversation_id: str | None = None
+    message_id: int | None = None
+    understanding: Dict = Field(default_factory=dict)
+    language_audit: Dict = Field(default_factory=dict)
+    word_audit: List[Dict] = Field(default_factory=list)
+    local: bool = False
+
+class FeedbackRequest(BaseModel):
+    message_id: int | None = None
+    rating: int = Field(ge=1, le=5)
+    text: str = Field(default="", max_length=4000)
+
+class MessageEditRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=12000)
+
+class RegenerateRequest(BaseModel):
+    message_id: int | None = None
 
 class WordRegistration(BaseModel):
     word: str
@@ -37,22 +60,6 @@ class CredentialUpdateRequest(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
-class FeedbackRequest(BaseModel):
-    message_id: int | None = None
-    rating: int = Field(ge=1, le=5)
-    text: str = Field(default="", max_length=4000)
-
-class ChatResponse(BaseModel):
-    reply: str
-    mode: str
-    intent: str
-    conversation_id: str | None = None
-    message_id: int | None = None
-    understanding: Dict = Field(default_factory=dict)
-    language_audit: Dict = Field(default_factory=dict)
-    word_audit: List[Dict] = Field(default_factory=list)
-    local: bool = False
-
 class HealthResponse(BaseModel):
     status: str
     service: str
@@ -60,7 +67,7 @@ class HealthResponse(BaseModel):
     database: str
 
 class SettingsUpdateRequest(BaseModel):
-    preferred_mode: Literal["standard", "melimi"] = "melimi"
+    preferred_mode: Literal["auto", "standard", "melimi"] = "auto"
     response_length: Literal["short", "normal", "long"] = "normal"
     memory_enabled: bool = True
 
