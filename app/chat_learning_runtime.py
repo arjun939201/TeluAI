@@ -21,19 +21,18 @@ def install() -> None:
     original_build_prompt = prompts.build_prompt
 
     def learned_answer(message: str, mode: str):
-        token = _CURRENT_MESSAGE.set(str(message or ""))
+        # Keep this value for the rest of the current request so the later
+        # prompt-builder hook can retrieve language knowledge for this turn.
+        _CURRENT_MESSAGE.set(str(message or ""))
         try:
-            try:
-                from app.chat_learning import learn_from_chat
-                learn_from_chat(message)
-            except Exception:
-                pass
-            result = original_answer(message, mode)
-            if result and "".join(str(result).split()).casefold() == "".join(str(message).split()).casefold():
-                return None
-            return result
-        finally:
-            _CURRENT_MESSAGE.reset(token)
+            from app.chat_learning import learn_from_chat
+            learn_from_chat(message)
+        except Exception:
+            pass
+        result = original_answer(message, mode)
+        if result and "".join(str(result).split()).casefold() == "".join(str(message).split()).casefold():
+            return None
+        return result
 
     def learned_build_prompt(*args, **kwargs):
         message = _CURRENT_MESSAGE.get()
