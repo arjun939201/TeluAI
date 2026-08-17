@@ -1,11 +1,14 @@
 /* Live Melimi knowledge refresh.
  * Refresh re-applies the latest MASTER word mappings to Melimi translations
  * already visible in this chat. It does not regenerate answers or spend Groq tokens.
+ * Automatic refresh runs after chat changes and periodically while the page is open;
+ * the manual button remains available for an immediate explicit refresh.
  */
 (function(){
   const STORE_KEY='teluai-melimi-refresh-v1';
   const WORD_RE=/[A-Za-z]+(?:['’-][A-Za-z]+)*/g;
   const TELUGU_RE=/[\u0C00-\u0C7F]/;
+  let refreshRunning=false;
 
   function readOverrides(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{}')}catch{return {}}}
   function writeOverrides(value){try{localStorage.setItem(STORE_KEY,JSON.stringify(value))}catch{}}
@@ -65,40 +68,48 @@
     return value;
   }
 
-  async function refreshMessages(){
-    if(typeof messages==='undefined'||!Array.isArray(messages)||!messages.length)return 0;
-    const overrides=readOverrides();
+  async function refreshMessages(showToast=false){
+    if(refreshRunning||typeof messages==='undefined'||!Array.isArray(messages)||!messages.length)return 0;
     const conversationKey=(typeof conversationId!=='undefined'&&conversationId)?String(conversationId):'';
     if(!conversationKey)return 0;
-    let changed=0;
+    refreshRunning=true;
+    try{
+      const overrides=readOverrides();
+      let changed=0;
+      for(let i=0;i<messages.length;i++){
+        const msg=messages[i];
+        if(!msg||msg.role!=='assistant'||!msg.content||msg.streaming)continue;
 
-    for(let i=0;i<messages.length;i++){
-      const msg=messages[i];
-      if(!msg||msg.role!=='assistant'||!msg.content||msg.streaming)continue;
+        const bilingual=sourceFromAssistant(msg.content);
+        let source=bilingual?.source||'';
+        let old=bilingual?.old||'';
+        if(!source)source=nearestUserSource(i);
+        if(!source)continue;
 
-      const bilingual=sourceFromAssistant(msg.content);
-      let source=bilingual?.source||'';
-      let old=bilingual?.old||'';
-      if(!source)source=nearestUserSource(i);
-      if(!source)continue;
+        const translated=await translatePhrase(source);
+        if(!translated)continue;
 
-      const translated=await translatePhrase(source);
-      if(!translated)continue;
+        let next=String(msg.content);
+        if(old)next=next.split(old).join(translated);
+        else next=replaceLeadingMelimiPhrase(next,translated);
+        if(next===msg.content)continue;
 
-      let next=String(msg.content);
-      if(old)next=next.split(old).join(translated);
-      else next=replaceLeadingMelimiPhrase(next,translated);
-      if(next===msg.content)continue;
+        msg.content=next;
+        overrides[conversationKey] ||= {};
+        if(msg.id!=null)overrides[conversationKey][String(msg.id)]=next;
+        changed++;
+      }
+      if(changed){
+        writeOverrides(overrides);
+        if(typeof renderAll==='function')renderAll();
+      }
+      if(showToast&&typeof toast==='function')toast(changed?`Melimi chat refreshed · ${changed} message${changed===1?'':'s'} updated`:'Melimi knowledge refreshed · no chat words changed');
+      return changed;
+    }finally{refreshRunning=false}
+  }
 
-      msg.content=next;
-      overrides[conversationKey] ||= {};
-      if(msg.id!=null)overrides[conversationKey][String(msg.id)]=next;
-      changed++;
-    }
-
-    if(changed)writeOverrides(overrides);
-    if(changed&&typeof renderAll==='function')renderAll();
-    return changed;
+  async function autoRefresh(){
+    try{await refreshMessages(false)}catch(e){console.debug('Melimi auto-refresh:',e)}
   }
 
   function install(){
@@ -119,6 +130,7 @@
           });
           if(changed&&typeof renderAll==='function')renderAll();
         }
+        setTimeout(autoRefresh,0);
       };
     }
 
@@ -135,9 +147,8 @@
       button.classList.add('spinning');
       try{
         if(typeof conversationId!=='undefined'&&conversationId&&typeof loadConversation==='function')await loadConversation(conversationId);
-        const changed=await refreshMessages();
+        await refreshMessages(true);
         if(typeof loadHistory==='function')await loadHistory();
-        if(typeof toast==='function')toast(changed?`Melimi chat refreshed · ${changed} message${changed===1?'':'s'} updated`:'Melimi knowledge refreshed · no chat words changed');
       }catch(e){
         console.error(e);
         if(typeof toast==='function')toast('Could not refresh Melimi chat words');
@@ -148,6 +159,10 @@
     });
     const spacer=topbar.querySelector('.topbar-spacer');
     if(spacer)spacer.before(button);else topbar.appendChild(button);
+
+    /* Automatically pick up newly approved MASTER words without requiring a click. */
+    setTimeout(autoRefresh,1200);
+    setInterval(autoRefresh,15000);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
