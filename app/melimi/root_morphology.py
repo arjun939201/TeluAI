@@ -20,9 +20,6 @@ GRAMMATICAL_SUFFIXES = tuple(sorted([
     "కి", "గా", "పై", "ల",
 ], key=len, reverse=True))
 
-# Common finite/non-finite Telugu verb endings. These are deliberately kept
-# conservative: they are used only when the resulting stem can be matched to
-# a registered MASTER root or to the same productive verb family.
 VERB_SUFFIXES = tuple(sorted([
     "స్తుంది", "స్తున్నారు", "స్తున్నాను", "స్తున్నావు", "స్తున్నాడు", "స్తున్నది",
     "తుంది", "తున్నారు", "తున్నాను", "తున్నావు", "తున్నాడు", "తున్నది",
@@ -72,11 +69,7 @@ def _candidate_strips(surface, suffixes, kind):
 
 
 def _verb_candidate(surface, roots):
-    """Resolve common Telugu verb variants against a registered verb family."""
-    # A lexical entry such as సూచించడం is commonly used as the registered
-    # infinitive/gerund form while chat may contain finite forms such as
-    # సూచిస్తుంది. Match the shared lexical stem and remember the surface
-    # operation so the target form can be reconstructed.
+    """Resolve common finite/non-finite forms to a registered verb family."""
     for suffix in VERB_SUFFIXES:
         if not surface.endswith(suffix) or len(surface) <= len(suffix) + 1:
             continue
@@ -86,19 +79,22 @@ def _verb_candidate(surface, roots):
             if candidate in roots:
                 return candidate, suffix, "verb"
 
-    # Match a registered -చడం/-డం form by its lexical stem. This covers pairs
-    # such as సూచించడం → క్రేవించడం while allowing finite forms such as
-    # సూచిస్తుంది to resolve to the same MASTER entry.
+    # A registered form such as సూచించడం has the lexical family prefix సూచీ
+    # before the productive -ంచడం ending. Finite forms such as సూచిస్తుంది
+    # preserve that prefix, so resolve them to the same MASTER entry.
     for registered in roots:
-        if registered.endswith("చడం") and surface.startswith(registered[:-2]):
-            return registered, surface[len(registered[:-2]):], "verb_family"
-        if registered.endswith("డం") and surface.startswith(registered[:-2]):
-            return registered, surface[len(registered[:-2]):], "verb_family"
+        if registered.endswith("ంచడం"):
+            family_prefix = registered[:-4]
+            if family_prefix and surface.startswith(family_prefix):
+                return registered, surface[len(family_prefix):], "verb_family"
+        elif registered.endswith("డం"):
+            family_prefix = registered[:-2]
+            if family_prefix and surface.startswith(family_prefix):
+                return registered, surface[len(family_prefix):], "verb_family"
     return None
 
 
 def _case_candidate(surface):
-    """Reverse common Telugu case allomorphs produced from an -ం noun."""
     if surface.endswith("ాన్ని") and len(surface) > len("ాన్ని") + 1:
         return surface[:-len("ాన్ని")] + "ం", ACCUSATIVE
     if surface.endswith("ానికి") and len(surface) > len("ానికి") + 1:
@@ -126,7 +122,6 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     surface = (word or "").strip()
     if not surface:
         return MorphologicalForm("", "")
-
     roots = roots or load_root_dictionary()
     if surface in roots:
         return MorphologicalForm(surface, surface)
@@ -161,29 +156,23 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     found = search(surface, [], 0)
     if not found:
         return MorphologicalForm(surface, surface)
-
     root, ops = found
     return MorphologicalForm(surface, root, tuple(s for _, s in ops), tuple(k for k, _ in ops))
 
 
 def apply_operation(root, kind, suffix):
-    if kind in {"verb", "verb_family"}:
-        # Preserve the productive lexical stem and mirror the source surface
-        # ending on the learned Melimi root. For -చడం/-డం mappings this keeps
-        # registered forms such as క్రేవించడం while allowing finite forms such
-        # as సూచిస్తుంది to become the corresponding Melimi finite form.
-        if suffix == "":
+    if kind == "verb_family":
+        if root.endswith("ంచడం"):
+            return root[:-4] + suffix
+        if root.endswith("డం"):
+            return root[:-2] + suffix
+        return root + suffix
+
+    if kind == "verb":
+        if suffix == "" or suffix == root:
             return root
-        if suffix.startswith("చ") and root.endswith("చు"):
+        if root.endswith("ు"):
             return root[:-1] + suffix
-        if suffix.startswith("చ"):
-            return root + suffix
-        if suffix == "డం" and root.endswith("చు"):
-            return root[:-1] + "చడం"
-        if suffix.startswith("స్తుంది") and root.endswith("చు"):
-            return root[:-1] + "స్తుంది"
-        if suffix.startswith("తుంది") and root.endswith("చు"):
-            return root[:-1] + "తుంది"
         return root + suffix
 
     if suffix in {"ా", "మైన"} and kind == "adjective":
