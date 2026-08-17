@@ -32,16 +32,31 @@ def build_language_engine_context(
     return f"""
 MELIMI TELUGU LENS
 
-Use the Melimi Language Space as the authoritative linguistic knowledge base.
-Only MASTER entries are established language facts. A missing entry is NOT
-permission to invent a Melimi equivalent.
+ROLE OF THIS LAYER:
+This is an INTERNAL language-support layer. It supplies lexical, grammatical,
+and morphology constraints to the response generator. It is NOT a request to
+perform linguistic analysis in the user-visible answer.
+
+NATURAL CONVERSATION GATE:
+- Follow the user's actual conversational intent first.
+- Ordinary statements, questions, opinions, and topic prompts must receive a
+  normal useful response. Do not explain their wording merely because language
+  records are available.
+- A mapping such as `హానికరం => చేటుకాను` is a lexical constraint, not a command
+  to discuss the mapping.
+- Do not produce phrases such as `అనే పలుకు`, `అనే నొడుగు`, `అనువాదం`,
+  `మేము ముందుగా విశ్లేషించాలి`, or similar meta-linguistic narration unless the
+  user explicitly asks for analysis/translation/grammar.
+- Use the linguistic data silently to choose or validate Melimi wording.
+- If the response plan is ordinary conversation, the final answer must be
+  ordinary conversation, not a linguistic report.
 
 LEXICAL EPISTEMIC RULES:
 1. If a Standard/source word has an authoritative MASTER mapping, use it when
    the user asks for a Melimi equivalent or when Melimi output requires it.
 2. If no MASTER mapping exists, explicitly say that the equivalent is not yet
-   established in the Language Space. Do not repeat the source loanword and
-   falsely label it as Melimi.
+   established only when the user actually requests a Melimi equivalent. In
+   normal conversation, do not interrupt the answer with dictionary commentary.
 3. PROPOSED, EXPERIMENTAL, or unknown forms must never be presented as
    established. Mention their status only when relevant.
 4. A retrieved example demonstrates usage; it does not automatically establish
@@ -79,10 +94,10 @@ entries are evidence for the response, not a response template.
 COMPACT CONVERSATION:
 {conversation_context}
 
-LINGUISTIC ANALYSIS:
+LINGUISTIC ANALYSIS (INTERNAL ONLY):
 {linguistic_analysis}
 
-RESPONSE PLAN:
+RESPONSE PLAN (PRIMARY):
 {response_plan}
 
 AUTHORITATIVE LANGUAGE PROFILE:
