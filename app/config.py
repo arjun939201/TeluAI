@@ -9,16 +9,19 @@ def _bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-# Known-good Groq production model. Keep the environment variable override,
-# but never make an obsolete default the reason Main Chat cannot start.
+# Known-good Groq production model. Keep environment overrides, but explicitly
+# replace the retired model that was breaking deployed Main Chat instances.
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+_CONFIGURED_GROQ_MODEL = os.getenv("GROQ_MODEL", "").strip()
+if _CONFIGURED_GROQ_MODEL == "llama-3.1-8b-instant":
+    _CONFIGURED_GROQ_MODEL = DEFAULT_GROQ_MODEL
 
 
 @dataclass(frozen=True)
 class Settings:
     groq_token: str = os.getenv("GROQ_API_KEY", os.getenv("GROQ_TOKEN", "")).strip()
     groq_url: str = os.getenv("GROQ_URL", "https://api.groq.com/openai/v1/chat/completions").strip()
-    groq_model: str = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip()
+    groq_model: str = _CONFIGURED_GROQ_MODEL or DEFAULT_GROQ_MODEL
     groq_fallback_model: str = os.getenv("GROQ_FALLBACK_MODEL", "").strip()
     groq_retry_attempts: int = max(0, int(os.getenv("GROQ_RETRY_ATTEMPTS", "2")))
     groq_max_backoff_seconds: float = max(0.0, float(os.getenv("GROQ_MAX_BACKOFF_SECONDS", "20")))
