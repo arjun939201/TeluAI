@@ -1,9 +1,10 @@
 /* Live Melimi knowledge refresh.
- * Re-applies authoritative MASTER mappings to assistant messages already visible
- * in this chat. It never regenerates answers or spends Groq tokens.
+ * Re-applies ONLY explicitly taught MASTER /word mappings to assistant messages.
+ * It must never translate unrelated Telugu words merely because they exist in the
+ * global Melimi dictionary. This keeps historical chats stable after new learning.
  */
 (function(){
-  const STORE_KEY='teluai-melimi-refresh-v1';
+  const STORE_KEY='teluai-melimi-refresh-v2';
   const WORD_RE=/[A-Za-z]+(?:['’-][A-Za-z]+)*/g;
   const TELUGU_WORD_RE=/[\u0C00-\u0C7F]+/g;
   const TELUGU_RE=/[\u0C00-\u0C7F]/;
@@ -68,18 +69,38 @@
     return String(mappings[word]||'').trim();
   }
 
+  /* Only call the global morphology endpoint when the word is clearly an
+     inflection of a source explicitly taught in /word. Never analyze arbitrary
+     Telugu words from an old assistant response. */
+  function isKnownMappingVariant(word,mappings){
+    const value=String(word||'').trim();
+    if(!value)return false;
+    for(const source of Object.keys(mappings)){
+      if(value===source)return true;
+      if(!TELUGU_RE.test(source)||!TELUGU_RE.test(value))continue;
+      const stem=source.endsWith('ం')?source.slice(0,-1):source;
+      if(stem.length>=2 && (value.startsWith(stem)||source.startsWith(value)))return true;
+    }
+    return false;
+  }
+
+  async function mapKnownWord(word,mappings){
+    const direct=localMapping(word,mappings);
+    if(direct)return direct;
+    if(!isKnownMappingVariant(word,mappings))return '';
+    return await analyzeWord(word);
+  }
+
   async function translatePhrase(source,mappings){
     const value=String(source||'');
     const words=value.match(WORD_RE)||[];
     if(!words.length)return '';
-    const mapped=await Promise.all(words.map(async word=>localMapping(word,mappings)||await analyzeWord(word)));
+    /* English phrase translation is intentionally disabled here. /word refresh
+       is a lexical Melimi refresh, not a general translation pass. */
+    const mapped=await Promise.all(words.map(async word=>localMapping(word,mappings)));
     if(mapped.some(x=>!x))return '';
     let index=0;
     return value.replace(WORD_RE,()=>mapped[index++]);
-  }
-
-  async function mapTeluguWord(word,mappings){
-    return localMapping(word,mappings)||await analyzeWord(word);
   }
 
   function replaceWholeTeluguWord(text,word,replacement){
@@ -110,7 +131,7 @@
     let value=String(text||'');
     const words=[...new Set(value.match(TELUGU_WORD_RE)||[])];
     if(!words.length)return value;
-    const results=await Promise.all(words.map(async word=>({word,mapped:await mapTeluguWord(word,mappings)})));
+    const results=await Promise.all(words.map(async word=>({word,mapped:await mapKnownWord(word,mappings)})));
     for(const {word,mapped} of results){
       if(!mapped||mapped===word)continue;
       value=replaceWholeTeluguWord(value,word,mapped);
