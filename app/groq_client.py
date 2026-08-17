@@ -54,7 +54,21 @@ def _retry_seconds(response: httpx.Response, attempt: int) -> float:
 def _friendly_error(status: int, response: httpx.Response | None = None) -> str:
     if status == 429:
         retry = (response.headers.get("retry-after") if response else None)
-        return f"Too many requests right now. Please try again in {retry.strip()} seconds." if retry and retry.isdigit() else "Too many requests right now. Please try again in a moment."
+        if retry:
+            value = retry.strip().lower()
+            if value.isdigit():
+                return f"Too many requests right now. Please try again in {value} seconds."
+            if re.fullmatch(r"(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?", value):
+                return f"Too many requests right now. Please try again in {value}."
+        if response is not None:
+            try:
+                body = response.text
+            except Exception:
+                body = ""
+            match = re.search(r"(?:try again|retry)[^0-9]{0,80}(\d+(?:\.\d+)?\s*(?:h|m|s)(?:\s*\d+(?:\.\d+)?\s*(?:m|s))?)", body, re.I)
+            if match:
+                return f"Too many requests right now. Please try again in {match.group(1).strip()}."
+        return "Too many requests right now. Please try again in a moment."
     if status in (401, 403):
         return "AI service authentication is temporarily unavailable."
     if status == 413:
