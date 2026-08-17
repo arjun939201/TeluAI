@@ -21,11 +21,47 @@ _COMMAND_RE = re.compile(r"^\s*/(?P<kind>word|content)\b(?P<body>.*?)\s*$", re.I
 _MAPPING_RE = re.compile(r"^\s*(?P<source>.+?)\s*(?:=|→|->)\s*(?P<melimi>.+?)\s*$", re.DOTALL)
 
 
+def _parse_word_mappings(body: str) -> list[dict]:
+    """Parse one or more word mappings separated by semicolons.
+
+    Semicolon is deliberately the only bulk separator. Commas can occur inside
+    meanings or other lexical material and therefore are never treated as a
+    mapping boundary.
+    """
+    mappings = []
+    for part in re.split(r"\s*;\s*", body):
+        part = part.strip()
+        if not part:
+            continue
+        mapping = _MAPPING_RE.match(part)
+        if not mapping:
+            raise ValueError(
+                "Usage: /word source = melimi; source = melimi"
+            )
+        source = mapping.group("source").strip()
+        melimi = mapping.group("melimi").strip()
+        if len(source) > 160 or len(melimi) > 160:
+            raise ValueError("Word entries must be 160 characters or less per side.")
+        mappings.append({
+            "standard_or_source": source,
+            "source_root": source,
+            "melimi": melimi,
+            "melimi_root": melimi,
+            "meaning": "",
+            "part_of_speech": "",
+            "formation": "",
+        })
+    if not mappings:
+        raise ValueError("Usage: /word source = melimi")
+    return mappings
+
+
 def parse_chat_command(message: str) -> ChatCommand | None:
     """Parse only explicit /word or /content commands.
 
     Examples:
       /word ద్వేషస్పదం = కంటుపాదు
+      /word సంబంధం = తౌలం; ప్రకారం = బట్టి; ఉదాహరణ = మచ్చుక
       /content ముప్పుకాను చోటులు ఎన్నో మన ఒలవులో ఉన్నాయి
       /content మేలిమి వాక్యం (standard meaning)
     """
@@ -39,25 +75,17 @@ def parse_chat_command(message: str) -> ChatCommand | None:
         raise ValueError(f"Usage: /{kind} ...")
 
     if kind == "word":
-        mapping = _MAPPING_RE.match(body)
-        if not mapping:
-            raise ValueError("Usage: /word source-word = melimi-word")
-        source = mapping.group("source").strip()
-        melimi = mapping.group("melimi").strip()
-        if len(source) > 160 or len(melimi) > 160:
-            raise ValueError("Word entries must be 160 characters or less per side.")
+        mappings = _parse_word_mappings(body)
+        # Keep the first mapping in the legacy scalar fields for callers that
+        # expect a single word, while exposing the complete bulk entry list.
+        payload = dict(mappings[0])
+        payload["mappings"] = mappings
+        payload["count"] = len(mappings)
+        payload["bulk"] = len(mappings) > 1
         return ChatCommand(
             kind="word",
             raw=message.strip(),
-            payload={
-                "standard_or_source": source,
-                "source_root": source,
-                "melimi": melimi,
-                "melimi_root": melimi,
-                "meaning": "",
-                "part_of_speech": "",
-                "formation": "",
-            },
+            payload=payload,
         )
 
     # Content is deliberately stored as content, not parsed as a word mapping.
