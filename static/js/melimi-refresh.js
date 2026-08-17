@@ -1,9 +1,6 @@
 /* Live Melimi knowledge refresh.
- * Refresh re-applies the latest MASTER mappings to Melimi translations already
- * visible in this chat. It does not regenerate answers or spend Groq tokens.
- *
- * A chat translation is keyed by its source meaning/word, not by the old Telugu
- * wording. Direct Telugu MASTER entries are also refreshed.
+ * Re-applies authoritative MASTER mappings to assistant messages already visible
+ * in this chat. It never regenerates answers or spends Groq tokens.
  */
 (function(){
   const STORE_KEY='teluai-melimi-refresh-v1';
@@ -21,6 +18,25 @@
   function messageSignature(){
     if(typeof messages==='undefined'||!Array.isArray(messages))return '';
     return messages.map((m,i)=>`${i}:${m?.role||''}:${String(m?.id??'')}:${String(m?.content||'')}`).join('\u0001');
+  }
+
+  function parseMasterMappings(){
+    const mappings={};
+    if(typeof messages==='undefined'||!Array.isArray(messages))return mappings;
+    for(const msg of messages){
+      if(msg?.role!=='user')continue;
+      const text=String(msg.content||'').trim();
+      const match=text.match(/^\/word\s+([\s\S]+)$/i);
+      if(!match)continue;
+      for(const part of match[1].split(/\s*;\s*/)){
+        const m=part.match(/^(.+?)\s*(?:=|→|->)\s*(.+?)\s*$/);
+        if(!m)continue;
+        const source=m[1].trim();
+        const target=m[2].trim();
+        if(source&&target)mappings[source]=target;
+      }
+    }
+    return mappings;
   }
 
   function sourceFromUser(text){
@@ -41,20 +57,35 @@
     const value=String(word||'').trim();
     if(!value)return '';
     try{
-      const r=await fetch('/melimi/analyze?word='+encodeURIComponent(value),{credentials:'same-origin'});
+      const r=await fetch('/melimi/analyze?word='+encodeURIComponent(value),{credentials:'same-origin',cache:'no-store'});
       if(!r.ok)return '';
       const d=await r.json();
       return String(d.melimi_equivalent||'').trim();
     }catch{return ''}
   }
 
-  async function translatePhrase(source){
-    const words=String(source||'').match(WORD_RE)||[];
+  function localMapping(word,mappings){
+    return String(mappings[word]||'').trim();
+  }
+
+  async function translatePhrase(source,mappings){
+    const value=String(source||'');
+    const words=value.match(WORD_RE)||[];
     if(!words.length)return '';
-    const mapped=await Promise.all(words.map(analyzeWord));
+    const mapped=await Promise.all(words.map(async word=>localMapping(word,mappings)||await analyzeWord(word)));
     if(mapped.some(x=>!x))return '';
     let index=0;
-    return String(source).replace(WORD_RE,()=>mapped[index++]);
+    return value.replace(WORD_RE,()=>mapped[index++]);
+  }
+
+  async function mapTeluguWord(word,mappings){
+    return localMapping(word,mappings)||await analyzeWord(word);
+  }
+
+  function replaceWholeTeluguWord(text,word,replacement){
+    if(!word||!replacement||word===replacement)return text;
+    const escaped=word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    return String(text).replace(new RegExp(`(?<![\\u0C00-\\u0C7F])${escaped}(?![\\u0C00-\\u0C7F])`,'g'),replacement);
   }
 
   function nearestUserSource(index){
@@ -75,15 +106,14 @@
     return value;
   }
 
-  async function refreshDirectTeluguMappings(text){
+  async function refreshDirectTeluguMappings(text,mappings){
     let value=String(text||'');
     const words=[...new Set(value.match(TELUGU_WORD_RE)||[])];
     if(!words.length)return value;
-    const results=await Promise.all(words.map(async word=>({word,mapped:await analyzeWord(word)})));
+    const results=await Promise.all(words.map(async word=>({word,mapped:await mapTeluguWord(word,mappings)})));
     for(const {word,mapped} of results){
       if(!mapped||mapped===word)continue;
-      if(value.includes(mapped)&&!value.includes(word))continue;
-      value=value.split(word).join(mapped);
+      value=replaceWholeTeluguWord(value,word,mapped);
     }
     return value;
   }
@@ -97,6 +127,7 @@
     refreshRunning=true;
     try{
       const overrides=readOverrides();
+      const mappings=parseMasterMappings();
       let changed=0;
       for(let i=0;i<messages.length;i++){
         const msg=messages[i];
@@ -106,15 +137,20 @@
         let source=bilingual?.source||'';
         const old=bilingual?.old||'';
         let next=original;
-        if(!source)source=nearestUserSource(i);
         if(source){
-          const translated=await translatePhrase(source);
+          const translated=await translatePhrase(source,mappings);
           if(translated){
             if(old)next=next.split(old).join(translated);
             else next=replaceLeadingMelimiPhrase(next,translated);
           }
+        }else{
+          source=nearestUserSource(i);
+          if(source){
+            const translated=await translatePhrase(source,mappings);
+            if(translated)next=replaceLeadingMelimiPhrase(next,translated);
+          }
         }
-        next=await refreshDirectTeluguMappings(next);
+        next=await refreshDirectTeluguMappings(next,mappings);
         if(next===original)continue;
         msg.content=next;
         overrides[conversationKey] ||= {};
@@ -133,7 +169,7 @@
 
   function scheduleAutoRefresh(){
     clearTimeout(autoTimer);
-    autoTimer=setTimeout(()=>autoRefresh(),80);
+    autoTimer=setTimeout(()=>autoRefresh(),100);
   }
 
   async function autoRefresh(force=false){
@@ -199,13 +235,6 @@
     const spacer=topbar.querySelector('.topbar-spacer');
     if(spacer)spacer.before(button);else topbar.appendChild(button);
 
-    /* Immediate refresh triggers:
-       - after every new user message
-       - after every new AI message
-       - after a /word entry
-       - when a conversation is opened
-       - when the page regains focus
-       A light 3s fallback catches MASTER changes made elsewhere. */
     setTimeout(()=>autoRefresh(true),500);
     setInterval(()=>autoRefresh(false),3000);
     window.addEventListener('focus',()=>autoRefresh(true));
