@@ -20,6 +20,16 @@ GRAMMATICAL_SUFFIXES = tuple(sorted([
     "కి", "గా", "పై", "ల",
 ], key=len, reverse=True))
 
+# Common finite/non-finite Telugu verb endings. These are deliberately kept
+# conservative: they are used only when the resulting stem can be matched to
+# a registered MASTER root or to the same productive verb family.
+VERB_SUFFIXES = tuple(sorted([
+    "స్తుంది", "స్తున్నారు", "స్తున్నాను", "స్తున్నావు", "స్తున్నాడు", "స్తున్నది",
+    "తుంది", "తున్నారు", "తున్నాను", "తున్నావు", "తున్నాడు", "తున్నది",
+    "డం", "డానికి", "డంలో", "డాన్ని", "డిగా", "డుతూ", "డిన", "డినది",
+    "చడం", "చడానికి", "చడంలో", "చడాన్ని", "చుతూ", "చిన", "చింది",
+], key=len, reverse=True))
+
 DERIVATIONAL_SUFFIXES = tuple(sorted([
     "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి",
     "వాను", "వాన్", "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము",
@@ -61,12 +71,36 @@ def _candidate_strips(surface, suffixes, kind):
             yield surface[:-len(suffix)], suffix, kind
 
 
+def _verb_candidate(surface, roots):
+    """Resolve common Telugu verb variants against a registered verb family."""
+    # A lexical entry such as సూచించడం is commonly used as the registered
+    # infinitive/gerund form while chat may contain finite forms such as
+    # సూచిస్తుంది. Match the shared lexical stem and remember the surface
+    # operation so the target form can be reconstructed.
+    for suffix in VERB_SUFFIXES:
+        if not surface.endswith(suffix) or len(surface) <= len(suffix) + 1:
+            continue
+        stem = surface[:-len(suffix)]
+        candidates = (stem, stem + "ు", stem + "చు")
+        for candidate in candidates:
+            if candidate in roots:
+                return candidate, suffix, "verb"
+
+    # Match a registered -చడం/-డం form by its lexical stem. This covers pairs
+    # such as సూచించడం → క్రేవించడం while allowing finite forms such as
+    # సూచిస్తుంది to resolve to the same MASTER entry.
+    for registered in roots:
+        if registered.endswith("చడం") and surface.startswith(registered[:-2]):
+            return registered, surface[len(registered[:-2]):], "verb_family"
+        if registered.endswith("డం") and surface.startswith(registered[:-2]):
+            return registered, surface[len(registered[:-2]):], "verb_family"
+    return None
+
+
 def _case_candidate(surface):
     """Reverse common Telugu case allomorphs produced from an -ం noun."""
-    # సంతోషం + ని -> సంతోషాన్ని
     if surface.endswith("ాన్ని") and len(surface) > len("ాన్ని") + 1:
         return surface[:-len("ాన్ని")] + "ం", ACCUSATIVE
-    # సంతోషం + కి -> సంతోషానికి
     if surface.endswith("ానికి") and len(surface) > len("ానికి") + 1:
         return surface[:-len("ానికి")] + "ం", DATIVE
     return None
@@ -102,6 +136,11 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
         root, operation = case
         return MorphologicalForm(surface, root, (operation,), ("case",))
 
+    verb = _verb_candidate(surface, roots)
+    if verb:
+        root, operation, kind = verb
+        return MorphologicalForm(surface, root, (operation,), (kind,))
+
     adj = _adjectival_candidate(surface, roots)
     if adj:
         return MorphologicalForm(surface, adj[0], (adj[1],), (adj[2],))
@@ -113,7 +152,6 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
             return None
         candidates = list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar"))
         candidates += list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation"))
-        candidates.sort(key=lambda x: (-len(x[1]), x[0]))
         for root, suffix, kind in candidates:
             found = search(root, operations + [(kind, suffix)], depth + 1)
             if found:
@@ -125,15 +163,29 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
         return MorphologicalForm(surface, surface)
 
     root, ops = found
-    return MorphologicalForm(
-        surface,
-        root,
-        tuple(s for _, s in ops),
-        tuple(k for k, _ in ops),
-    )
+    return MorphologicalForm(surface, root, tuple(s for _, s in ops), tuple(k for k, _ in ops))
 
 
 def apply_operation(root, kind, suffix):
+    if kind in {"verb", "verb_family"}:
+        # Preserve the productive lexical stem and mirror the source surface
+        # ending on the learned Melimi root. For -చడం/-డం mappings this keeps
+        # registered forms such as క్రేవించడం while allowing finite forms such
+        # as సూచిస్తుంది to become the corresponding Melimi finite form.
+        if suffix == "":
+            return root
+        if suffix.startswith("చ") and root.endswith("చు"):
+            return root[:-1] + suffix
+        if suffix.startswith("చ"):
+            return root + suffix
+        if suffix == "డం" and root.endswith("చు"):
+            return root[:-1] + "చడం"
+        if suffix.startswith("స్తుంది") and root.endswith("చు"):
+            return root[:-1] + "స్తుంది"
+        if suffix.startswith("తుంది") and root.endswith("చు"):
+            return root[:-1] + "తుంది"
+        return root + suffix
+
     if suffix in {"ా", "మైన"} and kind == "adjective":
         return root
     if suffix == "గా" and kind == "adjective_predicate":
@@ -141,10 +193,8 @@ def apply_operation(root, kind, suffix):
 
     if kind == "case":
         if suffix == ACCUSATIVE:
-            # Target-side reinflection: non-ం roots take ని; -ం roots take -ాన్ని.
             return root[:-1] + "ాన్ని" if root.endswith("ం") else root + "ని"
         if suffix == DATIVE:
-            # Target-side reinflection: non-ం roots take కి; -ం roots take -ానికి.
             return root[:-1] + "ానికి" if root.endswith("ం") else root + "కి"
 
     if root.endswith("ం") and kind == "grammar":
