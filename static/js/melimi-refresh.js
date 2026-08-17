@@ -1,14 +1,20 @@
 /* Live Melimi knowledge refresh.
- * Refresh re-applies the latest MASTER word mappings to Melimi translations
- * already visible in this chat. It does not regenerate answers or spend Groq tokens.
- * Automatic refresh runs after chat changes and periodically while the page is open;
- * the manual button remains available for an immediate explicit refresh.
+ * Refresh re-applies the latest MASTER mappings to Melimi translations already
+ * visible in this chat. It does not regenerate answers or spend Groq tokens.
+ *
+ * A chat translation is keyed by its source meaning/word, not by the old Telugu
+ * wording. Direct Telugu MASTER entries are also refreshed, e.g.
+ *   /word హానికరం = చేటుకాను
+ *   old: ... హానికరం ...
+ *   new: ... చేటుకాను ...
  */
 (function(){
   const STORE_KEY='teluai-melimi-refresh-v1';
   const WORD_RE=/[A-Za-z]+(?:['’-][A-Za-z]+)*/g;
+  const TELUGU_WORD_RE=/[\u0C00-\u0C7F]+/g;
   const TELUGU_RE=/[\u0C00-\u0C7F]/;
   let refreshRunning=false;
+  let lastSignature='';
 
   function readOverrides(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{}')}catch{return {}}}
   function writeOverrides(value){try{localStorage.setItem(STORE_KEY,JSON.stringify(value))}catch{}}
@@ -68,6 +74,22 @@
     return value;
   }
 
+  /* Apply direct Telugu-source MASTER mappings to assistant/Melimi text.
+   * This deliberately never touches user messages. It also skips a target that
+   * is already present, so a mapping cannot repeatedly rewrite itself. */
+  async function refreshDirectTeluguMappings(text){
+    let value=String(text||'');
+    const words=[...new Set(value.match(TELUGU_WORD_RE)||[])];
+    if(!words.length)return value;
+    const results=await Promise.all(words.map(async word=>({word,mapped:await analyzeWord(word)})));
+    for(const {word,mapped} of results){
+      if(!mapped||mapped===word)continue;
+      if(value.includes(mapped)&&!value.includes(word))continue;
+      value=value.split(word).join(mapped);
+    }
+    return value;
+  }
+
   async function refreshMessages(showToast=false){
     if(refreshRunning||typeof messages==='undefined'||!Array.isArray(messages)||!messages.length)return 0;
     const conversationKey=(typeof conversationId!=='undefined'&&conversationId)?String(conversationId):'';
@@ -80,19 +102,25 @@
         const msg=messages[i];
         if(!msg||msg.role!=='assistant'||!msg.content||msg.streaming)continue;
 
-        const bilingual=sourceFromAssistant(msg.content);
+        const original=String(msg.content);
+        const bilingual=sourceFromAssistant(original);
         let source=bilingual?.source||'';
         let old=bilingual?.old||'';
+        let next=original;
+
+        /* First use the source phrase when the assistant explicitly preserves it. */
         if(!source)source=nearestUserSource(i);
-        if(!source)continue;
+        if(source){
+          const translated=await translatePhrase(source);
+          if(translated){
+            if(old)next=next.split(old).join(translated);
+            else next=replaceLeadingMelimiPhrase(next,translated);
+          }
+        }
 
-        const translated=await translatePhrase(source);
-        if(!translated)continue;
-
-        let next=String(msg.content);
-        if(old)next=next.split(old).join(translated);
-        else next=replaceLeadingMelimiPhrase(next,translated);
-        if(next===msg.content)continue;
+        /* Then apply current MASTER mappings whose source is Telugu. */
+        next=await refreshDirectTeluguMappings(next);
+        if(next===original)continue;
 
         msg.content=next;
         overrides[conversationKey] ||= {};
@@ -109,7 +137,14 @@
   }
 
   async function autoRefresh(){
-    try{await refreshMessages(false)}catch(e){console.debug('Melimi auto-refresh:',e)}
+    try{
+      if(typeof messages==='undefined'||!Array.isArray(messages))return;
+      /* A new /word command is a strong signal that MASTER changed; don't wait
+         for the periodic timer when the command has just appeared. */
+      const signature=messages.filter(x=>x?.role==='user'&&/^\s*\/word\b/i.test(String(x.content||''))).map(x=>String(x.content||'')).join('\n');
+      if(signature!==lastSignature){lastSignature=signature;await refreshMessages(false);return;}
+      await refreshMessages(false);
+    }catch(e){console.debug('Melimi auto-refresh:',e)}
   }
 
   function install(){
@@ -160,9 +195,11 @@
     const spacer=topbar.querySelector('.topbar-spacer');
     if(spacer)spacer.before(button);else topbar.appendChild(button);
 
-    /* Automatically pick up newly approved MASTER words without requiring a click. */
-    setTimeout(autoRefresh,1200);
-    setInterval(autoRefresh,15000);
+    /* Keep automatic refresh responsive. MASTER updates are deterministic and
+       local; this polling does not call Groq. */
+    setTimeout(autoRefresh,500);
+    setInterval(autoRefresh,3000);
+    window.addEventListener('focus',autoRefresh);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
