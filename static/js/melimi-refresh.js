@@ -3,10 +3,7 @@
  * visible in this chat. It does not regenerate answers or spend Groq tokens.
  *
  * A chat translation is keyed by its source meaning/word, not by the old Telugu
- * wording. Direct Telugu MASTER entries are also refreshed, e.g.
- *   /word హానికరం = చేటుకాను
- *   old: ... హానికరం ...
- *   new: ... చేటుకాను ...
+ * wording. Direct Telugu MASTER entries are also refreshed.
  */
 (function(){
   const STORE_KEY='teluai-melimi-refresh-v1';
@@ -15,9 +12,16 @@
   const TELUGU_RE=/[\u0C00-\u0C7F]/;
   let refreshRunning=false;
   let lastSignature='';
+  let lastMessageSignature='';
+  let autoTimer=null;
 
   function readOverrides(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{}')}catch{return {}}}
   function writeOverrides(value){try{localStorage.setItem(STORE_KEY,JSON.stringify(value))}catch{}}
+
+  function messageSignature(){
+    if(typeof messages==='undefined'||!Array.isArray(messages))return '';
+    return messages.map((m,i)=>`${i}:${m?.role||''}:${String(m?.id??'')}:${String(m?.content||'')}`).join('\u0001');
+  }
 
   function sourceFromUser(text){
     const value=String(text||'').trim();
@@ -66,17 +70,11 @@
   function replaceLeadingMelimiPhrase(text,translated){
     const value=String(text||'');
     const quoted=value.match(/(["“])([^"”]+)(["”])\s*అనే\s*పలుకు/);
-    if(quoted&&TELUGU_RE.test(quoted[2])){
-      const old=quoted[2];
-      return value.split(old).join(translated);
-    }
+    if(quoted&&TELUGU_RE.test(quoted[2]))return value.split(quoted[2]).join(translated);
     if(/^[\s\u0C00-\u0C7F]+$/.test(value.trim()))return translated;
     return value;
   }
 
-  /* Apply direct Telugu-source MASTER mappings to assistant/Melimi text.
-   * This deliberately never touches user messages. It also skips a target that
-   * is already present, so a mapping cannot repeatedly rewrite itself. */
   async function refreshDirectTeluguMappings(text){
     let value=String(text||'');
     const words=[...new Set(value.match(TELUGU_WORD_RE)||[])];
@@ -94,6 +92,8 @@
     if(refreshRunning||typeof messages==='undefined'||!Array.isArray(messages)||!messages.length)return 0;
     const conversationKey=(typeof conversationId!=='undefined'&&conversationId)?String(conversationId):'';
     if(!conversationKey)return 0;
+    const currentSig=messageSignature();
+    if(!showToast&&currentSig===lastMessageSignature)return 0;
     refreshRunning=true;
     try{
       const overrides=readOverrides();
@@ -101,14 +101,11 @@
       for(let i=0;i<messages.length;i++){
         const msg=messages[i];
         if(!msg||msg.role!=='assistant'||!msg.content||msg.streaming)continue;
-
         const original=String(msg.content);
         const bilingual=sourceFromAssistant(original);
         let source=bilingual?.source||'';
-        let old=bilingual?.old||'';
+        const old=bilingual?.old||'';
         let next=original;
-
-        /* First use the source phrase when the assistant explicitly preserves it. */
         if(!source)source=nearestUserSource(i);
         if(source){
           const translated=await translatePhrase(source);
@@ -117,16 +114,14 @@
             else next=replaceLeadingMelimiPhrase(next,translated);
           }
         }
-
-        /* Then apply current MASTER mappings whose source is Telugu. */
         next=await refreshDirectTeluguMappings(next);
         if(next===original)continue;
-
         msg.content=next;
         overrides[conversationKey] ||= {};
         if(msg.id!=null)overrides[conversationKey][String(msg.id)]=next;
         changed++;
       }
+      lastMessageSignature=messageSignature();
       if(changed){
         writeOverrides(overrides);
         if(typeof renderAll==='function')renderAll();
@@ -136,14 +131,19 @@
     }finally{refreshRunning=false}
   }
 
-  async function autoRefresh(){
+  function scheduleAutoRefresh(){
+    clearTimeout(autoTimer);
+    autoTimer=setTimeout(()=>autoRefresh(),80);
+  }
+
+  async function autoRefresh(force=false){
     try{
       if(typeof messages==='undefined'||!Array.isArray(messages))return;
-      /* A new /word command is a strong signal that MASTER changed; don't wait
-         for the periodic timer when the command has just appeared. */
       const signature=messages.filter(x=>x?.role==='user'&&/^\s*\/word\b/i.test(String(x.content||''))).map(x=>String(x.content||'')).join('\n');
-      if(signature!==lastSignature){lastSignature=signature;await refreshMessages(false);return;}
-      await refreshMessages(false);
+      const messageChanged=messageSignature()!==lastMessageSignature;
+      const knowledgeChanged=signature!==lastSignature;
+      if(knowledgeChanged)lastSignature=signature;
+      if(force||messageChanged||knowledgeChanged)await refreshMessages(false);
     }catch(e){console.debug('Melimi auto-refresh:',e)}
   }
 
@@ -165,8 +165,15 @@
           });
           if(changed&&typeof renderAll==='function')renderAll();
         }
-        setTimeout(autoRefresh,0);
+        lastMessageSignature='';
+        setTimeout(()=>autoRefresh(true),0);
       };
+    }
+
+    const chatContainer=document.getElementById('chatContainer');
+    if(chatContainer){
+      const observer=new MutationObserver(()=>scheduleAutoRefresh());
+      observer.observe(chatContainer,{childList:true,subtree:true,characterData:true});
     }
 
     const button=document.createElement('button');
@@ -178,28 +185,30 @@
     button.textContent='↻';
     button.addEventListener('click',async()=>{
       if(button.disabled)return;
-      button.disabled=true;
-      button.classList.add('spinning');
+      button.disabled=true;button.classList.add('spinning');
       try{
         if(typeof conversationId!=='undefined'&&conversationId&&typeof loadConversation==='function')await loadConversation(conversationId);
+        lastMessageSignature='';
         await refreshMessages(true);
-        if(typeof loadHistory==='function')await loadHistory();
+        if(typeof loadConversations==='function')await loadConversations();
       }catch(e){
         console.error(e);
         if(typeof toast==='function')toast('Could not refresh Melimi chat words');
-      }finally{
-        button.disabled=false;
-        button.classList.remove('spinning');
-      }
+      }finally{button.disabled=false;button.classList.remove('spinning');}
     });
     const spacer=topbar.querySelector('.topbar-spacer');
     if(spacer)spacer.before(button);else topbar.appendChild(button);
 
-    /* Keep automatic refresh responsive. MASTER updates are deterministic and
-       local; this polling does not call Groq. */
-    setTimeout(autoRefresh,500);
-    setInterval(autoRefresh,3000);
-    window.addEventListener('focus',autoRefresh);
+    /* Immediate refresh triggers:
+       - after every new user message
+       - after every new AI message
+       - after a /word entry
+       - when a conversation is opened
+       - when the page regains focus
+       A light 3s fallback catches MASTER changes made elsewhere. */
+    setTimeout(()=>autoRefresh(true),500);
+    setInterval(()=>autoRefresh(false),3000);
+    window.addEventListener('focus',()=>autoRefresh(true));
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
