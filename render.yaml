@@ -8,7 +8,11 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
-        value: llama-3.1-8b-instant
+        value: llama-3.3-70b-versatile
+      - key: GROQ_FALLBACK_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_ENABLE_FALLBACK
+        value: "true"
       - key: DATABASE_URL
         sync: false
       - key: REQUIRE_AUTH
