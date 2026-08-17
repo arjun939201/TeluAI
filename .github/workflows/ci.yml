@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - extreme-product-engineering-upgrade
+      - refactor/project-organization
   pull_request:
 
 permissions:
@@ -30,6 +31,8 @@ jobs:
         run: pip check
       - name: Compile Python
         run: python -m compileall -q app tests
+      - name: Check canonical project structure
+        run: python scripts/check_structure.py
       - name: Check frontend JavaScript syntax
         run: |
           for file in static/js/*.js; do node --check "$file"; done
