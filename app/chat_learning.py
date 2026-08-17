@@ -31,9 +31,28 @@ def install_chat_learning() -> None:
 
 
 def _strip_mapping_metadata(source: str) -> str:
-    """Remove explanatory labels from a source side without changing the word."""
     source = _LABEL_PAREN_RE.sub("", source or "").strip()
     return source.strip(" \t.,:;()[]{}")
+
+
+def _parse_word_mappings(body: str) -> list[dict]:
+    """Parse /word source = melimi; source = melimi without losing entries."""
+    mappings: list[dict] = []
+    for part in re.split(r"\s*;\s*", body or ""):
+        part = part.strip()
+        if not part:
+            continue
+        parsed = _MAPPING_RE.match(part)
+        if not parsed:
+            raise ValueError("Usage: /word source = melimi; source = melimi")
+        source = _strip_mapping_metadata(parsed.group("source"))
+        melimi = parsed.group("melimi").strip()
+        if not source or not melimi or len(source) > 160 or len(melimi) > 160:
+            raise ValueError("Word entries must be 160 characters or less per side.")
+        mappings.append({"source": source, "melimi": melimi})
+    if not mappings:
+        raise ValueError("Usage: /word source = melimi")
+    return mappings
 
 
 def parse_command(message: str):
@@ -43,20 +62,21 @@ def parse_command(message: str):
     raw_kind = match.group("kind").lower()
     body = match.group("body").strip()
     if raw_kind in {"word", "meaning", "correct"}:
-        parsed = _MAPPING_RE.match(body)
-        if not parsed:
-            raise ValueError(f"Usage: /{raw_kind} source = melimi")
-        source = _strip_mapping_metadata(parsed.group("source"))
-        melimi = parsed.group("melimi").strip()
-        if not source or not melimi or len(source) > 160 or len(melimi) > 160:
-            raise ValueError("Word entries must be 160 characters or less per side.")
-        return "word", {"source": source, "melimi": melimi, "command": raw_kind}
+        mappings = _parse_word_mappings(body)
+        first = mappings[0]
+        return "word", {
+            "source": first["source"],
+            "melimi": first["melimi"],
+            "command": raw_kind,
+            "mappings": mappings,
+            "count": len(mappings),
+            "bulk": len(mappings) > 1,
+        }
     if not body:
         raise ValueError(f"/{raw_kind} cannot be empty.")
     if len(body) > 50000:
         raise ValueError("Language content is too large. Maximum is 50,000 characters.")
     if raw_kind in {"example", "content", "phrase", "note"}:
-        # Parenthesized English/Telugu meaning is metadata, not part of the content.
         note = re.match(r"^(.*?)(?:\s*\(([^()]*)\))?\s*$", body, re.S)
         content = (note.group(1) or "").strip()
         meaning = (note.group(2) or "").strip()
@@ -174,6 +194,8 @@ def _content_items(text: str) -> tuple[list[str], list[str], list[str]]:
 
 def _learn_mapping(standard: str, melimi: str, evidence: str, source_class: str = "unknown") -> bool:
     changed = False
+    standard = standard.strip()
+    melimi = melimi.strip()
     with SessionLocal() as db:
         melimi_root = melimi.split("/")[0].strip()
         row = _find_root(db, standard)
@@ -252,13 +274,17 @@ def retrieve_chat_knowledge(query: str, limit: int = 10) -> str:
 def learn_explicit_teaching(message: str, user_id: int | None = None):
     parsed = parse_command(message)
     if not parsed:
-        return {"learned": False, "changed": False, "roots": 0, "phrases": 0}
+        return {"learned": False, "changed": False, "roots": 0, "phrases": 0, "mappings": 0}
     kind, payload = parsed
     if kind == "word":
-        standard = payload["source"].strip()
-        melimi = payload["melimi"].strip()
-        changed = _learn_mapping(standard, melimi, message, _source_class(message, standard))
-        return {"learned": True, "changed": changed, "roots": 1, "phrases": 0}
+        mappings = payload.get("mappings") or [{"source": payload["source"], "melimi": payload["melimi"]}]
+        changed = False
+        for mapping in mappings:
+            changed = _learn_mapping(mapping["source"], mapping["melimi"], message, _source_class(message, mapping["source"])) or changed
+        if changed:
+            reload_indexes()
+        return {"learned": True, "changed": changed, "roots": len(mappings), "phrases": 0, "mappings": len(mappings)}
+
     content = payload["content"]
     meaning = payload.get("meaning", "")
     command = payload.get("command", "content")
@@ -298,7 +324,7 @@ def learn_explicit_teaching(message: str, user_id: int | None = None):
     _store_learning(command, standard=content if command == "root" else "", melimi=content if command != "root" else meaning, rule=meaning if command == "rule" else "", meaning=meaning, evidence=message, metadata={"command": command})
     if changed:
         reload_indexes()
-    return {"learned": True, "changed": changed, "roots": roots, "phrases": phrases}
+    return {"learned": True, "changed": changed, "roots": roots, "phrases": phrases, "mappings": 0}
 
 
 def reload_indexes():
