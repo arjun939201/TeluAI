@@ -46,7 +46,7 @@ def test_unseen_inflected_instance_is_generated_from_lemma_mapping():
     assert result.status == "MASTER"
     assert result.source_lemma == "సమస్య"
     assert result.target_lemma == "చిక్కు"
-    assert result.target_surface == "చిక్కుకు"
+    assert result.target_surface == "చిక్కులకు"
     assert result.analysis.features.number == "plural"
     assert result.analysis.features.case == "DATIVE"
     assert result.generated is True
