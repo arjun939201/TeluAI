@@ -52,6 +52,16 @@ def test_unseen_inflected_instance_is_generated_from_lemma_mapping():
     assert result.generated is True
 
 
+def test_supported_derivation_generates_an_unseen_target_adjective():
+    roots = {"విస్తారం": "విరివి"}
+    result = transform_surface("విస్తారమైన", roots)
+    assert result.status == "MASTER"
+    assert result.source_lemma == "విస్తారం"
+    assert result.target_lemma == "విరివి"
+    assert result.target_surface == "విరివైన"
+    assert result.analysis.features.derivation == "మైన"
+
+
 def test_unknown_surface_is_preserved_and_marked_unsupported():
     result = transform_surface("తెలియనిపదం", {"సమస్య": "చిక్కు"})
     assert result.status == "UNSUPPORTED"
