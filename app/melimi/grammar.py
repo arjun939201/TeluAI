@@ -1,18 +1,10 @@
 from typing import Dict, List
 
 from app.melimi.corpus_rules import (
-    ADJECTIVE_SUFFIXES,
-    DERIVATIONAL_SUFFIXES,
-    MUNUJERPULU,
-    NEW_MUNUJERPULU,
-    PADAGRAMULU,
-    corpus_manifest,
+    ADJECTIVE_SUFFIXES, DERIVATIONAL_SUFFIXES, MUNUJERPULU,
+    NEW_MUNUJERPULU, PADAGRAMULU, corpus_manifest,
 )
 
-
-# Melimi derivational suffixes are category-sensitive. These are policy
-# metadata used to guide deterministic generation and model generation; the
-# authoritative examples remain in the PostgreSQL-backed Language Space.
 NOUN_SUFFIXES = {
     "కాను": "noun-based characterizing/agentive formation; meaning depends on the base noun",
     "కాన్": "noun-based characterizing/agentive formation; meaning depends on the base noun",
@@ -31,14 +23,12 @@ NOUN_SUFFIXES = {
     "ఓజ": "noun/verb-based method/style/order formation where the corpus supports it",
     "అంగి": "noun/root-based derivational family; meaning depends on documented base",
 }
-
 VERB_SUFFIXES = {
     "అలవి": "verb-based doable/possible/suitable/worthy-of formation",
     "అల్వి": "verb-based doable/possible/suitable/worthy-of formation",
     "అరిది": "verb-based not-doable/not-possible/not-suitable formation",
     "అర్ది": "verb-based not-doable/not-possible/not-suitable formation",
 }
-
 INFLECTIONAL_FEATURES = {
     "number": "singular/plural, including lexical and irregular plural patterns",
     "case": "nominative, accusative, dative, instrumental/comitative, locative, source/ablative, genitive, vocative and productive postpositional relations",
@@ -51,22 +41,13 @@ INFLECTIONAL_FEATURES = {
     "voice": "active and supported passive-like/reflexive/middle/impersonal constructions",
     "register": "colloquial, standard/formal, literary and dialect-sensitive realization",
 }
-
 INVARIANT_NOUN_ADJECTIVE_RULE = (
-    "Relevant Melimi lexical forms that do NOT end in ం (the am/nasal ending) "
-    "may function directly as both nouns and adjectives when the corpus supports "
-    "the lexical item. Example: భాషా → mapped lemma directly; do not mechanically "
-    "add ము, పు, మైన, or another suffix."
+    "Relevant Melimi lexical forms that do NOT end in ం (the am/nasal ending) may function directly as both nouns and adjectives when the corpus supports the lexical item. "
+    "Examples: భాషా → mapped lemma directly; హాళికాను is an invariant Melimi adjective form; do not mechanically add ము, పు, మైన, or another suffix. "
+    "For the standard adjective source forms ఆసక్తికరం and ఆసక్తికరమైన, the supported Melimi realization is the invariant form హాళికాను."
 )
-
-MAPPING_PIPELINE = (
-    "surface → morphological analysis → source lemma/root → authoritative mapping "
-    "→ target lemma → reapply derivation/inflection/case/agreement → "
-    "supported sandhi/phonology → surface form"
-)
-
+MAPPING_PIPELINE = "surface → morphological analysis → source lemma/root → authoritative mapping → target lemma → reapply derivation/inflection/case/agreement → supported sandhi/phonology → surface form"
 DERIVATIONAL_MARKERS = {**NOUN_SUFFIXES, **VERB_SUFFIXES}
-
 
 def grammar_policy() -> str:
     manifest = corpus_manifest()
@@ -104,16 +85,9 @@ def grammar_policy() -> str:
     ]
     return "\n".join(lines)
 
-
 def audit_derivational_surface(text: str) -> List[Dict]:
-    return [
-        {"form": suffix, "rule": meaning}
-        for suffix, meaning in DERIVATIONAL_MARKERS.items()
-        if suffix in (text or "")
-    ]
-
+    return [{"form": suffix, "rule": meaning} for suffix, meaning in DERIVATIONAL_MARKERS.items() if suffix in (text or "")]
 
 def is_non_am_ending_melimi(word: str) -> bool:
-    """Return whether a Melimi surface form is not ended by Telugu ం."""
     word = (word or "").strip()
     return bool(word) and not word.endswith("ం")
