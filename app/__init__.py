@@ -7,7 +7,7 @@ from app import chat_learning_runtime as _chat_learning_runtime  # noqa: F401
 
 _chat_learning_runtime.install()
 
-# The Melimi Lab page must be reachable at /melimi-lab.  Register this at
+# The Melimi Lab page must be reachable at /melimi-lab. Register this at
 # FastAPI application construction time so the route remains available even
 # when app.main is deployed from a stale build or the route declaration is
 # accidentally omitted from the main router module.
@@ -22,6 +22,9 @@ if not getattr(FastAPI, "_telua_melimi_lab_patch", False):
 
     def _telua_fastapi_init(self, *args, **kwargs):
         _original_fastapi_init(self, *args, **kwargs)
+
+        from app.workspace_guard import WorkspaceGuardMiddleware
+        self.add_middleware(WorkspaceGuardMiddleware)
 
         def melimi_lab_page():
             target = Path(__file__).resolve().parent.parent / "static" / "melimi-lab.html"
