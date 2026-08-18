@@ -175,8 +175,16 @@ def apply_operation(root, kind, suffix):
             return root[:-1] + suffix
         return root + suffix
 
-    if suffix in {"ా", "మైన"} and kind == "adjective":
-        return root
+    if kind == "adjective":
+        # Productive -మైన is an operation on an -ం source form. The lexical
+        # dictionary remains root-only: స్థాపితం → నెలగొల్పిదం, then
+        # స్థాపితమైన → నెలగొల్పిదమైన. Never store the derived surface as a
+        # separate lexical entry.
+        if suffix == "మైన":
+            return root[:-1] + "మైన" if root.endswith("ం") else root + "మైన"
+        if suffix == "ా":
+            return root
+
     if suffix == "గా" and kind == "adjective_predicate":
         return root + "గా"
 
