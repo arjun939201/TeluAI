@@ -8,9 +8,9 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-120b
       - key: GROQ_FALLBACK_MODEL
-        value: llama-3.3-70b-versatile
+        value: openai/gpt-oss-20b
       - key: GROQ_ENABLE_FALLBACK
         value: "true"
       - key: DATABASE_URL
