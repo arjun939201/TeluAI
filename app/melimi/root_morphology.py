@@ -8,6 +8,7 @@ from typing import Dict, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
 GRAMMATICAL_SUFFIXES = tuple(sorted([
+    "ాలతో", "ాలలో", "ాలకు", "ాలను", "ాలని", "ాలపై", "ాలకై", "ాలవల్ల",
     "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై", "లవల్ల",
     "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల", "మధ్య",
     "లోని", "పైన", "తో", "లో", "లు", "న్ని", "ాన్ని", "ానికి", "ను", "ని",
@@ -19,9 +20,7 @@ VERB_SUFFIXES = tuple(sorted([
     "డానికి", "డంలో", "డాన్ని", "డిగా", "డుతూ", "డిన", "డినది", "చడం",
     "చడానికి", "చడంలో", "చడాన్ని", "చుతూ", "చిన", "చింది", "డం",
 ], key=len, reverse=True))
-DERIVED_VOICE_SUFFIXES = tuple(sorted([
-    "బడిన", "బడింది", "బడే", "బడుతుంది", "బడుతున్న", "బడుతూ",
-], key=len, reverse=True))
+DERIVED_VOICE_SUFFIXES = tuple(sorted(["బడిన", "బడింది", "బడే", "బడుతుంది", "బడుతున్న", "బడుతూ"], key=len, reverse=True))
 DERIVATIONAL_SUFFIXES = tuple(sorted([
     "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి", "వాను", "వాన్",
     "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము", "ఓరు", "ఆది", "ఓలి", "ఓజ",
@@ -32,7 +31,6 @@ DATIVE = "DATIVE"
 INSTRUMENTAL = "INSTRUMENTAL"
 LOCATIVE = "LOCATIVE"
 OBLIQUE = "OBLIQUE"
-
 
 @dataclass(frozen=True)
 class MorphologicalForm:
@@ -45,7 +43,6 @@ class MorphologicalForm:
     def operations(self):
         return tuple(zip(self.kinds, self.suffixes))
 
-
 @lru_cache(maxsize=1)
 def load_root_dictionary() -> Dict[str, str]:
     try:
@@ -54,10 +51,8 @@ def load_root_dictionary() -> Dict[str, str]:
     except Exception:
         return {}
 
-
 def reload_root_dictionary():
     load_root_dictionary.cache_clear()
-
 
 def _known_candidate(candidates, roots):
     for candidate in candidates:
@@ -65,34 +60,27 @@ def _known_candidate(candidates, roots):
             return candidate
     return None
 
-
 def _plural_candidate(surface, roots):
-    if surface.endswith("ాలు"):
-        base = surface[:-3]
-        candidate = _known_candidate((base, base + "ం"), roots)
-        if candidate:
-            return candidate, "ాలు", "plural"
-    if surface.endswith("లు"):
-        base = surface[:-2]
-        candidate = _known_candidate((base, base + "ం"), roots)
-        if candidate:
-            return candidate, "లు", "plural"
+    for suffix in ("ాలు", "లు"):
+        if surface.endswith(suffix):
+            base = surface[:-len(suffix)]
+            candidate = _known_candidate((base, base + "ం"), roots)
+            if candidate:
+                return candidate, suffix, "plural"
     return None
 
-
 def _case_candidate(surface, roots):
-    # Plural case forms.  The lexical plural operation is kept separate from
-    # the abstract case operation so the target root gets its own sandhi.
+    # Analyze plural case as two abstract operations: plural + case.
+    # This supports both -లు- stems and -ాలు- stems.
     plural_cases = {
-        "లను": ACCUSATIVE,
-        "లని": ACCUSATIVE,
-        "లకు": DATIVE,
-        "లతో": INSTRUMENTAL,
-        "లలో": LOCATIVE,
-        "లపై": LOCATIVE,
-        "లకై": DATIVE,
-        "లవల్ల": OBLIQUE,
-        "ల": OBLIQUE,
+        "ాలను": ACCUSATIVE, "ాలని": ACCUSATIVE,
+        "ాలకు": DATIVE, "ాలకై": DATIVE,
+        "ాలతో": INSTRUMENTAL, "ాలలో": LOCATIVE,
+        "ాలపై": LOCATIVE, "ాలవల్ల": OBLIQUE,
+        "లను": ACCUSATIVE, "లని": ACCUSATIVE,
+        "లకు": DATIVE, "లకై": DATIVE,
+        "లతో": INSTRUMENTAL, "లలో": LOCATIVE,
+        "లపై": LOCATIVE, "లవల్ల": OBLIQUE, "ల": OBLIQUE,
     }
     for suffix, case_name in sorted(plural_cases.items(), key=lambda item: len(item[0]), reverse=True):
         if not surface.endswith(suffix):
@@ -102,39 +90,30 @@ def _case_candidate(surface, roots):
         if candidate:
             return candidate, (("case", case_name), ("plural", "లు"))
 
-    if surface.endswith("ాన్ని"):
-        candidate = surface[:-5] + "ం"
-        if candidate in roots:
-            return candidate, (("case", ACCUSATIVE),)
+    # AM-final singular case sandhi.
+    for surface_suffix, case_name in (("ాన్ని", ACCUSATIVE), ("ానికి", DATIVE)):
+        if surface.endswith(surface_suffix):
+            candidate = surface[:-len(surface_suffix)] + "ం"
+            if candidate in roots:
+                return candidate, (("case", case_name),)
 
-    if surface.endswith("ానికి"):
-        candidate = surface[:-6] + "ం"
-        if candidate in roots:
-            return candidate, (("case", DATIVE),)
-
-    # Singular -ా stems: సినిమా → సినిమాను / సినిమాకు / సినిమాతో / సినిమాలో.
     singular_cases = {
-        "ను": ACCUSATIVE,
-        "కు": DATIVE,
-        "కి": DATIVE,
-        "తో": INSTRUMENTAL,
-        "లో": LOCATIVE,
-        "పై": LOCATIVE,
+        "ను": ACCUSATIVE, "కు": DATIVE, "కి": DATIVE,
+        "తో": INSTRUMENTAL, "లో": LOCATIVE, "పై": LOCATIVE,
     }
     for suffix, case_name in sorted(singular_cases.items(), key=lambda item: len(item[0]), reverse=True):
         if surface.endswith(suffix):
             base = surface[:-len(suffix)]
-            if base in roots:
-                return base, (("case", case_name),)
+            candidate = _known_candidate((base, base + "ం"), roots)
+            if candidate:
+                return candidate, (("case", case_name),)
 
     if surface.endswith("న్ని"):
         base = surface[:-3]
         candidate = _known_candidate((base, base + "ం"), roots)
         if candidate:
             return candidate, (("case", ACCUSATIVE),)
-
     return None
-
 
 def _adjectival_candidate(surface, roots):
     if surface.endswith("మైన"):
@@ -155,29 +134,24 @@ def _adjectival_candidate(surface, roots):
         return surface[:-2] + "ం", "పు", "relational_adjective"
     return None
 
-
 def _verb_candidate(surface, roots):
     for suffix in VERB_SUFFIXES:
-        if not surface.endswith(suffix):
-            continue
-        stem = surface[:-len(suffix)]
-        for candidate in (stem, stem + "ు", stem + "చు"):
-            if candidate in roots:
-                return candidate, suffix, "verb"
+        if surface.endswith(suffix):
+            stem = surface[:-len(suffix)]
+            for candidate in (stem, stem + "ు", stem + "చు"):
+                if candidate in roots:
+                    return candidate, suffix, "verb"
     return None
-
 
 def _derived_voice_candidate(surface, roots):
     for suffix in DERIVED_VOICE_SUFFIXES:
-        if not surface.endswith(suffix):
-            continue
-        stem = surface[:-len(suffix)]
-        if stem.endswith("ించ"):
-            candidate = stem[:-3] + "నం"
-            if candidate in roots:
-                return candidate, suffix, "derived_voice"
+        if surface.endswith(suffix):
+            stem = surface[:-len(suffix)]
+            if stem.endswith("ించ"):
+                candidate = stem[:-3] + "నం"
+                if candidate in roots:
+                    return candidate, suffix, "derived_voice"
     return None
-
 
 def reduce_to_root(word, roots=None) -> MorphologicalForm:
     surface = (word or "").strip()
@@ -186,51 +160,42 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
         return MorphologicalForm("", "")
     if surface in roots:
         return MorphologicalForm(surface, surface)
-
     case = _case_candidate(surface, roots)
     if case:
         root, ops = case
         return MorphologicalForm(surface, root, tuple(x[1] for x in ops), tuple(x[0] for x in ops))
-
     plural = _plural_candidate(surface, roots)
     if plural:
         root, suffix, kind = plural
         return MorphologicalForm(surface, root, (suffix,), (kind,))
-
     verb = _verb_candidate(surface, roots)
     if verb:
         root, suffix, kind = verb
         return MorphologicalForm(surface, root, (suffix,), (kind,))
-
     voice = _derived_voice_candidate(surface, roots)
     if voice:
         root, suffix, kind = voice
         return MorphologicalForm(surface, root, (suffix,), (kind,))
-
     adj = _adjectival_candidate(surface, roots)
     if adj:
         root, suffix, kind = adj
         return MorphologicalForm(surface, root, (suffix,), (kind,))
-
     for suffix in DERIVATIONAL_SUFFIXES:
         if surface.endswith(suffix) and len(surface) > len(suffix) + 1:
             candidate = surface[:-len(suffix)]
             if candidate in roots:
                 return MorphologicalForm(surface, candidate, (suffix,), ("derivation",))
-
     return MorphologicalForm(surface, surface)
-
 
 def apply_operation(root, kind, suffix):
     if kind == "plural":
         if root.endswith("ం"):
             return root[:-1] + "ాలు"
         return root + "లు"
-
     if kind == "case":
         if suffix == ACCUSATIVE:
             if root.endswith("లు"):
-                return root + "ను"
+                return root[:-1] + "ను"
             if root.endswith("ం"):
                 return root[:-1] + "ాన్ని"
             if root.endswith("ా"):
@@ -240,25 +205,28 @@ def apply_operation(root, kind, suffix):
             return root + "ని"
         if suffix == DATIVE:
             if root.endswith("లు"):
-                return root + "కు"
+                return root[:-1] + "కు"
             if root.endswith("ం"):
                 return root[:-1] + "ానికి"
             if root.endswith("ా"):
                 return root + "కు"
-            if root.endswith("ు"):
+            if root.endswith("ు") or root.endswith("ి"):
                 return root + "కు"
             return root + "కి"
         if suffix == INSTRUMENTAL:
+            if root.endswith("లు"):
+                return root[:-1] + "తో"
             return root + "తో"
         if suffix == LOCATIVE:
-            return root + "లో" if not root.endswith("లు") else root + "లో"
+            if root.endswith("లు"):
+                return root[:-1] + "లో"
+            return root + "లో"
         if suffix == OBLIQUE:
             if root.endswith("లు"):
                 return root[:-1]
             if root.endswith("ు"):
                 return root[:-1]
             return root
-
     if kind == "adjective":
         return root[:-1] + "మైన" if root.endswith("ం") else root + "మైన"
     if kind == "adjective_predicate":
@@ -277,13 +245,11 @@ def apply_operation(root, kind, suffix):
         return root + suffix
     return root + suffix
 
-
 def reapply_operations(melimi_root, form):
     result = melimi_root
     for kind, suffix in reversed(form.operations):
         result = apply_operation(result, kind, suffix)
     return result
-
 
 def convert_surface(word, roots=None):
     roots = roots or load_root_dictionary()
@@ -291,7 +257,6 @@ def convert_surface(word, roots=None):
     if form.root not in roots:
         return word
     return reapply_operations(roots[form.root], form)
-
 
 def convert_text(text, roots=None):
     roots = roots or load_root_dictionary()
