@@ -15,7 +15,7 @@ Unknown, malformed, or unreviewed entries are rejected rather than promoted.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Iterable
 
 from sqlalchemy import select
@@ -146,8 +146,13 @@ def _knowledge_metadata(entry: MainDictionaryEntry) -> dict[str, Any]:
     }
 
 
-def import_entries(entries: Iterable[dict[str, Any]], *, replace: bool = False) -> dict[str, int]:
+def import_entries(entries: Iterable[dict[str, Any]], *, replace: bool = True) -> dict[str, int]:
     """Import already-reviewed dictionary entries into the MASTER lexicon.
+
+    Main-dictionary entries have lexical authority over older user/corpus roots.
+    The ``replace`` argument is retained for CLI/API compatibility; a main
+    dictionary import always promotes a conflicting older root to the protected
+    source because otherwise the declared source of truth would not be true.
 
     This function deliberately accepts structured reviewed entries, not raw PDF
     text. PDF/OCR extraction belongs in a separate review pipeline so corrupted
@@ -160,20 +165,10 @@ def import_entries(entries: Iterable[dict[str, Any]], *, replace: bool = False) 
     with SessionLocal() as db:
         for entry in parsed:
             root = db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root == entry.standard_form))
-            if root and root.source != MAIN_DICTIONARY_SOURCE:
-                if root.status == "MASTER" and not replace:
-                    skipped += 1
-                    continue
+            if root:
                 root.melimi_root = entry.melimi_form
                 root.meaning = entry.meaning or root.meaning
                 root.category = entry.part_of_speech or root.category
-                root.status = "MASTER"
-                root.source = MAIN_DICTIONARY_SOURCE
-                root.version += 1
-            elif root:
-                root.melimi_root = entry.melimi_form
-                root.meaning = entry.meaning
-                root.category = entry.part_of_speech
                 root.status = "MASTER"
                 root.source = MAIN_DICTIONARY_SOURCE
                 root.version += 1
