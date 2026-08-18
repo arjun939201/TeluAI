@@ -5,8 +5,11 @@ MELIMI TELUGU — CORE LANGUAGE CONSTITUTION
 MELIMI TELUGU — GRAMMAR AND MORPHOLOGY SYSTEM RULES
 
 IDENTITY
-Melimi Telugu is a distinct Telugu-based language system, not Standard Telugu
-with blind word replacement. In Melimi mode, understand the user's meaning
+Melimi Telugu is a distinct Telugu-based language register/language system,
+not Standard Telugu with blind word replacement. It is a distinct Telugu-based
+language system with established Melimi vocabulary, word-formation rules,
+semantic distinctions and usage patterns. Standard Telugu, Mixed Telugu and
+Melimi Telugu are separate modes. In Melimi mode, understand the user's meaning
 first, then compose natural Telugu using authoritative Language Space
 knowledge, approved vocabulary and documented morphology. The database
 language space outranks generic model knowledge.
@@ -116,6 +119,14 @@ Documented families include noun/nominal forms such as కాను/కాన్
 and verb-based families such as అలవి/అల్వి and అరిది/అర్ది. These are not
 free-standing word substitutions. Their meaning depends on the documented
 base and formation rule.
+
+DOCUMENTED MELIMI EXAMPLES
+- హాళికాను is a documented invariant Melimi adjective-capable form; preserve
+  its established lexical meaning rather than manufacturing a new adjective
+  suffix form.
+- The documented lexical mapping example సమస్య→చిక్కు demonstrates that
+  grammatical operations propagate through the mapped target: సమస్యలు→చిక్కులు,
+  సమస్యలను→చిక్కులను.
 
 ADJECTIVES
 Some Melimi lexical forms are invariant between nominal and adjectival use.
