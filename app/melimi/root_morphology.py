@@ -1,9 +1,4 @@
-"""Root-first Melimi morphology with corpus-backed derivation.
-
-A `/word` declaration maps a lemma, never a surface string. This module first
-reduces an inflected/derived Telugu surface form to its lexical root, then
-reapplies the same grammatical operation to the mapped Melimi root.
-"""
+"""Root-first Melimi morphology with corpus-backed derivation."""
 from __future__ import annotations
 
 import re
@@ -12,31 +7,26 @@ from functools import lru_cache
 from typing import Dict, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
-
 GRAMMATICAL_SUFFIXES = tuple(sorted([
     "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై", "లవల్ల",
-    "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల",
-    "మధ్య", "లోని", "పైన", "తో", "లో", "లు", "ను", "ని", "కు",
-    "కి", "గా", "పై", "ల", "న్ని", "ాన్ని", "ానికి",
+    "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల", "మధ్య",
+    "లోని", "పైన", "తో", "లో", "లు", "న్ని", "ాన్ని", "ానికి", "ను", "ని",
+    "కు", "కి", "గా", "పై", "ల",
 ], key=len, reverse=True))
-
 VERB_SUFFIXES = tuple(sorted([
     "స్తుంది", "స్తున్నారు", "స్తున్నాను", "స్తున్నావు", "స్తున్నాడు", "స్తున్నది",
-    "తుంది", "తున్నారు", "తున్నాను", "తున్నావు", "తున్నాడు", "తున్నది",
-    "డం", "డానికి", "డంలో", "డాన్ని", "డిగా", "డుతూ", "డిన", "డినది",
-    "చడం", "చడానికి", "చడంలో", "చడాన్ని", "చుతూ", "చిన", "చింది",
+    "తుంది", "తున్నారు", "తున్నాను", "తున్నావు", "తున్నాడు", "తున్నది", "డం",
+    "డానికి", "డంలో", "డాన్ని", "డిగా", "డుతూ", "డిన", "డినది", "చడం",
+    "చడానికి", "చడంలో", "చడాన్ని", "చుతూ", "చిన", "చింది",
 ], key=len, reverse=True))
-
 DERIVED_VOICE_SUFFIXES = tuple(sorted([
     "బడిన", "బడింది", "బడే", "బడుతుంది", "బడుతున్న", "బడుతూ",
 ], key=len, reverse=True))
-
 DERIVATIONAL_SUFFIXES = tuple(sorted([
-    "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి",
-    "వాను", "వాన్", "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము",
-    "ఓరు", "ఆది", "ఓలి", "ఓజ", "అంగి", "ఇద", "ద", "అ", "పు",
+    "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి", "వాను", "వాన్",
+    "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము", "ఓరు", "ఆది", "ఓలి", "ఓజ",
+    "అంగి", "ఇద", "ద", "అ", "పు",
 ], key=len, reverse=True))
-
 ACCUSATIVE = "ACCUSATIVE"
 DATIVE = "DATIVE"
 
@@ -73,12 +63,10 @@ def _candidate_strips(surface, suffixes, kind):
 
 
 def _plural_candidate(surface, roots):
-    """Recognize Telugu plural shapes while retaining lexical-root identity."""
     if surface.endswith("ాలు") and len(surface) > 4:
         candidate = surface[:-3] + "ం"
         if candidate in roots:
             return candidate, "ాలు", "plural"
-    # After an outer accusative, plural stems surface as -ాల / -ల.
     if surface.endswith("ాల") and len(surface) > 3:
         candidate = surface[:-2] + "ం"
         if candidate in roots:
@@ -107,13 +95,13 @@ def _verb_candidate(surface, roots):
                 return candidate, suffix, "verb"
     for registered in roots:
         if registered.endswith("ంచడం"):
-            family_prefix = registered[:-4]
-            if family_prefix and surface.startswith(family_prefix):
-                return registered, surface[len(family_prefix):], "verb_family"
+            prefix = registered[:-4]
+            if prefix and surface.startswith(prefix):
+                return registered, surface[len(prefix):], "verb_family"
         elif registered.endswith("డం"):
-            family_prefix = registered[:-2]
-            if family_prefix and surface.startswith(family_prefix):
-                return registered, surface[len(family_prefix):], "verb_family"
+            prefix = registered[:-2]
+            if prefix and surface.startswith(prefix):
+                return registered, surface[len(prefix):], "verb_family"
     return None
 
 
@@ -121,20 +109,20 @@ def _derived_voice_candidate(surface, roots):
     for suffix in DERIVED_VOICE_SUFFIXES:
         if not surface.endswith(suffix) or len(surface) <= len(suffix) + 2:
             continue
-        verbal_stem = surface[:-len(suffix)]
-        if verbal_stem.endswith("ించ"):
-            nominal_candidate = verbal_stem[:-3] + "నం"
-            if nominal_candidate in roots:
-                return nominal_candidate, suffix, "derived_voice"
+        stem = surface[:-len(suffix)]
+        if stem.endswith("ించ"):
+            candidate = stem[:-3] + "నం"
+            if candidate in roots:
+                return candidate, suffix, "derived_voice"
     return None
 
 
 def _case_candidate(surface, roots):
-    if surface.endswith("ాన్ని") and len(surface) > 4:
+    if surface.endswith("ాన్ని"):
         candidate = surface[:-5] + "ం"
         if candidate in roots:
             return candidate, "ను", ACCUSATIVE
-    if surface.endswith("ానికి") and len(surface) > 5:
+    if surface.endswith("ానికి"):
         candidate = surface[:-6] + "ం"
         if candidate in roots:
             return candidate, "కు", DATIVE
@@ -170,26 +158,21 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     roots = roots or load_root_dictionary()
     if surface in roots:
         return MorphologicalForm(surface, surface)
-
     case = _case_candidate(surface, roots)
     if case:
         root, operation, kind = case
         return MorphologicalForm(surface, root, (operation,), (kind,))
-
     plural = _plural_candidate(surface, roots)
     if plural:
         root, operation, kind = plural
         return MorphologicalForm(surface, root, (operation,), (kind,))
-
     verb = _verb_candidate(surface, roots)
     if verb:
         root, operation, kind = verb
         return MorphologicalForm(surface, root, (operation,), (kind,))
-
     adj = _adjectival_candidate(surface, roots)
     if adj:
         return MorphologicalForm(surface, adj[0], (adj[1],), (adj[2],))
-
     derived_voice = _derived_voice_candidate(surface, roots)
     if derived_voice:
         root, operation, kind = derived_voice
@@ -206,9 +189,7 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
             found = search(root, operations + [(kind, suffix)], depth + 1)
             if found:
                 return found
-        candidates = list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar"))
-        candidates += list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation"))
-        for root, suffix, kind in candidates:
+        for root, suffix, kind in list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar")) + list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation")):
             found = search(root, operations + [(kind, suffix)], depth + 1)
             if found:
                 return found
@@ -229,9 +210,7 @@ def apply_operation(root, kind, suffix):
             return root[:-2] + suffix
         return root + suffix
     if kind == "verb":
-        if root.endswith("ు"):
-            return root[:-1] + suffix
-        return root + suffix
+        return root[:-1] + suffix if root.endswith("ు") else root + suffix
     if kind == "derived_voice":
         return root[:-1] + suffix if root.endswith("ు") else root + suffix
     if kind == "plural":
@@ -264,21 +243,27 @@ def apply_operation(root, kind, suffix):
         if root.endswith("ం"):
             return root[:-1] + "ానికి"
         return root + "కు"
-    if root.endswith("ం") and kind == "grammar":
-        stem = root[:-1] + "ా"
-        forms = {
-            "లు": stem + "లు", "ల": stem + "ల", "లను": stem + "లను",
-            "లని": stem + "లని", "లకు": stem + "లకు", "లకై": stem + "లకై",
-            "లపై": stem + "లపై", "లతో": stem + "లతో", "లలో": stem + "లలో",
-        }
-        if suffix in forms:
-            return forms[suffix]
-        if suffix in {"లో", "తో", "గా", "పై"}:
+    if kind == "grammar":
+        if root.endswith("లు") and suffix in {"ను", "ని"}:
             return root + suffix
-        if suffix in {"కు", "కి"}:
-            return stem + "నికి"
-        if suffix == "ను":
-            return stem + "న్ని"
+        if root.endswith("లు") and suffix in {"కు", "కి", "తో", "లో", "పై"}:
+            return root + suffix
+        if root.endswith("ం"):
+            stem = root[:-1] + "ా"
+            forms = {
+                "లు": stem + "లు", "ల": stem + "ల", "లను": stem + "లను",
+                "లని": stem + "లని", "లకు": stem + "లకు", "లకై": stem + "లకై",
+                "లపై": stem + "లపై", "లతో": stem + "లతో", "లలో": stem + "లలో",
+            }
+            if suffix in forms:
+                return forms[suffix]
+            if suffix in {"లో", "తో", "గా", "పై"}:
+                return root + suffix
+            if suffix in {"కు", "కి"}:
+                return stem + "నికి"
+            if suffix == "ను":
+                return stem + "న్ని"
+        return root + suffix
     return root + suffix
 
 
