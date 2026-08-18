@@ -9,12 +9,20 @@ def _bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-# Known-good Groq production model. Keep environment overrides, but explicitly
-# replace the retired model that was breaking deployed Main Chat instances.
-DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+# Current Groq production models. Environment variables remain authoritative,
+# but retired model IDs are never allowed to become the implicit fallback.
+DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
+RETIRED_GROQ_MODELS = {
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+}
 _CONFIGURED_GROQ_MODEL = os.getenv("GROQ_MODEL", "").strip()
-if _CONFIGURED_GROQ_MODEL == "llama-3.1-8b-instant":
+if _CONFIGURED_GROQ_MODEL in RETIRED_GROQ_MODELS:
     _CONFIGURED_GROQ_MODEL = DEFAULT_GROQ_MODEL
+
+_CONFIGURED_GROQ_FALLBACK = os.getenv("GROQ_FALLBACK_MODEL", "").strip()
+if _CONFIGURED_GROQ_FALLBACK in RETIRED_GROQ_MODELS:
+    _CONFIGURED_GROQ_FALLBACK = "openai/gpt-oss-20b"
 
 
 @dataclass(frozen=True)
@@ -22,7 +30,7 @@ class Settings:
     groq_token: str = os.getenv("GROQ_API_KEY", os.getenv("GROQ_TOKEN", "")).strip()
     groq_url: str = os.getenv("GROQ_URL", "https://api.groq.com/openai/v1/chat/completions").strip()
     groq_model: str = _CONFIGURED_GROQ_MODEL or DEFAULT_GROQ_MODEL
-    groq_fallback_model: str = os.getenv("GROQ_FALLBACK_MODEL", "").strip()
+    groq_fallback_model: str = _CONFIGURED_GROQ_FALLBACK or "openai/gpt-oss-20b"
     groq_retry_attempts: int = max(0, int(os.getenv("GROQ_RETRY_ATTEMPTS", "2")))
     groq_max_backoff_seconds: float = max(0.0, float(os.getenv("GROQ_MAX_BACKOFF_SECONDS", "20")))
     groq_enable_fallback: bool = _bool("GROQ_ENABLE_FALLBACK", True)
