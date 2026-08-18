@@ -1,11 +1,12 @@
 """Deterministic answers for authoritative Melimi lookups.
 
 Only explicit lookup questions are answered locally. Unknown vocabulary falls
-through to the conversational AI so the model can explain uncertainty naturally
-instead of returning a canned dictionary-style error.
+through to the conversational AI, but direct lexical lookups must never be
+filled with guessed Melimi vocabulary.
 """
 from __future__ import annotations
 
+import json
 import re
 from difflib import SequenceMatcher
 
@@ -70,6 +71,47 @@ def _lookup_standard(word: str, roots: dict[str, str]):
     return None
 
 
+def _lookup_english_authoritative(query: str):
+    """Resolve an English lexical query only from explicit MASTER metadata.
+
+    This intentionally does not use fuzzy semantic similarity. A phrase such
+    as ``hateful words`` must never be converted into a guessed Melimi form or
+    into a malformed hybrid such as ``<Melimi> words``. If the corpus has no
+    authoritative English/gloss field for the exact query, return None and let
+    the normal assistant honestly report that the Melimi form is unavailable.
+    """
+    q = re.sub(r"\s+", " ", (query or "").strip()).casefold()
+    if not q or re.search(r"[\u0C00-\u0C7F]", q):
+        return None
+
+    with SessionLocal() as db:
+        rows = db.scalars(
+            select(KnowledgeEntry)
+            .where(KnowledgeEntry.status == "MASTER")
+            .order_by(KnowledgeEntry.id.desc())
+            .limit(5000)
+        ).all()
+        for row in rows:
+            try:
+                metadata = json.loads(row.metadata_json or "{}")
+            except (TypeError, ValueError):
+                metadata = {}
+            candidates = []
+            for key in ("english", "gloss", "meaning", "definition", "standard", "source"):
+                value = metadata.get(key)
+                if isinstance(value, str) and value.strip():
+                    candidates.append(value.strip())
+            if isinstance(row.key, str) and row.key.strip():
+                candidates.append(row.key.strip())
+            if any(re.sub(r"\s+", " ", value).casefold() == q for value in candidates):
+                target = str(row.value or metadata.get("melimi") or "").strip()
+                # An English lexical request must resolve to a Telugu/Melimi
+                # target, never to a hybrid target containing English words.
+                if target and re.search(r"[\u0C00-\u0C7F]", target) and not re.search(r"[A-Za-z]", target):
+                    return target
+    return None
+
+
 def _extract_lookup_word(q: str):
     patterns = (
         r"^(.+?)\s+అంటే\s+ఏమిటి\??$",
@@ -87,7 +129,6 @@ def _extract_lookup_word(q: str):
 
 
 def _lookup_content(q: str):
-    """Return an exact MASTER phrase/example only when explicitly supplied."""
     candidates = []
     with SessionLocal() as db:
         rows = db.scalars(select(KnowledgeEntry).where(KnowledgeEntry.status == "MASTER")).all()
@@ -106,7 +147,6 @@ def _lookup_content(q: str):
     value, meta = candidates[0]
     if isinstance(meta, str) and meta.strip().startswith("{"):
         try:
-            import json
             meaning = str(json.loads(meta).get("meaning", "")).strip()
         except Exception:
             meaning = ""
@@ -116,34 +156,12 @@ def _lookup_content(q: str):
 
 
 def _grammatical_role(form) -> str | None:
-    """Give a concise grammatical role instead of a repetitive word definition."""
     roles = []
     for kind, suffix in form.operations:
         if kind == "case":
-            roles.append({
-                "ACCUSATIVE": "కర్మ విభక్తి (Accusative)",
-                "DATIVE": "సంప్రదాన విభక్తి (Dative)",
-            }.get(suffix, suffix))
+            roles.append({"ACCUSATIVE": "కర్మ విభక్తి (Accusative)", "DATIVE": "సంప్రదాన విభక్తి (Dative)"}.get(suffix, suffix))
         elif kind == "grammar":
-            roles.append({
-                "లు": "బహువచనం",
-                "ల": "బహువచనం",
-                "లను": "బహువచనం + కర్మ విభక్తి",
-                "లని": "బహువచనం + కర్మ విభక్తి",
-                "లకు": "బహువచనం + సంప్రదాన విభక్తి",
-                "లకై": "బహువచనం + కొరకు రూపం",
-                "లపై": "బహువచనం + పై విభక్తి",
-                "లతో": "బహువచనం + తో విభక్తి",
-                "లలో": "బహువచనం + లో విభక్తి",
-                "ను": "కర్మ విభక్తి",
-                "ని": "కర్మ విభక్తి",
-                "కు": "సంప్రదాన విభక్తి",
-                "కి": "సంప్రదాన విభక్తి",
-                "లో": "స్థాన విభక్తి",
-                "తో": "సహచర్య విభక్తి",
-                "పై": "స్థాన/పై విభక్తి",
-                "గా": "రీతి రూపం",
-            }.get(suffix, suffix))
+            roles.append({"లు": "బహువచనం", "ల": "బహువచనం", "లను": "బహువచనం + కర్మ విభక్తి", "లని": "బహువచనం + కర్మ విభక్తి", "లకు": "బహువచనం + సంప్రదాన విభక్తి", "లకై": "బహువచనం + కొరకు రూపం", "లపై": "బహువచనం + పై విభక్తి", "లతో": "బహువచనం + తో విభక్తి", "లలో": "బహువచనం + లో విభక్తి", "ను": "కర్మ విభక్తి", "ని": "కర్మ విభక్తి", "కు": "సంప్రదాన విభక్తి", "కి": "సంప్రదాన విభక్తి", "లో": "స్థాన విభక్తి", "తో": "సహచర్య విభక్తి", "పై": "స్థాన/పై విభక్తి", "గా": "రీతి రూపం"}.get(suffix, suffix))
         elif kind == "derivation":
             roles.append(f"-{suffix} ప్రత్యయ రూపం")
         elif kind.startswith("adjective"):
@@ -165,11 +183,7 @@ def answer(message: str, mode: str) -> str | None:
         return None
     q = re.sub(r"\s+", " ", (message or "").strip())
     if q in {"మేలిమి తెలుగు అంటే ఏమిటి?", "మేలిమి తెలుగు అంటే ఏమిటి"}:
-        return (
-            "మేలిమి తెలుగు అనేది తెలుగు ఆధారిత వేఱైన నుడి రూపం. ఇందులో కుదిరిన మేలిమి మాటలు, "
-            "పదనిర్మాణ నియమాలు, పదార్థభేదాలు, వాడుకరీతులు ఉంటాయి. సాధారణ తెలుగు వ్యాకరణ నిర్మాణం "
-            "మేలిమి నియమాలతో పాటు కొనసాగుతుంది."
-        )
+        return "మేలిమి తెలుగు అనేది తెలుగు ఆధారిత వేఱైన నుడి రూపం. ఇందులో కుదిరిన మేలిమి మాటలు, పదనిర్మాణ నియమాలు, పదార్థభేదాలు, వాడుకరీతులు ఉంటాయి. సాధారణ తెలుగు వ్యాకరణ నిర్మాణం మేలిమి నియమాలతో పాటు కొనసాగుతుంది."
 
     word = _extract_lookup_word(q)
     if word:
@@ -184,6 +198,12 @@ def answer(message: str, mode: str) -> str | None:
         if inverse:
             return f"{word} అంటే {inverse}."
         return None
+
+    # Short English lexical requests such as "hateful words" are lookup
+    # requests, not invitations to invent a Telugu translation.
+    english_target = _lookup_english_authoritative(q)
+    if english_target:
+        return english_target
 
     return _lookup_content(q)
 
