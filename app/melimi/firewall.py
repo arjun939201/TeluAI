@@ -5,7 +5,6 @@ from functools import lru_cache
 
 from app.melimi.index import build_index
 from app.melimi.root_morphology import (
-    apply_operation,
     load_root_dictionary,
     reduce_to_root,
     reapply_operations,
@@ -85,22 +84,19 @@ def _match_root(token, forbidden, adjective_capable=None):
     if not token:
         return None
 
-    # The source lexicon itself is the root dictionary for this firewall.
-    # Analyze the source surface first, then regenerate the mapped target with
-    # the same grammatical operation. This is what turns, for example,
-    # cinema's source -ను into the target AM-noun -ాన్ని.
     form = reduce_to_root(token, forbidden)
     if form.root in forbidden:
         melimi_root = forbidden[form.root]
+        capable = (form.root, melimi_root) in (adjective_capable or set())
 
-        # Corpus-supported invariant adjectives are lexical target forms, not
-        # mechanically inflected -మైన forms.
-        if (
-            form.kinds == ("adjective",)
-            and (form.root, melimi_root) in (adjective_capable or set())
-            and is_non_am_ending_melimi(melimi_root)
-        ):
-            return form.root, "", melimi_root
+        # Invariant Melimi adjectives are lexical target forms.  A source
+        # -మైన form maps directly to the invariant target, while a source
+        # -గా predicate preserves the predicate operation on that target.
+        if capable and is_non_am_ending_melimi(melimi_root):
+            if form.kinds == ("adjective",):
+                return form.root, "", melimi_root
+            if form.kinds == ("adjective_predicate",):
+                return form.root, "గా", reapply_operations(melimi_root, form)
 
         return (
             form.root,
@@ -108,8 +104,6 @@ def _match_root(token, forbidden, adjective_capable=None):
             reapply_operations(melimi_root, form),
         )
 
-    # Keep the direct lexical fallback for exact entries that are not exposed
-    # through the morphology dictionary.
     if token in forbidden:
         return token, "", forbidden[token]
 
@@ -129,14 +123,12 @@ def lexical_violations(text):
         if key in seen:
             continue
         seen.add(key)
-        found.append(
-            {
-                "source": token,
-                "preferred": melimi,
-                "root": root,
-                "suffix": suffix,
-            }
-        )
+        found.append({
+            "source": token,
+            "preferred": melimi,
+            "root": root,
+            "suffix": suffix,
+        })
     return found
 
 
