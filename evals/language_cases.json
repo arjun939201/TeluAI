@@ -1,0 +1,14 @@
+[
+  {"id":"greeting-01","text":"enti","expected_intent":"what_question"},
+  {"id":"greeting-02","text":"haa","expected_intent":"acknowledgement"},
+  {"id":"agreement-01","text":"sare","expected_intent":"agreement"},
+  {"id":"continue-01","text":"cheppu","expected_intent":"continue_current_topic"},
+  {"id":"negative-01","text":"ఏంలేదు","expected_intent":"nothing_or_negative"},
+  {"id":"question-why-01","text":"ఎందుకు ఇలా జరిగింది?","expected_intent":"why_question"},
+  {"id":"question-how-01","text":"ఎలా చేయాలి?","expected_intent":"how_question"},
+  {"id":"question-where-01","text":"ఎక్కడ ఉంది?","expected_intent":"where_question"},
+  {"id":"roman-01","text":"naaku telugu telusu","expected_language":"roman_telugu"},
+  {"id":"mixed-01","text":"నాకు Python telusu","expected_language":"mixed"},
+  {"id":"english-01","text":"How does FastAPI work?","expected_language":"english"},
+  {"id":"melimi-01","text":"మేలిమి తెలుగు పదం చెప్పు","expected_mode":"melimi"}
+]
