@@ -223,9 +223,7 @@ def _trim(value,limit):
 def build_prompt(mode="auto",conversation="",linguistics="",memory="",knowledge="",grammar="",plan="",melimi_engine="",language="english"):
     pieces=[language_constitution(),MELIMI_SYSTEM] if mode=="melimi" else [GENERAL_SYSTEM]
     if mode=="melimi":
-        # The project reference is a fixed linguistic specification. Runtime
-        # Language Space evidence still outranks it when the two conflict.
-        pieces.append("INTERNAL MELIMI PROJECT REFERENCE — USE AS LANGUAGE EVIDENCE, NOT AS A RESPONSE TEMPLATE:\n"+_trim(MELIMI_REFERENCE,12000))
+        pieces.append("INTERNAL MELIMI PROJECT REFERENCE — USE AS LANGUAGE EVIDENCE, NOT AS A RESPONSE TEMPLATE:\n"+_trim(MELIMI_REFERENCE,20000))
     if mode=="melimi" and linguistics:
         pieces.append("INTERNAL LINGUISTIC HINTS — NEVER REPEAT OR EXPLAIN THESE UNLESS THE USER EXPLICITLY REQUESTS LINGUISTIC ANALYSIS:\n"+_trim(linguistics,1500))
     if mode=="melimi":
