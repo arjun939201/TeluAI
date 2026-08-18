@@ -121,6 +121,8 @@ free-standing word substitutions. Their meaning depends on the documented
 base and formation rule.
 
 DOCUMENTED MELIMI EXAMPLES
+- ముప్పుకాను = dangerous / ప్రమాదకరం; this is a documented Melimi lexical
+  example and must not be replaced by a guessed synonym.
 - హాళికాను is a documented invariant Melimi adjective-capable form; preserve
   its established lexical meaning rather than manufacturing a new adjective
   suffix form.
