@@ -28,8 +28,7 @@ VERB_SUFFIXES = tuple(sorted([
 ], key=len, reverse=True))
 
 # Productive passive/participial endings that can occur after a learned
-# lexical family.  These are deliberately kept separate from ordinary case
-# suffixes so a lexical mapping is never reduced as a random string suffix.
+# lexical family. These are kept separate from ordinary case suffixes.
 DERIVED_VOICE_SUFFIXES = tuple(sorted([
     "బడిన", "బడింది", "బడే", "బడుతుంది", "బడుతున్న", "బడుతూ",
 ], key=len, reverse=True))
@@ -86,9 +85,6 @@ def _verb_candidate(surface, roots):
             if candidate in roots:
                 return candidate, suffix, "verb"
 
-    # A registered form such as సూచించడం has the lexical family prefix సూచీ
-    # before the productive -ంచడం ending. Finite forms such as సూచిస్తుంది
-    # preserve that prefix, so resolve them to the same MASTER entry.
     for registered in roots:
         if registered.endswith("ంచడం"):
             family_prefix = registered[:-4]
@@ -104,15 +100,13 @@ def _verb_candidate(surface, roots):
 def _derived_voice_candidate(surface, roots):
     """Resolve passive/participial forms through a mapped nominal family.
 
-    Example: a user may register ``నిర్వచనం = నిర్వల్కు`` and then use
-    ``నిర్వచించబడిన``.  ``నిర్వచనం`` is the lexical root while
-    ``నిర్వచించు`` is its productive verbal family; the ``బడిన`` operation
-    must therefore be reapplied to the mapped root as
-    ``నిర్వల్కు + బడిన`` rather than being left untranslated or guessed.
+    A mapping such as ``నిర్వచనం = నిర్వల్కు`` must propagate to the related
+    form ``నిర్వచించబడిన`` as ``నిర్వల్కబడిన``. The source is reduced to its
+    lexical nominal family, then the passive/participial operation is applied
+    to the mapped Melimi root.
 
     This is intentionally conservative: only the recognised ``-చనం`` →
-    ``-చించు`` family relation is used here. Unknown families remain
-    unchanged instead of being invented.
+    ``-చించు`` family relation is used. Unknown families remain unchanged.
     """
     for suffix in DERIVED_VOICE_SUFFIXES:
         if not surface.endswith(suffix) or len(surface) <= len(suffix) + 2:
@@ -213,13 +207,12 @@ def apply_operation(root, kind, suffix):
         return root + suffix
 
     if kind == "derived_voice":
-        return root + suffix
+        # Melimi lexical roots ending in -ు take the passive participial
+        # operation without retaining that terminal vowel:
+        # నిర్వల్కు + బడిన → నిర్వల్కబడిన.
+        return root[:-1] + suffix if root.endswith("ు") else root + suffix
 
     if kind == "adjective":
-        # Productive -మైన is an operation on an -ం source form. The lexical
-        # dictionary remains root-only: స్థాపితం → నెలగొల్పిదం, then
-        # స్థాపితమైన → నెలగొల్పిదమైన. Never store the derived surface as a
-        # separate lexical entry.
         if suffix == "మైన":
             return root[:-1] + "మైన" if root.endswith("ం") else root + "మైన"
         if suffix == "ా":
