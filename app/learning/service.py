@@ -61,12 +61,9 @@ def review_learning_candidate(candidate_id: int, approve: bool, reviewer_note: s
     if kind in {"CONTENT", "LANGUAGE_PACKAGE"}:
         result = review_content_candidate(candidate_id, approve, reviewer_note)
     else:
-        result = review_root_candidate(candidate_id, approve, reviewer_note)
+        result = review_root_candidate(candidate_id, approve, reviewer_note, reviewer_id)
 
     if result is None:
         return None
 
-    # The underlying stores currently keep reviewer details in their payload
-    # for compatibility. This service also preserves the review actor in the
-    # audit layer at the API boundary.
     return result
