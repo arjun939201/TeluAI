@@ -10,7 +10,11 @@ def test_explicit_word_command_is_master_and_normal_mapping_is_ignored():
         assert guest.status_code == 200, guest.text
 
         normal = client.post("/chat", json={"message": "ద్వేషస్పదం = కంటుపాదు", "mode": "melimi"})
-        assert normal.status_code in {200, 502}, normal.text
+        # A normal mapping is not a language command. In CI no Groq token is
+        # configured, so the request may legitimately fail with the provider
+        # configuration status; the important invariant is that it must not
+        # silently promote the mapping into MASTER language data.
+        assert normal.status_code in {200, 502, 503}, normal.text
         with db.SessionLocal() as session:
             assert session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == "ద్వేషస్పదం")) is None
 
