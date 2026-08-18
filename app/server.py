@@ -11,3 +11,8 @@ from app.chat.middleware import ChatOverrideMiddleware
 # existing /chat, /chat/stream, regenerate and message-edit behavior used by
 # the original frontend.
 app.add_middleware(ChatOverrideMiddleware)
+
+# Activate the separate Melimi Telugu Lab workspace. It wraps the chat layer
+# so Lab requests receive Melimi context and Lab conversations remain isolated
+# from Main Chat conversations.
+from app import lab_server  # noqa: E402,F401
