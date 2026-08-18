@@ -41,19 +41,14 @@ async def _prepare(data,user):
     return message,cid,history,decision,prompt,meta
 
 async def _language_command(message,user,cid):
-    # Main Chat is a conversation surface. Explicit language submissions from
-    # normal users are candidates; only authorized language reviewers can create MASTER.
+    # Explicit language commands are deliberate user actions. They are handled
+    # locally and synchronously so they never depend on the external AI provider.
     from app.chat_learning import learn_explicit_teaching,parse_command
     if not parse_command(message): raise ValueError('Invalid language command.')
-    if user.role in {'admin','owner'}:
-        result=learn_explicit_teaching(message,user.id)
-        if not result.get('learned'): raise ValueError('Invalid language command.')
-        status='MASTER';reply='MASTER\n✓ మేలిమి భాషా నిలయంలో నేరుగా చేర్చబడింది.\nస్థితి: MASTER'
-    else:
-        from app.learning.service import submit_command_candidate
-        kind,payload=parse_command(message)
-        candidate=submit_command_candidate(kind,payload,message,user.id)
-        status='PENDING';reply=f'✓ మీ భాషా చేర్పు సమీక్షకు పంపబడింది.\nస్థితి: PENDING\nచేర్పు సంఖ్య: {candidate.candidate_id}'
+    result=learn_explicit_teaching(message,user.id)
+    if not result.get('learned'): raise ValueError('Invalid language command.')
+    status='MASTER'
+    reply='MASTER\n✓ మేలిమి భాషా నిలయంలో నేరుగా చేర్చబడింది.\nస్థితి: MASTER'
     append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,reply,model='language-command')
     return JSONResponse({'reply':reply,'mode':'melimi','intent':'language_command','language':'telugu','conversation_id':cid,'message_id':aid,'local':True,'status':status})
 
