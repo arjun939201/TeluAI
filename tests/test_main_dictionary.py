@@ -41,6 +41,7 @@ def test_unreviewed_entries_cannot_be_promoted():
         validate_entry({
             "standard_form": "x",
             "melimi_form": "y",
+            "source_page": 1,
             "status": "PENDING",
         })
 
@@ -50,7 +51,16 @@ def test_entries_needing_review_cannot_be_master():
         validate_entry({
             "standard_form": "x",
             "melimi_form": "y",
+            "source_page": 1,
             "confidence": "NEEDS_REVIEW",
+        })
+
+
+def test_page_provenance_is_required():
+    with pytest.raises(ValueError, match="source_page is required"):
+        validate_entry({
+            "standard_form": "x",
+            "melimi_form": "y",
         })
 
 
