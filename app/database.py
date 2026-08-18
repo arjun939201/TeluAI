@@ -61,7 +61,7 @@ class MelimiAffix(Base):
     __tablename__ = "melimi_affixes"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     form: Mapped[str] = mapped_column(String(80), index=True)
-    kind: Mapped[str] = mapped_column(String(30), index=True)  # prefix, noun_suffix, verb_suffix, particle
+    kind: Mapped[str] = mapped_column(String(30), index=True)
     meaning: Mapped[str] = mapped_column(Text, default="")
     applies_to: Mapped[str] = mapped_column(String(80), default="")
     notes: Mapped[str] = mapped_column(Text, default="")
@@ -182,6 +182,8 @@ class LearningCandidate(Base):
     status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewer_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    review_note: Mapped[str] = mapped_column(Text, default="")
 
 class UserMemory(Base):
     __tablename__ = "user_memory"
@@ -220,7 +222,7 @@ class AuditLog(Base):
     details_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 def _read_seed():
     p = ROOT / "data" / "melimi_seed.json"
@@ -382,27 +384,35 @@ def save_usage(user_id,model,input_tokens,output_tokens,status="ok"):
 
 def list_candidates(status="PENDING"):
     with SessionLocal() as db:
-        rows=db.scalars(select(LearningCandidate).where(LearningCandidate.status==status).order_by(LearningCandidate.created_at.desc())).all(); return [{"id":r.id,"user_id":r.user_id,"knowledge_type":r.knowledge_type,"source_text":r.source_text,"payload":json.loads(r.payload_json or "{}"),"status":r.status,"created_at":r.created_at.isoformat()} for r in rows]
+        rows=db.scalars(select(LearningCandidate).where(LearningCandidate.status==status).order_by(LearningCandidate.created_at.desc())).all(); return [{"id":r.id,"user_id":r.user_id,"knowledge_type":r.knowledge_type,"source_text":r.source_text,"payload":json.loads(r.payload_json or "{}"),"status":r.status,"created_at":r.created_at.isoformat(),"reviewed_at":r.reviewed_at.isoformat() if r.reviewed_at else None,"reviewer_user_id":r.reviewer_user_id,"review_note":r.review_note} for r in rows]
 
-def review_candidate(candidate_id,approve,reviewer_note=""):
+def review_candidate(candidate_id,approve,reviewer_note="",reviewer_id=None):
     with SessionLocal() as db:
         row=db.get(LearningCandidate,candidate_id)
         if not row:return None
-        payload=json.loads(row.payload_json or "{}"); payload["reviewer_note"]=reviewer_note; row.status="APPROVED" if approve else "REJECTED"; row.reviewed_at=now(); row.payload_json=json.dumps(payload,ensure_ascii=False)
-        if approve and row.knowledge_type in {"ROOT","VOCABULARY"}:
+        payload=json.loads(row.payload_json or "{}")
+        row.reviewed_at=now(); row.reviewer_user_id=reviewer_id; row.review_note=reviewer_note[:10000]
+        payload["reviewer_note"]=reviewer_note
+        payload["reviewer_user_id"]=reviewer_id
+        if not approve:
+            row.status="REJECTED"; row.payload_json=json.dumps(payload,ensure_ascii=False); db.commit()
+            return {"id":row.id,"status":row.status,"payload":payload}
+        if row.knowledge_type in {"ROOT","VOCABULARY"}:
             source=str(payload.get("source_root") or payload.get("standard_root") or payload.get("word") or "").strip(); target=str(payload.get("melimi_root") or payload.get("melimi_equivalent") or "").strip()
             if source and target:
+                target=target.split("/")[0].strip()
                 existing=db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root==source))
-                if existing: existing.melimi_root=target.split("/")[0].strip(); existing.status="APPROVED"; existing.source="approved_chat_learning"; existing.updated_at=now(); existing.version+=1
-                else: db.add(MelimiRoot(standard_root=source,melimi_root=target.split("/")[0].strip(),meaning=str(payload.get("meaning","")),category=str(payload.get("part_of_speech", "")),status="APPROVED",source="approved_chat_learning"))
+                if existing and existing.source not in {"approved_chat_learning", "direct-language-entry"} and existing.melimi_root != target:
+                    row.status="CONFLICT"; row.payload_json=json.dumps(payload,ensure_ascii=False); db.commit()
+                    return {"id":row.id,"status":"CONFLICT","payload":payload,"existing_melimi":existing.melimi_root}
+                if existing:
+                    existing.melimi_root=target; existing.status="MASTER"; existing.source="approved_chat_learning"; existing.updated_at=now(); existing.version+=1
+                else:
+                    db.add(MelimiRoot(standard_root=source,melimi_root=target,meaning=str(payload.get("meaning","")),category=str(payload.get("part_of_speech", "")),status="MASTER",source="approved_chat_learning"))
+                latest=db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first()
+                db.add(KnowledgeVersion(version=(latest.version if latest else 0)+1,source="learning.approval",checksum=hashlib.sha256(f"{source}\n{target}\n{row.id}".encode()).hexdigest()))
+        row.status="APPROVED"; row.payload_json=json.dumps(payload,ensure_ascii=False)
         db.commit()
-        try:
-            from app.melimi.root_morphology import reload_root_dictionary
-            from app.melimi.registry import reload_registry
-            from app.melimi.index import reload_index
-            from app.melimi.firewall import reload_firewall
-            reload_root_dictionary(); reload_registry(); reload_index(); reload_firewall()
-        except Exception: pass
         return {"id":row.id,"status":row.status,"payload":payload}
 
 def approved_learning():
@@ -418,7 +428,7 @@ def remember_user_memory(user_id,key,value):
 
 def recall_user_memory(user_id,limit=12):
     with SessionLocal() as db:
-        rows=db.scalars(select(UserMemory).where(UserMemory.user_id==user_id).order_by(UserMemory.created_at.desc()).limit(limit)).all(); return [{"key":r.key,"value":r.value} for r in rows]
+        rows=db.scalars(select(UserMemory).where((UserMemory.user_id==user_id)).order_by(UserMemory.created_at.desc()).limit(limit)).all(); return [{"key":r.key,"value":r.value} for r in rows]
 
 def _upsert_language_json(db, seed: dict, source_name: str):
     counts = {"roots": 0, "documents": 0, "affixes": 0, "rules": 0, "examples": 0, "knowledge": 0}
@@ -498,24 +508,20 @@ def ingest_language_package(filename: str, raw: bytes, approved: bool, actor_use
         row=LearningCandidate(user_id=actor_user_id,knowledge_type="LANGUAGE_PACKAGE",source_text=filename,payload_json=json.dumps(payload,ensure_ascii=False),status="PENDING"); db.add(row); db.commit(); db.refresh(row); return {"status":"PENDING","candidate_id":row.id,"files":len(files)}
 
 def language_roots():
-    init_db()
-    with SessionLocal() as db: return {r.standard_root:r.melimi_root for r in db.scalars(select(MelimiRoot).where(MelimiRoot.status!="REJECTED")).all()}
+    with SessionLocal() as db: return {r.standard_root:r.melimi_root for r in db.scalars(select(MelimiRoot).where(MelimiRoot.status=="MASTER")).all()}
 
 def language_documents():
-    init_db()
-    with SessionLocal() as db: return [{"path":r.path,"kind":r.kind,"text":r.text,"entries":json.loads(r.entries_json or "[]")} for r in db.scalars(select(MelimiDocument).where(MelimiDocument.status!="REJECTED")).all()]
+    with SessionLocal() as db: return [{"path":r.path,"kind":r.kind,"text":r.text,"entries":json.loads(r.entries_json or "[]")} for r in db.scalars(select(MelimiDocument).where(MelimiDocument.status=="MASTER")).all()]
 
 def language_rules():
-    init_db()
-    with SessionLocal() as db: return [{"name":r.name,"category":r.category,"rule_text":r.rule_text,"operation":r.operation} for r in db.scalars(select(MelimiRule).where(MelimiRule.status!="REJECTED")).all()]
+    with SessionLocal() as db: return [{"name":r.name,"category":r.category,"rule_text":r.rule_text,"operation":r.operation} for r in db.scalars(select(MelimiRule).where(MelimiRule.status=="MASTER")).all()]
 
 def language_affixes():
-    init_db()
-    with SessionLocal() as db: return [{"form":r.form,"kind":r.kind,"meaning":r.meaning,"applies_to":r.applies_to,"notes":r.notes} for r in db.scalars(select(MelimiAffix).where(MelimiAffix.status!="REJECTED")).all()]
+    with SessionLocal() as db: return [{"form":r.form,"kind":r.kind,"meaning":r.meaning,"applies_to":r.applies_to,"notes":r.notes} for r in db.scalars(select(MelimiAffix).where(MelimiAffix.status=="MASTER")).all()]
 
 def knowledge_version():
     with SessionLocal() as db:
-        row=db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc())).first(); return row.version if row else 1
+        row=db.scalars(select(KnowledgeVersion.version).order_by(KnowledgeVersion.version.desc())).first(); return int(row or 1)
 
 def cache_get(key,mode="melimi"):
     with SessionLocal() as db:
@@ -537,9 +543,9 @@ def register_language_root(standard_root,melimi_root,metadata=None): return _reg
 def _register_language_root_approved(payload):
     with SessionLocal() as db:
         source=payload["standard_root"]; target=payload["melimi_root"]; row=db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root==source))
-        if row: row.melimi_root=target; row.status="APPROVED"; row.source="user_verified"; row.version+=1; row.updated_at=now()
-        else: row=MelimiRoot(standard_root=source,melimi_root=target,meaning=str(payload.get("meaning","")),category=str(payload.get("part_of_speech","")),status="APPROVED",source="user_verified"); db.add(row)
-        db.commit(); db.refresh(row); return row.id
+        if row: row.melimi_root=target; row.status="MASTER"; row.source="user_verified"; row.version+=1; row.updated_at=now()
+        else: row=MelimiRoot(standard_root=source,melimi_root=target,meaning=str(payload.get("meaning","")),category=str(payload.get("part_of_speech","")),status="MASTER",source="user_verified"); db.add(row)
+        latest=db.scalars(select(KnowledgeVersion.version).order_by(KnowledgeVersion.version.desc())).first(); db.add(KnowledgeVersion(version=int(latest or 0)+1,source="user_verified",checksum=hashlib.sha256(f"{source}\n{target}".encode()).hexdigest())); db.commit(); db.refresh(row); return row.id
 
 def get_user_settings(user_id):
     with SessionLocal() as db:
