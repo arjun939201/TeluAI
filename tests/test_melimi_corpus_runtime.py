@@ -31,8 +31,10 @@ def test_common_am_noun_plural_is_regenerated_from_target_root():
     roots = {"విషయం": "ఎడాటం", "పదం": "పలుకు"}
     assert convert_surface("విషయం", roots) == "ఎడాటం"
     assert convert_surface("విషయాలు", roots) == "ఎడాటాలు"
+    assert convert_surface("విషయాలను", roots) == "ఎడాటాలను"
     assert convert_surface("పదం", roots) == "పలుకు"
     assert convert_surface("పదాలు", roots) == "పలుకులు"
+    assert convert_surface("పదాలను", roots) == "పలుకులను"
 
 
 def test_adjectival_and_relational_derivation_is_regenerated():
