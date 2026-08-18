@@ -7,33 +7,31 @@ from functools import lru_cache
 from typing import Dict, Tuple
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
-
 GRAMMATICAL_SUFFIXES = tuple(sorted([
     "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై", "లవల్ల",
     "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల", "మధ్య",
     "లోని", "పైన", "తో", "లో", "లు", "న్ని", "ాన్ని", "ానికి", "ను", "ని",
     "కు", "కి", "గా", "పై", "ల",
 ], key=len, reverse=True))
-
 VERB_SUFFIXES = tuple(sorted([
     "స్తుంది", "స్తున్నారు", "స్తున్నాను", "స్తున్నావు", "స్తున్నాడు", "స్తున్నది",
     "తుంది", "తున్నారు", "తున్నాను", "తున్నావు", "తున్నాడు", "తున్నది",
     "డానికి", "డంలో", "డాన్ని", "డిగా", "డుతూ", "డిన", "డినది", "చడం",
     "చడానికి", "చడంలో", "చడాన్ని", "చుతూ", "చిన", "చింది", "డం",
 ], key=len, reverse=True))
-
 DERIVED_VOICE_SUFFIXES = tuple(sorted([
     "బడిన", "బడింది", "బడే", "బడుతుంది", "బడుతున్న", "బడుతూ",
 ], key=len, reverse=True))
-
 DERIVATIONAL_SUFFIXES = tuple(sorted([
     "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి", "వాను", "వాన్",
     "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము", "ఓరు", "ఆది", "ఓలి", "ఓజ",
     "అంగి", "ఇద", "ద", "అ", "పు",
 ], key=len, reverse=True))
-
 ACCUSATIVE = "ACCUSATIVE"
 DATIVE = "DATIVE"
+INSTRUMENTAL = "INSTRUMENTAL"
+LOCATIVE = "LOCATIVE"
+OBLIQUE = "OBLIQUE"
 
 
 @dataclass(frozen=True)
@@ -69,14 +67,11 @@ def _known_candidate(candidates, roots):
 
 
 def _plural_candidate(surface, roots):
-    # -ాలు can be the plural of an -ా source stem (సినిమా → సినిమాలు)
-    # or the plural realization of an -ం noun (విషయం → విషయాలు).
     if surface.endswith("ాలు"):
         base = surface[:-3]
         candidate = _known_candidate((base, base + "ం"), roots)
         if candidate:
             return candidate, "ాలు", "plural"
-
     if surface.endswith("లు"):
         base = surface[:-2]
         candidate = _known_candidate((base, base + "ం"), roots)
@@ -86,21 +81,27 @@ def _plural_candidate(surface, roots):
 
 
 def _case_candidate(surface, roots):
-    # Plural accusative/dative: -లను / -లకు.  For -ం nouns the source
-    # lemma is recovered by restoring the final -ం; for -ా stems it is not.
-    if surface.endswith("లను"):
-        base = surface[:-3]
+    # Plural case forms.  The lexical plural operation is kept separate from
+    # the abstract case operation so the target root gets its own sandhi.
+    plural_cases = {
+        "లను": ACCUSATIVE,
+        "లని": ACCUSATIVE,
+        "లకు": DATIVE,
+        "లతో": INSTRUMENTAL,
+        "లలో": LOCATIVE,
+        "లపై": LOCATIVE,
+        "లకై": DATIVE,
+        "లవల్ల": OBLIQUE,
+        "ల": OBLIQUE,
+    }
+    for suffix, case_name in sorted(plural_cases.items(), key=lambda item: len(item[0]), reverse=True):
+        if not surface.endswith(suffix):
+            continue
+        base = surface[:-len(suffix)]
         candidate = _known_candidate((base, base + "ం"), roots)
         if candidate:
-            return candidate, (("case", ACCUSATIVE), ("plural", "లు"))
+            return candidate, (("case", case_name), ("plural", "లు"))
 
-    if surface.endswith("లకు"):
-        base = surface[:-3]
-        candidate = _known_candidate((base, base + "ం"), roots)
-        if candidate:
-            return candidate, (("case", DATIVE), ("plural", "లు"))
-
-    # Singular -ం noun accusative/dative: సంతోషాన్ని / సంతోషానికి.
     if surface.endswith("ాన్ని"):
         candidate = surface[:-5] + "ం"
         if candidate in roots:
@@ -111,24 +112,21 @@ def _case_candidate(surface, roots):
         if candidate in roots:
             return candidate, (("case", DATIVE),)
 
-    # Singular -ా stems retain the source stem before -ను/-కు/-కి:
-    # సినిమా → సినిమాను/సినిమాకు.
-    if surface.endswith("ను"):
-        base = surface[:-2]
-        if base in roots:
-            return base, (("case", ACCUSATIVE),)
+    # Singular -ా stems: సినిమా → సినిమాను / సినిమాకు / సినిమాతో / సినిమాలో.
+    singular_cases = {
+        "ను": ACCUSATIVE,
+        "కు": DATIVE,
+        "కి": DATIVE,
+        "తో": INSTRUMENTAL,
+        "లో": LOCATIVE,
+        "పై": LOCATIVE,
+    }
+    for suffix, case_name in sorted(singular_cases.items(), key=lambda item: len(item[0]), reverse=True):
+        if surface.endswith(suffix):
+            base = surface[:-len(suffix)]
+            if base in roots:
+                return base, (("case", case_name),)
 
-    if surface.endswith("కు"):
-        base = surface[:-2]
-        if base in roots:
-            return base, (("case", DATIVE),)
-
-    if surface.endswith("కి"):
-        base = surface[:-2]
-        if base in roots:
-            return base, (("case", DATIVE),)
-
-    # Generic plural accusative for roots such as సమస్య.
     if surface.endswith("న్ని"):
         base = surface[:-3]
         candidate = _known_candidate((base, base + "ం"), roots)
@@ -143,23 +141,16 @@ def _adjectival_candidate(surface, roots):
         candidate = surface[:-3] + "ం"
         if candidate in roots:
             return candidate, "మైన", "adjective"
-
     if surface.endswith("గా"):
         candidate = surface[:-2] + "ం"
         if candidate in roots:
             return candidate, "గా", "adjective_predicate"
-
-    # Corpus-supported non-ం lexical forms can function directly as a noun /
-    # adjective.  This also handles a bare surface realization such as
-    # వ్యాకరణ when its registered lemma is వ్యాకరణం.
     if surface + "ం" in roots:
         return surface + "ం", "BARE_AM", "bare_nominal"
-
     if surface.endswith("ా"):
         candidate = surface[:-1]
         if candidate in roots:
             return candidate, "ా", "adjective_invariant"
-
     if surface.endswith("పు") and surface[:-2] + "ం" in roots:
         return surface[:-2] + "ం", "పు", "relational_adjective"
     return None
@@ -177,7 +168,6 @@ def _verb_candidate(surface, roots):
 
 
 def _derived_voice_candidate(surface, roots):
-    # E.g. నిర్వచించబడిన → నిర్వచనం + బడిన.
     for suffix in DERIVED_VOICE_SUFFIXES:
         if not surface.endswith(suffix):
             continue
@@ -200,12 +190,7 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     case = _case_candidate(surface, roots)
     if case:
         root, ops = case
-        return MorphologicalForm(
-            surface,
-            root,
-            tuple(x[1] for x in ops),
-            tuple(x[0] for x in ops),
-        )
+        return MorphologicalForm(surface, root, tuple(x[1] for x in ops), tuple(x[0] for x in ops))
 
     plural = _plural_candidate(surface, roots)
     if plural:
@@ -253,7 +238,6 @@ def apply_operation(root, kind, suffix):
             if root.endswith("ు"):
                 return root + "ను"
             return root + "ని"
-
         if suffix == DATIVE:
             if root.endswith("లు"):
                 return root + "కు"
@@ -264,31 +248,33 @@ def apply_operation(root, kind, suffix):
             if root.endswith("ు"):
                 return root + "కు"
             return root + "కి"
+        if suffix == INSTRUMENTAL:
+            return root + "తో"
+        if suffix == LOCATIVE:
+            return root + "లో" if not root.endswith("లు") else root + "లో"
+        if suffix == OBLIQUE:
+            if root.endswith("లు"):
+                return root[:-1]
+            if root.endswith("ు"):
+                return root[:-1]
+            return root
 
     if kind == "adjective":
         return root[:-1] + "మైన" if root.endswith("ం") else root + "మైన"
-
     if kind == "adjective_predicate":
         return root + "గా"
-
     if kind == "adjective_invariant":
         return root
-
     if kind == "bare_nominal":
         return root[:-1] if root.endswith("ం") else root
-
     if kind == "relational_adjective":
         return root[:-1] + "పు" if root.endswith("ం") else root + "పు"
-
     if kind == "verb":
         return root[:-1] + suffix if root.endswith("ు") else root + suffix
-
     if kind == "derived_voice":
         return root[:-1] + suffix if root.endswith("ు") else root + suffix
-
     if kind == "derivation":
         return root + suffix
-
     return root + suffix
 
 
