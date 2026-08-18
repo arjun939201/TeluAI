@@ -96,13 +96,14 @@ def validate_entry(raw: dict[str, Any]) -> MainDictionaryEntry:
         raise ValueError("Dictionary forms must be 160 characters or less.")
 
     page = raw.get("source_page")
-    if page is not None:
-        try:
-            page = int(page)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("source_page must be an integer.") from exc
-        if page < 1:
-            raise ValueError("source_page must be positive.")
+    if page is None:
+        raise ValueError("source_page is required for main-dictionary provenance.")
+    try:
+        page = int(page)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("source_page must be an integer.") from exc
+    if page < 1:
+        raise ValueError("source_page must be positive.")
 
     confidence = _text(raw.get("confidence", "SOURCE_CONFIRMED")).upper()
     if confidence not in {"SOURCE_CONFIRMED", "HIGH", "MEDIUM", "LOW", "NEEDS_REVIEW"}:
