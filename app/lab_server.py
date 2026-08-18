@@ -9,6 +9,7 @@ from app.database import Conversation, Message, SessionLocal, create_conversatio
 from sqlalchemy import select
 
 LAB_PREFIX = "[Melimi Lab] "
+ASSET_VERSION = "20260818-2"
 
 
 def _headers(scope):
@@ -50,16 +51,16 @@ class LabWorkspaceMiddleware:
         if path == "/melimi-lab" and method == "GET":
             target = Path(__file__).resolve().parents[1] / "static" / "melimi-lab.html"
             html = target.read_text(encoding="utf-8")
-            injection = '<script defer src="/static/js/melimi-lab-workspace.js?v=1"></script>'
+            injection = f'<script defer src="/static/js/melimi-lab-workspace.js?v={ASSET_VERSION}"></script>'
             html = html.replace('</body>', injection + '</body>')
-            await HTMLResponse(html)(scope, receive, send)
+            await HTMLResponse(html, headers={"Cache-Control": "no-store"})(scope, receive, send)
             return
         if path == "/" and method == "GET":
             target = Path(__file__).resolve().parents[1] / "static" / "index.html"
             html = target.read_text(encoding="utf-8")
-            injection = '<script defer src="/static/js/main-workspace.js?v=1"></script>'
+            injection = f'<script defer src="/static/js/main-workspace.js?v={ASSET_VERSION}"></script>'
             html = html.replace('</body>', injection + '</body>')
-            await HTMLResponse(html)(scope, receive, send)
+            await HTMLResponse(html, headers={"Cache-Control": "no-store"})(scope, receive, send)
             return
 
         if headers.get("x-teluai-workspace") != "lab":
