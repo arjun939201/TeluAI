@@ -1,0 +1,57 @@
+name: Fix Melimi Lab Route
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add missing Melimi Lab route
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("app/main.py")
+          text = path.read_text(encoding="utf-8")
+          route = '''@app.get("/melimi-lab")\ndef melimi_lab_page():\n    target = os.path.join(STATIC_DIR, "melimi-lab.html")\n    if not os.path.exists(target):\n        raise HTTPException(404, "Melimi Lab page not found.")\n    return FileResponse(target)\n\n\n'''
+
+          if 'def melimi_lab_page()' not in text:
+              marker = '@app.get("/admin")\n'
+              if marker not in text:
+                  raise SystemExit("Could not find stable insertion point in app/main.py")
+              text = text.replace(marker, route + marker, 1)
+              path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Validate Python
+        run: python -m py_compile app/main.py
+
+      - name: Verify route
+        run: |
+          python - <<'PY'
+          from app.main import app
+          assert any(route.path == "/melimi-lab" for route in app.routes)
+          print("/melimi-lab route registered")
+          PY
+
+      - name: Commit and push fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/main.py
+          git rm -f .github/workflows/fix-melimi-lab-route.yml
+          if git diff --cached --quiet; then
+            echo "No changes required"
+            exit 0
+          fi
+          git commit -m "fix: serve Melimi Telugu Lab page"
+          git push origin HEAD:main
