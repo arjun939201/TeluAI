@@ -64,12 +64,31 @@ def _evidence_pair(item: Mapping[str, str], evidence_id: str = "") -> RuleEviden
     )
 
 
+def _operation_signature(operations: tuple[tuple[str, str], ...]) -> tuple[tuple[str, str], ...]:
+    """Normalize surface suffix variants into grammatical signatures.
+
+    Plural ``లు`` and ``ాలు`` are both NUMBER=plural. Likewise, case
+    candidates are grouped by grammatical case rather than copied spelling.
+    This is the critical distinction between learning a rule and memorizing a
+    particular suffix string.
+    """
+    normalized: list[tuple[str, str]] = []
+    for kind, value in operations:
+        if kind == "plural":
+            normalized.append(("plural", "NUMBER"))
+        elif kind == "case":
+            normalized.append(("case", value))
+        else:
+            normalized.append((kind, kind.upper()))
+    return tuple(normalized)
+
+
 def extract_rule_candidates(examples: Iterable[Mapping[str, str]]) -> list[GeneralizationCandidate]:
     """Find repeated morphological operations without inventing a rule.
 
     A candidate requires at least two independent examples with the same
-    operation signature. Confidence is capped below authority and provenance
-    is retained through the evidence ids.
+    normalized grammatical signature. Confidence is capped below authority
+    and provenance is retained through the evidence ids.
     """
 
     evidence: list[RuleEvidence] = []
@@ -80,13 +99,13 @@ def extract_rule_candidates(examples: Iterable[Mapping[str, str]]) -> list[Gener
 
     groups: dict[tuple[tuple[str, str], ...], list[RuleEvidence]] = {}
     for item in evidence:
-        groups.setdefault(item.operations, []).append(item)
+        groups.setdefault(_operation_signature(item.operations), []).append(item)
 
     candidates: list[GeneralizationCandidate] = []
-    for operations, items in groups.items():
+    for signature, items in groups.items():
         if len(items) < 2:
             continue
-        kinds = {kind for kind, _ in operations}
+        kinds = {kind for kind, _ in signature}
         if len(kinds) != 1:
             continue
         operation = next(iter(kinds))
@@ -94,7 +113,7 @@ def extract_rule_candidates(examples: Iterable[Mapping[str, str]]) -> list[Gener
         if operation == "plural":
             feature_constraints.append(("number", "plural"))
         elif operation == "case":
-            for _, value in operations:
+            for _, value in signature:
                 feature_constraints.append(("case", value))
         elif operation in {"adjective", "adjective_predicate", "adjective_invariant", "relational_adjective"}:
             feature_constraints.append(("category", "adjective"))
