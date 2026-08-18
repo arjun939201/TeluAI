@@ -27,6 +27,13 @@ VERB_SUFFIXES = tuple(sorted([
     "చడం", "చడానికి", "చడంలో", "చడాన్ని", "చుతూ", "చిన", "చింది",
 ], key=len, reverse=True))
 
+# Productive passive/participial endings that can occur after a learned
+# lexical family.  These are deliberately kept separate from ordinary case
+# suffixes so a lexical mapping is never reduced as a random string suffix.
+DERIVED_VOICE_SUFFIXES = tuple(sorted([
+    "బడిన", "బడింది", "బడే", "బడుతుంది", "బడుతున్న", "బడుతూ",
+], key=len, reverse=True))
+
 DERIVATIONAL_SUFFIXES = tuple(sorted([
     "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి",
     "వాను", "వాన్", "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము",
@@ -94,6 +101,31 @@ def _verb_candidate(surface, roots):
     return None
 
 
+def _derived_voice_candidate(surface, roots):
+    """Resolve passive/participial forms through a mapped nominal family.
+
+    Example: a user may register ``నిర్వచనం = నిర్వల్కు`` and then use
+    ``నిర్వచించబడిన``.  ``నిర్వచనం`` is the lexical root while
+    ``నిర్వచించు`` is its productive verbal family; the ``బడిన`` operation
+    must therefore be reapplied to the mapped root as
+    ``నిర్వల్కు + బడిన`` rather than being left untranslated or guessed.
+
+    This is intentionally conservative: only the recognised ``-చనం`` →
+    ``-చించు`` family relation is used here. Unknown families remain
+    unchanged instead of being invented.
+    """
+    for suffix in DERIVED_VOICE_SUFFIXES:
+        if not surface.endswith(suffix) or len(surface) <= len(suffix) + 2:
+            continue
+        verbal_stem = surface[:-len(suffix)]
+        if not verbal_stem.endswith("చు"):
+            continue
+        nominal_candidate = verbal_stem[:-2] + "నం"
+        if nominal_candidate in roots:
+            return nominal_candidate, suffix, "derived_voice"
+    return None
+
+
 def _case_candidate(surface):
     if surface.endswith("ాన్ని") and len(surface) > len("ాన్ని") + 1:
         return surface[:-len("ాన్ని")] + "ం", ACCUSATIVE
@@ -140,6 +172,11 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     if adj:
         return MorphologicalForm(surface, adj[0], (adj[1],), (adj[2],))
 
+    derived_voice = _derived_voice_candidate(surface, roots)
+    if derived_voice:
+        root, operation, kind = derived_voice
+        return MorphologicalForm(surface, root, (operation,), (kind,))
+
     def search(current, operations, depth):
         if current in roots:
             return current, operations
@@ -173,6 +210,9 @@ def apply_operation(root, kind, suffix):
             return root
         if root.endswith("ు"):
             return root[:-1] + suffix
+        return root + suffix
+
+    if kind == "derived_voice":
         return root + suffix
 
     if kind == "adjective":
