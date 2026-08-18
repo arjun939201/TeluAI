@@ -4,12 +4,14 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, Tuple
+
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]+")
 GRAMMATICAL_SUFFIXES = tuple(sorted(["ాలతో","ాలలో","ాలకు","ాలను","ాలని","ాలపై","ాలకై","ాలవల్ల","లతో","లలో","లకు","లను","లని","లపై","లకై","లవల్ల","నుంచి","నుండి","యొక్క","తోటి","గురించి","కోసం","వల్ల","మధ్య","లోని","పైన","తో","లో","లు","న్ని","ాన్ని","ానికి","ను","ని","కు","కి","గా","పై","ల"], key=len, reverse=True))
 VERB_SUFFIXES = tuple(sorted(["స్తుంది","స్తున్నారు","స్తున్నాను","స్తున్నావు","స్తున్నాడు","స్తున్నది","తుంది","తున్నారు","తున్నాను","తున్నావు","తున్నాడు","తున్నది","డానికి","డంలో","డాన్ని","డిగా","డుతూ","డిన","డినది","చడం","చడానికి","చడంలో","చడాన్ని","చుతూ","చిన","చింది","డం"], key=len, reverse=True))
 DERIVED_VOICE_SUFFIXES = tuple(sorted(["బడిన","బడింది","బడే","బడుతుంది","బడుతున్న","బడుతూ"], key=len, reverse=True))
 DERIVATIONAL_SUFFIXES = tuple(sorted(["అలవి","అల్వి","అరిది","అర్ది","కాను","కాన్","మారి","వాను","వాన్","పాదు","పఱ","కము","ఇకము","మాలు","గము","ఓరు","ఆది","ఓలి","ఓజ","అంగి","ఇద","ద","అ","పు"], key=len, reverse=True))
 ACCUSATIVE="ACCUSATIVE"; DATIVE="DATIVE"; INSTRUMENTAL="INSTRUMENTAL"; LOCATIVE="LOCATIVE"; OBLIQUE="OBLIQUE"
+
 @dataclass(frozen=True)
 class MorphologicalForm:
     surface: str; root: str; suffixes: Tuple[str,...]=(); kinds: Tuple[str,...]=()
@@ -17,24 +19,38 @@ class MorphologicalForm:
     def operations(self): return tuple(zip(self.kinds,self.suffixes))
 
 @lru_cache(maxsize=16)
-def load_root_dictionary(version: int | None = None) -> Dict[str,str]:
+def _load_root_dictionary_for_version(version: int) -> Dict[str,str]:
     try:
-        from app.melimi.db_subject import language_roots, language_space_version
-        if version is None: version = language_space_version()
+        from app.melimi.db_subject import language_roots
         return language_roots()
     except Exception: return {}
 
-def reload_root_dictionary(): load_root_dictionary.cache_clear()
+def load_root_dictionary(version: int | None = None) -> Dict[str,str]:
+    """Return the MASTER root dictionary for the current shared language version."""
+    if version is None:
+        from app.melimi.db_subject import language_space_version
+        version = language_space_version()
+    return _load_root_dictionary_for_version(int(version))
+
+# Preserve the cache-management API used by existing callers while keeping the
+# actual cache key tied to the database-published language version.
+load_root_dictionary.cache_clear = _load_root_dictionary_for_version.cache_clear  # type: ignore[attr-defined]
+
+def reload_root_dictionary():
+    _load_root_dictionary_for_version.cache_clear()
+
 def _known_candidate(candidates,roots):
     for candidate in candidates:
         if candidate in roots:return candidate
     return None
+
 def _plural_candidate(surface,roots):
     for suffix in ("ాలు","లు"):
         if surface.endswith(suffix):
             base=surface[:-len(suffix)]; candidate=_known_candidate((base,base+"ం"),roots)
             if candidate:return candidate,suffix,"plural"
     return None
+
 def _case_candidate(surface,roots):
     plural_cases={"ాలను":ACCUSATIVE,"ాలని":ACCUSATIVE,"ాలకు":DATIVE,"ాలకై":DATIVE,"ాలతో":INSTRUMENTAL,"ాలలో":LOCATIVE,"ాలపై":LOCATIVE,"ాలవల్ల":OBLIQUE,"లను":ACCUSATIVE,"లని":ACCUSATIVE,"లకు":DATIVE,"లకై":DATIVE,"లతో":INSTRUMENTAL,"లలో":LOCATIVE,"లపై":LOCATIVE,"లవల్ల":OBLIQUE,"ల":OBLIQUE}
     for suffix,case_name in sorted(plural_cases.items(),key=lambda item:len(item[0]),reverse=True):
@@ -43,7 +59,7 @@ def _case_candidate(surface,roots):
             if candidate:return candidate,(("case",case_name),("plural","లు"))
     for surface_suffix,case_name in (("ాన్ని",ACCUSATIVE),("ానికి",DATIVE)):
         if surface.endswith(surface_suffix):
-            candidate=surface[:-len(surface_suffix)+0]+"ం"
+            candidate=surface[:-len(surface_suffix)]+"ం"
             if candidate in roots:return candidate,(("case",case_name),)
     singular_cases={"ను":ACCUSATIVE,"కు":DATIVE,"కి":DATIVE,"తో":INSTRUMENTAL,"లో":LOCATIVE,"పై":LOCATIVE}
     for suffix,case_name in sorted(singular_cases.items(),key=lambda item:len(item[0]),reverse=True):
@@ -54,6 +70,7 @@ def _case_candidate(surface,roots):
         base=surface[:-3]; candidate=_known_candidate((base,base+"ం"),roots)
         if candidate:return candidate,(("case",ACCUSATIVE),)
     return None
+
 def _adjectival_candidate(surface,roots):
     if surface.endswith("మైన"):
         candidate=surface[:-3]+"ం"
@@ -70,6 +87,7 @@ def _adjectival_candidate(surface,roots):
         if candidate in roots:return candidate,"ా","adjective_invariant"
     if surface.endswith("పు") and surface[:-2]+"ం" in roots:return surface[:-2]+"ం","పు","relational_adjective"
     return None
+
 def _verb_candidate(surface,roots):
     for suffix in VERB_SUFFIXES:
         if surface.endswith(suffix):
@@ -77,6 +95,7 @@ def _verb_candidate(surface,roots):
             for candidate in (stem,stem+"ు",stem+"చు"):
                 if candidate in roots:return candidate,suffix,"verb"
     return None
+
 def _derived_voice_candidate(surface,roots):
     for suffix in DERIVED_VOICE_SUFFIXES:
         if surface.endswith(suffix):
@@ -85,6 +104,7 @@ def _derived_voice_candidate(surface,roots):
                 candidate=stem[:-3]+"నం"
                 if candidate in roots:return candidate,suffix,"derived_voice"
     return None
+
 def reduce_to_root(word,roots=None):
     surface=(word or "").strip(); roots=roots or load_root_dictionary()
     if not surface:return MorphologicalForm("","")
@@ -100,6 +120,7 @@ def reduce_to_root(word,roots=None):
             candidate=surface[:-len(suffix)]
             if candidate in roots:return MorphologicalForm(surface,candidate,(suffix,), ("derivation",))
     return MorphologicalForm(surface,surface)
+
 def apply_operation(root,kind,suffix):
     if kind=="plural": return root[:-1]+"ాలు" if root.endswith("ం") else root+"లు"
     if kind=="case":
@@ -130,12 +151,15 @@ def apply_operation(root,kind,suffix):
     if kind=="derived_voice":return root[:-1]+suffix if root.endswith("ు") else root+suffix
     if kind=="derivation":return root+suffix
     return root+suffix
+
 def reapply_operations(melimi_root,form):
     result=melimi_root
     for kind,suffix in reversed(form.operations):result=apply_operation(result,kind,suffix)
     return result
+
 def convert_surface(word,roots=None):
     roots=roots or load_root_dictionary(); form=reduce_to_root(word,roots)
     return reapply_operations(roots[form.root],form) if form.root in roots else word
+
 def convert_text(text,roots=None):
     roots=roots or load_root_dictionary(); return TELUGU_RE.sub(lambda m:convert_surface(m.group(0),roots),text or "")
