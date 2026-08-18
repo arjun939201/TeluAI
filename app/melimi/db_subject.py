@@ -7,7 +7,18 @@ knowledge becomes retrievable immediately without a separate file corpus.
 from __future__ import annotations
 import json
 from sqlalchemy import select
-from app.database import SessionLocal, MelimiRoot, MelimiDocument, MelimiRule, MelimiAffix, KnowledgeEntry
+from app.database import SessionLocal, MelimiRoot, MelimiDocument, MelimiRule, MelimiAffix, KnowledgeEntry, KnowledgeVersion
+
+
+def language_space_version() -> int:
+    """Return the shared runtime version used to invalidate process-local caches.
+
+    Every web worker/process reads this from the same PostgreSQL database. A
+    worker therefore never has to be manually restarted or refreshed after a
+    /word update made by another worker.
+    """
+    with SessionLocal() as db:
+        return int(db.scalar(select(KnowledgeVersion.version).order_by(KnowledgeVersion.version.desc()).limit(1)) or 0)
 
 
 def language_roots() -> dict[str, str]:
@@ -27,9 +38,6 @@ def language_documents() -> list[dict]:
                 entries = []
             result.append({"path": row.path, "kind": row.kind, "text": row.text, "entries": entries})
 
-        # KnowledgeEntry is the direct-chat/content store. Expose it through
-        # the same read-only subject interface so retrieval and the morphology
-        # engines see newly entered knowledge without a separate index source.
         knowledge_rows = db.scalars(
             select(KnowledgeEntry)
             .where(KnowledgeEntry.status != "REJECTED")
