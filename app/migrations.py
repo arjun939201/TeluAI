@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 MIGRATIONS = [
     (1, (
@@ -20,6 +20,10 @@ MIGRATIONS = [
 ]
 
 
+def _column_exists(conn, table: str, column: str) -> bool:
+    return any(item["name"] == column for item in inspect(conn).get_columns(table))
+
+
 def _apply_registered_migrations(engine):
     with engine.begin() as conn:
         conn.execute(text("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
@@ -28,6 +32,12 @@ def _apply_registered_migrations(engine):
             if version in applied:
                 continue
             for statement in statements:
+                if version == 2 and statement.startswith("ALTER TABLE learning_candidates ADD COLUMN reviewer_user_id"):
+                    if _column_exists(conn, "learning_candidates", "reviewer_user_id"):
+                        continue
+                if version == 2 and statement.startswith("ALTER TABLE learning_candidates ADD COLUMN review_note"):
+                    if _column_exists(conn, "learning_candidates", "review_note"):
+                        continue
                 conn.execute(text(statement))
             conn.execute(text("INSERT INTO schema_migrations(version) VALUES (:version)"), {"version": version})
 
