@@ -17,14 +17,30 @@ class MorphologicalForm:
     def operations(self): return tuple(zip(self.kinds,self.suffixes))
 
 @lru_cache(maxsize=16)
-def load_root_dictionary(version: int | None = None) -> Dict[str,str]:
+def _load_root_dictionary(version: int) -> Dict[str,str]:
     try:
-        from app.melimi.db_subject import language_roots, language_space_version
-        if version is None: version = language_space_version()
+        from app.melimi.db_subject import language_roots
         return language_roots()
     except Exception: return {}
 
-def reload_root_dictionary(): load_root_dictionary.cache_clear()
+def load_root_dictionary(version: int | None = None) -> Dict[str,str]:
+    """Load roots keyed by the current shared language-space version.
+
+    The public function deliberately resolves the database version *before*
+    entering the cached layer. Caching ``None`` as the key would otherwise keep
+    the first process-local snapshot forever and make a committed MASTER root
+    invisible until a manual cache clear/restart.
+    """
+    try:
+        from app.melimi.db_subject import language_space_version
+        resolved_version = int(version) if version is not None else language_space_version()
+    except Exception:
+        resolved_version = int(version or 0)
+    return _load_root_dictionary(resolved_version)
+
+def reload_root_dictionary():
+    _load_root_dictionary.cache_clear()
+
 def _known_candidate(candidates,roots):
     for candidate in candidates:
         if candidate in roots:return candidate
