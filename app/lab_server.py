@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from fastapi.responses import HTMLResponse, JSONResponse
 from app.server import app
 from app.auth import COOKIE_NAME
 from app.database import Conversation, Message, SessionLocal, create_conversation, user_from_session
 from sqlalchemy import select
-from fastapi.responses import JSONResponse
 
 LAB_PREFIX = "[Melimi Lab] "
 
@@ -42,12 +43,21 @@ class LabWorkspaceMiddleware:
         if scope.get("type") != "http":
             await app(scope, receive, send)
             return
+        path = scope.get("path", "")
+        method = scope.get("method", "").upper()
         headers = _headers(scope)
+
+        if path == "/melimi-lab" and method == "GET":
+            target = Path(__file__).resolve().parents[1] / "static" / "melimi-lab.html"
+            html = target.read_text(encoding="utf-8")
+            injection = '<script defer src="/static/js/melimi-lab-workspace.js?v=1"></script>'
+            html = html.replace('</body>', injection + '</body>')
+            await HTMLResponse(html)(scope, receive, send)
+            return
+
         if headers.get("x-teluai-workspace") != "lab":
             await app(scope, receive, send)
             return
-        path = scope.get("path", "")
-        method = scope.get("method", "").upper()
         intercepted = ((path in {"/chat", "/chat/stream"} and method == "POST")
                        or (path.startswith("/chat/") and method == "POST")
                        or (path.startswith("/messages/") and method == "PATCH"))
@@ -104,7 +114,4 @@ class LabWorkspaceMiddleware:
         await app(scope, replay, send)
 
 
-# Main Chat remains unchanged. Only requests explicitly marked as Lab enter
-# this workspace middleware, while the existing chat pipeline still supplies
-# the exact same Melimi knowledge, grammar, morphology and lexical base.
 app.add_middleware(LabWorkspaceMiddleware)
