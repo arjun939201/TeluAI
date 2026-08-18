@@ -1,8 +1,8 @@
-"""Generic root-first Melimi morphology backed by Language Space.
+"""Root-first Melimi morphology with corpus-backed derivation.
 
-The dictionary stores a lexical mapping once. Inflected source forms are
-reduced to that same root, then the grammatical operation is reapplied to the
-learned Melimi root.
+A `/word` declaration maps a lemma, never a surface string. This module first
+reduces an inflected/derived Telugu surface form to its lexical root, then
+reapplies the same grammatical operation to the mapped Melimi root.
 """
 from __future__ import annotations
 
@@ -27,8 +27,6 @@ VERB_SUFFIXES = tuple(sorted([
     "చడం", "చడానికి", "చడంలో", "చడాన్ని", "చుతూ", "చిన", "చింది",
 ], key=len, reverse=True))
 
-# Productive passive/participial endings that can occur after a learned
-# lexical family. These are kept separate from ordinary case suffixes.
 DERIVED_VOICE_SUFFIXES = tuple(sorted([
     "బడిన", "బడింది", "బడే", "బడుతుంది", "బడుతున్న", "బడుతూ",
 ], key=len, reverse=True))
@@ -37,6 +35,7 @@ DERIVATIONAL_SUFFIXES = tuple(sorted([
     "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి",
     "వాను", "వాన్", "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము",
     "ఓరు", "ఆది", "ఓలి", "ఓజ", "అంగి", "ఇద", "ద", "అ",
+    "పు",
 ], key=len, reverse=True))
 
 ACCUSATIVE = "ACCUSATIVE"
@@ -74,8 +73,35 @@ def _candidate_strips(surface, suffixes, kind):
             yield surface[:-len(suffix)], suffix, kind
 
 
+def _plural_candidate(surface, roots):
+    """Recognize productive Telugu plural shapes without blind +లు copying.
+
+    The common -ం noun family changes to -ాలు:
+      విషయం → విషయాలు
+      పదం → పదాలు
+
+    Other stems can retain their stem and take -లు:
+      పలుకు → పలుకులు
+
+    Lexical/irregular plurals remain governed by registered roots.
+    """
+    if surface.endswith("ాలు") and len(surface) > 4:
+        candidate = surface[:-3] + "ం"
+        if candidate in roots:
+            return candidate, "ాలు", "plural"
+    if surface.endswith("లు") and len(surface) > 3:
+        candidate = surface[:-2]
+        if candidate in roots:
+            return candidate, "లు", "plural"
+    # Irregular/lexically registered plural root can be discovered by a
+    # reverse lookup only when the database already contains the surface.
+    for root in roots:
+        if roots.get(root) == surface:
+            return root, "LEXICAL_PLURAL", "lexical_plural"
+    return None
+
+
 def _verb_candidate(surface, roots):
-    """Resolve common finite/non-finite forms to a registered verb family."""
     for suffix in VERB_SUFFIXES:
         if not surface.endswith(suffix) or len(surface) <= len(suffix) + 1:
             continue
@@ -98,24 +124,10 @@ def _verb_candidate(surface, roots):
 
 
 def _derived_voice_candidate(surface, roots):
-    """Resolve passive/participial forms through a mapped nominal family.
-
-    A mapping such as ``నిర్వచనం = నిర్వల్కు`` must propagate to the related
-    form ``నిర్వచించబడిన`` as ``నిర్వల్కబడిన``. The source is reduced to its
-    lexical nominal family, then the passive/participial operation is applied
-    to the mapped Melimi root.
-
-    This is intentionally conservative: only the recognised ``-చనం`` →
-    ``-చించు`` family relation is used. Unknown families remain unchanged.
-    """
     for suffix in DERIVED_VOICE_SUFFIXES:
         if not surface.endswith(suffix) or len(surface) <= len(suffix) + 2:
             continue
         verbal_stem = surface[:-len(suffix)]
-
-        # Telugu passive forms such as ``నిర్వచించబడిన`` contain the
-        # conjunctive verb stem ``నిర్వచించ``. Its nominal family is
-        # ``నిర్వచనం``: replace the final ``ించ`` sequence with ``నం``.
         if verbal_stem.endswith("ించ"):
             nominal_candidate = verbal_stem[:-3] + "నం"
             if nominal_candidate in roots:
@@ -123,15 +135,20 @@ def _derived_voice_candidate(surface, roots):
     return None
 
 
-def _case_candidate(surface):
+def _case_candidate(surface, roots):
     if surface.endswith("ాన్ని") and len(surface) > len("ాన్ని") + 1:
-        return surface[:-len("ాన్ని")] + "ం", ACCUSATIVE
+        candidate = surface[:-len("ాన్ని")] + "ం"
+        if candidate in roots:
+            return candidate, "ను", ACCUSATIVE
     if surface.endswith("ానికి") and len(surface) > len("ానికి") + 1:
-        return surface[:-len("ానికి")] + "ం", DATIVE
+        candidate = surface[:-len("ానికి")] + "ం"
+        if candidate in roots:
+            return candidate, "కు", DATIVE
     return None
 
 
 def _adjectival_candidate(surface, roots):
+    # -మైన / -గా are derivational/adverbial realizations of an -ం family.
     if surface.endswith("మైన") and len(surface) > 4:
         candidate = surface[:-3] + "ం"
         if candidate in roots:
@@ -140,10 +157,22 @@ def _adjectival_candidate(surface, roots):
         candidate = surface[:-2] + "ం"
         if candidate in roots:
             return candidate, "గా", "adjective_predicate"
+
+    # The corpus explicitly permits adjective use of relevant non-ం lexical
+    # forms, e.g. భాష → భాషా and mapping to నుడి → నుడి.
     if surface.endswith("ా") and len(surface) > 2:
         candidate = surface[:-1]
         if candidate in roots:
-            return candidate, "ా", "adjective"
+            return candidate, "ా", "adjective_invariant"
+
+    # Bare relational/adjectival surface: వ్యాకరణ is the non-ం realization of
+    # the registered noun root వ్యాకరణం; వ్యాకరణపు is handled below.
+    if surface.endswith("పు") and len(surface) > 3:
+        candidate = surface[:-2]
+        if candidate + "ం" in roots:
+            return candidate + "ం", "పు", "relational_adjective"
+    if surface + "ం" in roots:
+        return surface + "ం", "BARE_AM", "bare_nominal"
     return None
 
 
@@ -155,10 +184,17 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     if surface in roots:
         return MorphologicalForm(surface, surface)
 
-    case = _case_candidate(surface)
-    if case and case[0] in roots:
-        root, operation = case
-        return MorphologicalForm(surface, root, (operation,), ("case",))
+    # Work from the outermost grammatical operation inward. This allows
+    # విషయాలను → విషయం + plural + accusative, rather than treating it as text.
+    case = _case_candidate(surface, roots)
+    if case:
+        root, operation, kind = case
+        return MorphologicalForm(surface, root, (operation,), (kind,))
+
+    plural = _plural_candidate(surface, roots)
+    if plural:
+        root, operation, kind = plural
+        return MorphologicalForm(surface, root, (operation,), (kind,))
 
     verb = _verb_candidate(surface, roots)
     if verb:
@@ -179,6 +215,16 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
             return current, operations
         if depth >= 3:
             return None
+
+        # Plural is tried before generic -లు stripping so -ం nouns resolve to
+        # their lexical root correctly.
+        plural = _plural_candidate(current, roots)
+        if plural:
+            root, suffix, kind = plural
+            found = search(root, operations + [(kind, suffix)], depth + 1)
+            if found:
+                return found
+
         candidates = list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar"))
         candidates += list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation"))
         for root, suffix, kind in candidates:
@@ -210,25 +256,48 @@ def apply_operation(root, kind, suffix):
         return root + suffix
 
     if kind == "derived_voice":
-        # Melimi lexical roots ending in -ు take the passive participial
-        # operation without retaining that terminal vowel:
-        # నిర్వల్కు + బడిన → నిర్వల్కబడిన.
         return root[:-1] + suffix if root.endswith("ు") else root + suffix
+
+    if kind == "plural":
+        if suffix == "ాలు":
+            if root.endswith("ం"):
+                return root[:-1] + "ాలు"
+            return root + "లు"
+        if suffix == "లు":
+            return root + "లు"
+    if kind == "lexical_plural":
+        # This path is only used for an already-registered lexical family.
+        return root + suffix if suffix != "LEXICAL_PLURAL" else root
 
     if kind == "adjective":
         if suffix == "మైన":
             return root[:-1] + "మైన" if root.endswith("ం") else root + "మైన"
-        if suffix == "ా":
-            return root
-
-    if suffix == "గా" and kind == "adjective_predicate":
+    if kind == "adjective_predicate":
         return root + "గా"
+    if kind == "adjective_invariant":
+        # భాషా → భాష maps to the target lemma directly; no synthetic suffix.
+        return root
+    if kind == "bare_nominal":
+        return root[:-1] if root.endswith("ం") else root
+    if kind == "relational_adjective":
+        return root[:-1] + "పు" if root.endswith("ం") else root + "పు"
 
-    if kind == "case":
-        if suffix == ACCUSATIVE:
-            return root[:-1] + "ాన్ని" if root.endswith("ం") else root + "ని"
-        if suffix == DATIVE:
-            return root[:-1] + "ానికి" if root.endswith("ం") else root + "కి"
+    if kind == ACCUSATIVE or suffix == ACCUSATIVE:
+        if root.endswith("లు"):
+            return root + "ను"
+        if root.endswith("ం"):
+            return root[:-1] + "ాన్ని"
+        if root.endswith("ు"):
+            return root + "ను"
+        return root + "ని"
+    if kind == DATIVE or suffix == DATIVE:
+        if root.endswith("లు"):
+            return root + "కు"
+        if root.endswith("ం"):
+            return root[:-1] + "ానికి"
+        if root.endswith("ు"):
+            return root + "కు"
+        return root + "కు"
 
     if root.endswith("ం") and kind == "grammar":
         stem = root[:-1] + "ా"
