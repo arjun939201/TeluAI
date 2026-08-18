@@ -54,6 +54,13 @@ class LabWorkspaceMiddleware:
             html = html.replace('</body>', injection + '</body>')
             await HTMLResponse(html)(scope, receive, send)
             return
+        if path == "/" and method == "GET":
+            target = Path(__file__).resolve().parents[1] / "static" / "index.html"
+            html = target.read_text(encoding="utf-8")
+            injection = '<script defer src="/static/js/main-workspace.js?v=1"></script>'
+            html = html.replace('</body>', injection + '</body>')
+            await HTMLResponse(html)(scope, receive, send)
+            return
 
         if headers.get("x-teluai-workspace") != "lab":
             await app(scope, receive, send)
