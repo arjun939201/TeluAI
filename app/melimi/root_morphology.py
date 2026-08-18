@@ -17,7 +17,7 @@ GRAMMATICAL_SUFFIXES = tuple(sorted([
     "లతో", "లలో", "లకు", "లను", "లని", "లపై", "లకై", "లవల్ల",
     "నుంచి", "నుండి", "యొక్క", "తోటి", "గురించి", "కోసం", "వల్ల",
     "మధ్య", "లోని", "పైన", "తో", "లో", "లు", "ను", "ని", "కు",
-    "కి", "గా", "పై", "ల",
+    "కి", "గా", "పై", "ల", "న్ని", "ాన్ని", "ానికి",
 ], key=len, reverse=True))
 
 VERB_SUFFIXES = tuple(sorted([
@@ -34,8 +34,7 @@ DERIVED_VOICE_SUFFIXES = tuple(sorted([
 DERIVATIONAL_SUFFIXES = tuple(sorted([
     "అలవి", "అల్వి", "అరిది", "అర్ది", "కాను", "కాన్", "మారి",
     "వాను", "వాన్", "పాదు", "పఱ", "కము", "ఇకము", "మాలు", "గము",
-    "ఓరు", "ఆది", "ఓలి", "ఓజ", "అంగి", "ఇద", "ద", "అ",
-    "పు",
+    "ఓరు", "ఆది", "ఓలి", "ఓజ", "అంగి", "ఇద", "ద", "అ", "పు",
 ], key=len, reverse=True))
 
 ACCUSATIVE = "ACCUSATIVE"
@@ -74,27 +73,24 @@ def _candidate_strips(surface, suffixes, kind):
 
 
 def _plural_candidate(surface, roots):
-    """Recognize productive Telugu plural shapes without blind +లు copying.
-
-    The common -ం noun family changes to -ాలు:
-      విషయం → విషయాలు
-      పదం → పదాలు
-
-    Other stems can retain their stem and take -లు:
-      పలుకు → పలుకులు
-
-    Lexical/irregular plurals remain governed by registered roots.
-    """
+    """Recognize Telugu plural shapes while retaining lexical-root identity."""
     if surface.endswith("ాలు") and len(surface) > 4:
         candidate = surface[:-3] + "ం"
+        if candidate in roots:
+            return candidate, "ాలు", "plural"
+    # After an outer accusative, plural stems surface as -ాల / -ల.
+    if surface.endswith("ాల") and len(surface) > 3:
+        candidate = surface[:-2] + "ం"
         if candidate in roots:
             return candidate, "ాలు", "plural"
     if surface.endswith("లు") and len(surface) > 3:
         candidate = surface[:-2]
         if candidate in roots:
             return candidate, "లు", "plural"
-    # Irregular/lexically registered plural root can be discovered by a
-    # reverse lookup only when the database already contains the surface.
+    if surface.endswith("ల") and len(surface) > 2:
+        candidate = surface[:-1]
+        if candidate in roots:
+            return candidate, "లు", "plural"
     for root in roots:
         if roots.get(root) == surface:
             return root, "LEXICAL_PLURAL", "lexical_plural"
@@ -106,11 +102,9 @@ def _verb_candidate(surface, roots):
         if not surface.endswith(suffix) or len(surface) <= len(suffix) + 1:
             continue
         stem = surface[:-len(suffix)]
-        candidates = (stem, stem + "ు", stem + "చు")
-        for candidate in candidates:
+        for candidate in (stem, stem + "ు", stem + "చు"):
             if candidate in roots:
                 return candidate, suffix, "verb"
-
     for registered in roots:
         if registered.endswith("ంచడం"):
             family_prefix = registered[:-4]
@@ -136,19 +130,18 @@ def _derived_voice_candidate(surface, roots):
 
 
 def _case_candidate(surface, roots):
-    if surface.endswith("ాన్ని") and len(surface) > len("ాన్ని") + 1:
-        candidate = surface[:-len("ాన్ని")] + "ం"
+    if surface.endswith("ాన్ని") and len(surface) > 4:
+        candidate = surface[:-5] + "ం"
         if candidate in roots:
             return candidate, "ను", ACCUSATIVE
-    if surface.endswith("ానికి") and len(surface) > len("ానికి") + 1:
-        candidate = surface[:-len("ానికి")] + "ం"
+    if surface.endswith("ానికి") and len(surface) > 5:
+        candidate = surface[:-6] + "ం"
         if candidate in roots:
             return candidate, "కు", DATIVE
     return None
 
 
 def _adjectival_candidate(surface, roots):
-    # -మైన / -గా are derivational/adverbial realizations of an -ం family.
     if surface.endswith("మైన") and len(surface) > 4:
         candidate = surface[:-3] + "ం"
         if candidate in roots:
@@ -157,16 +150,10 @@ def _adjectival_candidate(surface, roots):
         candidate = surface[:-2] + "ం"
         if candidate in roots:
             return candidate, "గా", "adjective_predicate"
-
-    # The corpus explicitly permits adjective use of relevant non-ం lexical
-    # forms, e.g. భాష → భాషా and mapping to నుడి → నుడి.
     if surface.endswith("ా") and len(surface) > 2:
         candidate = surface[:-1]
         if candidate in roots:
             return candidate, "ా", "adjective_invariant"
-
-    # Bare relational/adjectival surface: వ్యాకరణ is the non-ం realization of
-    # the registered noun root వ్యాకరణం; వ్యాకరణపు is handled below.
     if surface.endswith("పు") and len(surface) > 3:
         candidate = surface[:-2]
         if candidate + "ం" in roots:
@@ -184,8 +171,6 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     if surface in roots:
         return MorphologicalForm(surface, surface)
 
-    # Work from the outermost grammatical operation inward. This allows
-    # విషయాలను → విషయం + plural + accusative, rather than treating it as text.
     case = _case_candidate(surface, roots)
     if case:
         root, operation, kind = case
@@ -213,18 +198,14 @@ def reduce_to_root(word, roots=None) -> MorphologicalForm:
     def search(current, operations, depth):
         if current in roots:
             return current, operations
-        if depth >= 3:
+        if depth >= 4:
             return None
-
-        # Plural is tried before generic -లు stripping so -ం nouns resolve to
-        # their lexical root correctly.
         plural = _plural_candidate(current, roots)
         if plural:
             root, suffix, kind = plural
             found = search(root, operations + [(kind, suffix)], depth + 1)
             if found:
                 return found
-
         candidates = list(_candidate_strips(current, GRAMMATICAL_SUFFIXES, "grammar"))
         candidates += list(_candidate_strips(current, DERIVATIONAL_SUFFIXES, "derivation"))
         for root, suffix, kind in candidates:
@@ -247,41 +228,28 @@ def apply_operation(root, kind, suffix):
         if root.endswith("డం"):
             return root[:-2] + suffix
         return root + suffix
-
     if kind == "verb":
-        if suffix == "" or suffix == root:
-            return root
         if root.endswith("ు"):
             return root[:-1] + suffix
         return root + suffix
-
     if kind == "derived_voice":
         return root[:-1] + suffix if root.endswith("ు") else root + suffix
-
     if kind == "plural":
         if suffix == "ాలు":
-            if root.endswith("ం"):
-                return root[:-1] + "ాలు"
-            return root + "లు"
-        if suffix == "లు":
-            return root + "లు"
+            return root[:-1] + "ాలు" if root.endswith("ం") else root + "లు"
+        return root + "లు"
     if kind == "lexical_plural":
-        # This path is only used for an already-registered lexical family.
-        return root + suffix if suffix != "LEXICAL_PLURAL" else root
-
+        return root
     if kind == "adjective":
-        if suffix == "మైన":
-            return root[:-1] + "మైన" if root.endswith("ం") else root + "మైన"
+        return root[:-1] + "మైన" if root.endswith("ం") else root + "మైన"
     if kind == "adjective_predicate":
         return root + "గా"
     if kind == "adjective_invariant":
-        # భాషా → భాష maps to the target lemma directly; no synthetic suffix.
         return root
     if kind == "bare_nominal":
         return root[:-1] if root.endswith("ం") else root
     if kind == "relational_adjective":
         return root[:-1] + "పు" if root.endswith("ం") else root + "పు"
-
     if kind == ACCUSATIVE or suffix == ACCUSATIVE:
         if root.endswith("లు"):
             return root + "ను"
@@ -295,10 +263,7 @@ def apply_operation(root, kind, suffix):
             return root + "కు"
         if root.endswith("ం"):
             return root[:-1] + "ానికి"
-        if root.endswith("ు"):
-            return root + "కు"
         return root + "కు"
-
     if root.endswith("ం") and kind == "grammar":
         stem = root[:-1] + "ా"
         forms = {
@@ -314,7 +279,6 @@ def apply_operation(root, kind, suffix):
             return stem + "నికి"
         if suffix == "ను":
             return stem + "న్ని"
-
     return root + suffix
 
 
