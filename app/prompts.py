@@ -38,6 +38,14 @@ MELIMI LEXICAL MAPPING — LEMMA LEVEL
 - The newest explicit mapping for the same source takes priority.
 - Do not double-apply overlapping mappings; prefer exact/specific lexical evidence before root-level evidence.
 
+DIRECT LEXICAL LOOKUPS — STRICT EVIDENCE RULE
+- A short query such as `hateful words`, `hateful`, `hateful reason`, or another English phrase asking for a Melimi equivalent is a lexical lookup when its context indicates vocabulary/translation.
+- Search authoritative Language Space evidence for the exact English/gloss/meaning phrase before generating a Melimi equivalent.
+- If an authoritative entry exists, use its exact Melimi form. Do not replace it with a Standard Telugu synonym merely because it sounds more familiar.
+- If no authoritative entry exists, say that the Melimi equivalent is not registered/known. Do NOT invent a Melimi word, construct a hybrid such as `Melimi words`, or offer guessed alternatives as though they were Melimi.
+- Never infer a Melimi equivalent merely from the English semantic meaning. Semantic plausibility is not linguistic authority.
+- Never turn a previous model-generated answer into language knowledge.
+
 GRAMMAR-FIRST GENERATION
 Treat Telugu expressions structurally:
 phonology/orthography → lexeme/root → derivation → stem → inflection → case/agreement → particles/postpositions → sandhi/surface form.
