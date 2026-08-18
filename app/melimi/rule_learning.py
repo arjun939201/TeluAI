@@ -6,7 +6,7 @@ operation, but it cannot promote a hypothesis to authoritative grammar.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterable, Mapping
 
 from app.melimi.linguistic_model import analyze_surface
@@ -46,17 +46,18 @@ class GeneralizationCandidate:
 
 
 def _evidence_pair(item: Mapping[str, str], evidence_id: str = "") -> RuleEvidence | None:
-    source = str(item.get("source") or item.get("standard") or "").strip()
+    source = str(item.get("surface") or item.get("source") or item.get("standard") or "").strip()
     target = str(item.get("target") or item.get("melimi") or "").strip()
-    if not source or not target:
+    source_root = str(item.get("source_root") or item.get("standard_root") or source).strip()
+    target_root = str(item.get("target_root") or item.get("melimi_root") or target).strip()
+    if not source or not target or not source_root or not target_root:
         return None
-    source_analysis = analyze_surface(source, {source: target})
-    target_analysis = analyze_surface(target, {target: target})
+    source_analysis = analyze_surface(source, {source_root: target_root})
     return RuleEvidence(
         source_surface=source,
         target_surface=target,
         source_root=source_analysis.root,
-        target_root=target_analysis.root,
+        target_root=target_root,
         operations=source_analysis.operations,
         evidence_id=evidence_id or str(item.get("id") or ""),
         source=str(item.get("provenance") or item.get("source") or ""),
