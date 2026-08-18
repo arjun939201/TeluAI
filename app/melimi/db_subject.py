@@ -26,6 +26,32 @@ def language_documents() -> list[dict]:
     with SessionLocal() as db:
         rows = db.scalars(select(MelimiDocument).where(MelimiDocument.status == "MASTER")).all()
         result = []
+
+        # MASTER roots are authoritative lexical entries too. Expose them through
+        # the same retrieval surface used by the language index so /word updates
+        # propagate to retrieval without a second manual refresh mechanism.
+        root_rows = db.scalars(select(MelimiRoot).where(MelimiRoot.status == "MASTER")).all()
+        for row in root_rows:
+            if not row.standard_root or not row.melimi_root:
+                continue
+            entry = {
+                "standard": row.standard_root,
+                "melimi": row.melimi_root,
+                "meaning": row.meaning or row.standard_root,
+                "status": row.status,
+                "version": row.version,
+                "source": row.source,
+            }
+            result.append({
+                "path": f"roots/{row.id}:{row.standard_root}",
+                "kind": "vocabulary",
+                "text": f"{row.standard_root} {row.melimi_root} {row.meaning or ''}",
+                "entries": [entry],
+                "status": row.status,
+                "version": row.version,
+                "source": row.source,
+            })
+
         for row in rows:
             try:
                 entries = json.loads(row.entries_json or "[]")
