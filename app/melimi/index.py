@@ -3,25 +3,39 @@ import json,re
 from dataclasses import dataclass,field
 from functools import lru_cache
 from typing import Any
+
 KINDS=("vocabulary","grammar","word_formation","syntax","examples","prose","rules","corpus","other")
+
 def _tokens(text:str)->set[str]: return set(re.findall(r"[\u0C00-\u0C7F]+|[A-Za-z][A-Za-z'-]*",(text or "").lower()))
 def _stringify(value:Any)->str:
     if isinstance(value,dict): return " ".join(f"{k} {_stringify(v)}" for k,v in value.items())
     if isinstance(value,list): return " ".join(_stringify(v) for v in value)
     return str(value or "")
+
 @dataclass(frozen=True)
 class SubjectDoc:
     path:str; kind:str; text:str; entries:tuple[dict[str,Any],...]=field(default_factory=tuple); tokens:frozenset[str]=field(default_factory=frozenset)
+
 @lru_cache(maxsize=16)
-def build_index(version:int|None=None)->tuple[SubjectDoc,...]:
+def _build_index_for_version(version:int)->tuple[SubjectDoc,...]:
     try:
-        from app.melimi.db_subject import language_documents,language_space_version
-        if version is None: version=language_space_version()
+        from app.melimi.db_subject import language_documents
         return tuple(SubjectDoc(path=str(d.get('path','')),kind=str(d.get('kind','other')),text=str(d.get('text','')),entries=tuple(x for x in d.get('entries',[]) if isinstance(x,dict)),tokens=frozenset(_tokens(str(d.get('text',''))))) for d in language_documents())
     except Exception:return tuple()
-def reload_index(): build_index.cache_clear()
+
+def build_index(version:int|None=None)->tuple[SubjectDoc,...]:
+    if version is None:
+        from app.melimi.db_subject import language_space_version
+        version=language_space_version()
+    return _build_index_for_version(int(version))
+
+build_index.cache_clear = _build_index_for_version.cache_clear  # type: ignore[attr-defined]
+
+def reload_index(): _build_index_for_version.cache_clear()
+
 def inventory()->dict:
     docs=build_index(); return {"documents":len(docs),"by_kind":{kind:sum(d.kind==kind for d in docs) for kind in KINDS},"entries":sum(len(d.entries) for d in docs),"paths":[d.path for d in docs]}
+
 def _entry_score(query_tokens:set[str],entry:dict[str,Any],query:str)->float:
     text=_stringify(entry); tokens=_tokens(text); score=len(query_tokens&tokens)*12; low=text.lower(); qlow=query.lower()
     for t in query_tokens:
@@ -30,6 +44,7 @@ def _entry_score(query_tokens:set[str],entry:dict[str,Any],query:str)->float:
     if standard and standard in qlow: score+=60
     if melimi and melimi in qlow: score+=70
     return score
+
 def retrieve(query:str,*,kinds:set[str]|None=None,limit:int=14)->list[dict]:
     qtokens=_tokens(query)
     if not qtokens:return []
@@ -48,6 +63,7 @@ def retrieve(query:str,*,kinds:set[str]|None=None,limit:int=14)->list[dict]:
         seen.add(key); out.append({"score":round(score,2),"source":doc.path,"kind":doc.kind,"entry":entry,"excerpt":"" if entry else re.sub(r"\s+"," ",doc.text)[:1800]})
         if len(out)>=limit:break
     return out
+
 def _compact_docs(kind:str,max_chars:int)->str:
     chunks=[]
     for doc in build_index():
@@ -55,6 +71,7 @@ def _compact_docs(kind:str,max_chars:int)->str:
         text=re.sub(r"\n{3,}","\n\n",doc.text).strip()
         if text:chunks.append(f"SOURCE {doc.path}:\n{text[:1800]}")
     return "\n\n".join(chunks)[:max_chars]
+
 def language_profile(max_chars:int=6500)->str:
     structured=[]
     try:
@@ -64,6 +81,7 @@ def language_profile(max_chars:int=6500)->str:
     except Exception:pass
     parts=["MELIMI TELUGU — AUTHORITATIVE LANGUAGE SUBJECT","The corpus is language knowledge, not a phrase bank.","GRAMMAR/RULES STORED IN RUNTIME KNOWLEDGE:","\n".join(structured),_compact_docs('rules',1500),_compact_docs('grammar',1500),_compact_docs('word_formation',1500),_compact_docs('syntax',700)]
     return "\n\n".join(x for x in parts if x)[:max_chars]
+
 def relevant_language_context(query:str,max_chars:int=6500)->str:
     results=retrieve(query,limit=16)
     if not results:return "No directly relevant subject item was retrieved. Do not invent Melimi facts."
