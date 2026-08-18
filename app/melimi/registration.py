@@ -3,6 +3,10 @@
 A word submitted through the explicit registration UI or /word command is
 intentional language-space input, so it is written directly as MASTER data.
 Ordinary chat is handled separately and is never inferred as teaching.
+
+Main-dictionary entries are a protected authority layer. A direct user entry
+cannot silently replace a source-backed main-dictionary root; it must go
+through the main-dictionary review/import pipeline instead.
 """
 from __future__ import annotations
 
@@ -10,6 +14,7 @@ import hashlib
 import json
 from sqlalchemy import select
 from app.database import SessionLocal, MelimiRoot, KnowledgeEntry, KnowledgeVersion, now, audit_log
+from app.melimi.main_dictionary import MAIN_DICTIONARY_SOURCE
 
 
 def build_entry(data):
@@ -40,6 +45,11 @@ async def register_word(data, user_id=None):
     target = entry["melimi_root"].split("/")[0].strip()
     with SessionLocal() as db:
         row = db.scalar(select(MelimiRoot).where(MelimiRoot.standard_root == source))
+        if row and row.source == MAIN_DICTIONARY_SOURCE:
+            raise ValueError(
+                "This entry belongs to the protected main Melimi dictionary. "
+                "Update the reviewed main-dictionary source instead of overwriting it with /word."
+            )
         if row:
             row.melimi_root = target
             row.meaning = entry["meaning"] or row.meaning
@@ -64,6 +74,11 @@ async def register_word(data, user_id=None):
         knowledge = db.scalar(select(KnowledgeEntry).where((KnowledgeEntry.kind == "MELIMI_MAPPING") & (KnowledgeEntry.key == key)))
         metadata = {"source_root": entry["source_root"], "meaning": entry["meaning"], "part_of_speech": entry["part_of_speech"], "formation": entry["formation"]}
         if knowledge:
+            if knowledge.source == MAIN_DICTIONARY_SOURCE:
+                raise ValueError(
+                    "This mapping belongs to the protected main Melimi dictionary. "
+                    "Use the reviewed main-dictionary importer to change it."
+                )
             knowledge.value = target
             knowledge.metadata_json = json.dumps(metadata, ensure_ascii=False)
             knowledge.status = "MASTER"
