@@ -112,11 +112,14 @@ def _derived_voice_candidate(surface, roots):
         if not surface.endswith(suffix) or len(surface) <= len(suffix) + 2:
             continue
         verbal_stem = surface[:-len(suffix)]
-        if not verbal_stem.endswith("చు"):
-            continue
-        nominal_candidate = verbal_stem[:-2] + "నం"
-        if nominal_candidate in roots:
-            return nominal_candidate, suffix, "derived_voice"
+
+        # Telugu passive forms such as ``నిర్వచించబడిన`` contain the
+        # conjunctive verb stem ``నిర్వచించ``. Its nominal family is
+        # ``నిర్వచనం``: replace the final ``ించ`` sequence with ``నం``.
+        if verbal_stem.endswith("ించ"):
+            nominal_candidate = verbal_stem[:-3] + "నం"
+            if nominal_candidate in roots:
+                return nominal_candidate, suffix, "derived_voice"
     return None
 
 
