@@ -1,0 +1,37 @@
+.melimi-lab-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid rgba(114,224,184,.16);
+  border-radius: 12px;
+  background: rgba(114,224,184,.07);
+  color: #bfe8d8;
+  text-decoration: none;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.melimi-lab-link:hover,
+.melimi-lab-link:focus-visible {
+  color: #e7f5ef;
+  background: rgba(114,224,184,.12);
+  border-color: rgba(114,224,184,.34);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.melimi-lab-link:focus-visible {
+  box-shadow: 0 0 0 3px rgba(114,224,184,.10);
+}
+
+@media (max-width: 700px) {
+  .melimi-lab-link { padding: 10px 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .melimi-lab-link { transition: none; }
+}
