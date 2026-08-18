@@ -10,8 +10,9 @@ from app.database import save_usage,user_from_session
 from app.melimi.firewall import deterministic_repair
 from app.melimi.lexical import direct_lookup
 from app.response import clean_response
-from app.groq_client import GroqProviderError,GroqRateLimitError,call_groq_detailed,stream_groq
 from app.security import RATE_LIMITER,client_identifier,session_fingerprint
+from app.llm.provider import get_llm_provider
+from app.groq_client import GroqProviderError,GroqRateLimitError
 
 def _sse(payload): return 'data: '+json.dumps(payload,ensure_ascii=False,separators=(',',':'))+'\n\n'
 def _friendly(exc):
@@ -41,8 +42,6 @@ async def _prepare(data,user):
     return message,cid,history,decision,prompt,meta
 
 async def _language_command(message,user,cid):
-    # Explicit language commands are deliberate user actions. They are handled
-    # locally and synchronously so they never depend on the external AI provider.
     from app.chat_learning import learn_explicit_teaching,parse_command
     if not parse_command(message): raise ValueError('Invalid language command.')
     result=learn_explicit_teaching(message,user.id)
@@ -61,7 +60,7 @@ async def handle_json(request,user):
         direct=direct_lookup(message) if decision.use_melimi else None
         if direct is not None:
             append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,direct,model='melimi-lexical',latency_ms=0);return JSONResponse({'reply':direct,'mode':'melimi','intent':'melimi_lookup','language':decision.language,'conversation_id':cid,'message_id':aid,'local':True})
-        result=await call_groq_detailed(prompt,history,message);reply=clean_response(result['answer']);reply=deterministic_repair(reply) if decision.mode=='melimi' else reply
+        result=await get_llm_provider().complete(prompt,history,message);reply=clean_response(result['answer']);reply=deterministic_repair(reply) if decision.mode=='melimi' else reply
         if not reply: raise RuntimeError('Empty response')
         append_user_message(user.id,cid,message);aid=append_assistant_message(user.id,cid,reply,model=result.get('model'),input_tokens=result.get('input_tokens'),output_tokens=result.get('output_tokens'),latency_ms=result.get('latency_ms'));save_usage(user.id,result.get('model'),result.get('input_tokens'),result.get('output_tokens'),'ok')
         return JSONResponse({'reply':reply,'mode':decision.mode,'intent':meta.get('intent','conversation'),'language':decision.language,'conversation_id':cid,'message_id':aid,'local':False})
@@ -101,7 +100,7 @@ async def handle_stream(request,user,data=None):
             aid=append_assistant_message(user.id,cid,direct,model='melimi-lexical',latency_ms=0);yield _sse({'type':'delta','text':direct});yield _sse({'type':'done','message_id':aid,'local':True,'latency_ms':int((time.perf_counter()-started)*1000)});return
         parts=[];model=None;input_tokens=output_tokens=latency_ms=None
         try:
-            async for event in stream_groq(prompt,history,message):
+            async for event in get_llm_provider().stream(prompt,history,message):
                 if await request.is_disconnected():return
                 if event['type']=='delta':parts.append(event['text']);yield _sse({'type':'delta','text':event['text']})
                 elif event['type']=='done':model=event.get('model');input_tokens=event.get('input_tokens');output_tokens=event.get('output_tokens');latency_ms=event.get('latency_ms')
