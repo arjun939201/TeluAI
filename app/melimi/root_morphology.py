@@ -120,6 +120,13 @@ def _adjectival_candidate(surface, roots):
         candidate = surface[:-3] + "ం"
         if candidate in roots:
             return candidate, "మైన", "adjective"
+    # Telugu -ంగా predicate forms contain the nasal marker before గా.
+    # Strip the complete -ంగా sequence; stripping only -గా would create
+    # a false double-nasal candidate (e.g. ఆసక్తికరంం).
+    if surface.endswith("ంగా"):
+        candidate = surface[:-3] + "ం"
+        if candidate in roots:
+            return candidate, "ంగా", "adjective_predicate"
     if surface.endswith("గా"):
         candidate = surface[:-2] + "ం"
         if candidate in roots:
