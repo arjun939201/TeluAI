@@ -11,36 +11,31 @@ from app.database import SessionLocal, MelimiRoot, MelimiDocument, MelimiRule, M
 
 
 def language_space_version() -> int:
-    """Return the shared runtime version used to invalidate process-local caches.
-
-    Every web worker/process reads this from the same PostgreSQL database. A
-    worker therefore never has to be manually restarted or refreshed after a
-    /word update made by another worker.
-    """
+    """Return the shared runtime version used to invalidate process-local caches."""
     with SessionLocal() as db:
         return int(db.scalar(select(KnowledgeVersion.version).order_by(KnowledgeVersion.version.desc()).limit(1)) or 0)
 
 
 def language_roots() -> dict[str, str]:
     with SessionLocal() as db:
-        rows = db.scalars(select(MelimiRoot).where(MelimiRoot.status != "REJECTED")).all()
+        rows = db.scalars(select(MelimiRoot).where(MelimiRoot.status == "MASTER")).all()
         return {r.standard_root: r.melimi_root for r in rows if r.standard_root and r.melimi_root}
 
 
 def language_documents() -> list[dict]:
     with SessionLocal() as db:
-        rows = db.scalars(select(MelimiDocument).where(MelimiDocument.status != "REJECTED")).all()
+        rows = db.scalars(select(MelimiDocument).where(MelimiDocument.status == "MASTER")).all()
         result = []
         for row in rows:
             try:
                 entries = json.loads(row.entries_json or "[]")
             except (TypeError, ValueError):
                 entries = []
-            result.append({"path": row.path, "kind": row.kind, "text": row.text, "entries": entries})
+            result.append({"path": row.path, "kind": row.kind, "text": row.text, "entries": entries, "status": row.status, "version": row.version, "source": row.source})
 
         knowledge_rows = db.scalars(
             select(KnowledgeEntry)
-            .where(KnowledgeEntry.status != "REJECTED")
+            .where(KnowledgeEntry.status == "MASTER")
             .order_by(KnowledgeEntry.id.desc())
             .limit(5000)
         ).all()
@@ -49,24 +44,27 @@ def language_documents() -> list[dict]:
                 metadata = json.loads(row.metadata_json or "{}")
             except (TypeError, ValueError):
                 metadata = {}
-            kind = "vocabulary" if row.kind.upper() in {"VOCABULARY", "ROOT"} else "prose" if row.kind.upper() in {"CONTENT", "POST", "EXAMPLE"} else row.kind.lower()
+            kind = "vocabulary" if row.kind.upper() in {"VOCABULARY", "ROOT", "MELIMI_MAPPING"} else "prose" if row.kind.upper() in {"CONTENT", "POST", "EXAMPLE"} else row.kind.lower()
             entry = {"key": row.key, "value": row.value, **metadata}
-            if row.kind.upper() in {"VOCABULARY", "ROOT"}:
+            if row.kind.upper() in {"VOCABULARY", "ROOT", "MELIMI_MAPPING"}:
                 entry.setdefault("standard", metadata.get("standard", row.key))
                 entry.setdefault("melimi", metadata.get("melimi", row.value))
             else:
                 entry.setdefault("content", row.value)
-            result.append({"path": f"knowledge/{row.id}:{row.key}", "kind": kind, "text": row.value, "entries": [entry]})
+            entry.setdefault("status", row.status)
+            entry.setdefault("version", row.version)
+            entry.setdefault("source", row.source)
+            result.append({"path": f"knowledge/{row.id}:{row.key}", "kind": kind, "text": row.value, "entries": [entry], "status": row.status, "version": row.version, "source": row.source})
         return result
 
 
 def language_rules(limit: int = 100) -> list[dict]:
     with SessionLocal() as db:
-        rows = db.scalars(select(MelimiRule).where(MelimiRule.status != "REJECTED").order_by(MelimiRule.id.desc()).limit(limit)).all()
-        return [{"name": r.name, "category": r.category, "rule_text": r.rule_text, "operation": r.operation, "status": r.status} for r in rows]
+        rows = db.scalars(select(MelimiRule).where(MelimiRule.status == "MASTER").order_by(MelimiRule.id.desc()).limit(limit)).all()
+        return [{"name": r.name, "category": r.category, "rule_text": r.rule_text, "operation": r.operation, "status": r.status, "version": r.version, "source": r.source} for r in rows]
 
 
 def language_affixes(limit: int = 200) -> list[dict]:
     with SessionLocal() as db:
-        rows = db.scalars(select(MelimiAffix).where(MelimiAffix.status != "REJECTED").order_by(MelimiAffix.id.desc()).limit(limit)).all()
-        return [{"form": r.form, "kind": r.kind, "meaning": r.meaning, "applies_to": r.applies_to, "notes": r.notes, "status": r.status} for r in rows]
+        rows = db.scalars(select(MelimiAffix).where(MelimiAffix.status == "MASTER").order_by(MelimiAffix.id.desc()).limit(limit)).all()
+        return [{"form": r.form, "kind": r.kind, "meaning": r.meaning, "applies_to": r.applies_to, "notes": r.notes, "status": r.status, "source": r.source} for r in rows]
