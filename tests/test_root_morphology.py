@@ -51,3 +51,11 @@ def test_am_noun_dative_is_reduced_to_abstract_case_operation():
     assert a.root == "సంతోషం"
     assert a.operations == (("case", "DATIVE"),)
     assert convert_surface("సంతోషానికి", roots) == "అలరికకి"
+
+
+def test_am_noun_adjectival_maina_reapplies_to_melimi_root():
+    roots = {"స్థాపితం": "నెలగొల్పిదం"}
+    a = reduce_to_root("స్థాపితమైన", roots)
+    assert a.root == "స్థాపితం"
+    assert a.operations == (("adjective", "మైన"),)
+    assert convert_surface("స్థాపితమైన", roots) == "నెలగొల్పిదమైన"
