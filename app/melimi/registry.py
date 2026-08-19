@@ -1,6 +1,7 @@
 import re
 from functools import lru_cache
 from app.melimi.root_morphology import load_root_dictionary, reduce_to_root, reapply_operations
+from app.melimi.linguistic_model import analyze_surface, transform_surface
 
 TOKEN_RE=re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 FUNCTION_WORDS={"నేను","నాకు","నా","నువ్వు","నీ","నీకు","మీరు","మీకు","అతను","ఆమె","వారు","ఇది","అది","ఇవి","అవి","ఏమి","ఏం","ఏంటి","ఎలా","ఎందుకు","ఎక్కడ","ఎప్పుడు","ఎవరు","ఎంత","ఎన్ని","ఒక","మరియు","లేదా","కానీ","అయితే","కూడా","మాత్రం","ఇంకా","ఇప్పుడు","అప్పుడు","ఇక్కడ","అక్కడ","లో","కు","కి","తో","నుండి","నుంచి","పై","కింద","కోసం","వల్ల","గురించి","మధ్య","లా","గా","అని","అంటే","లేదు","లేను","లేవు","కాదు","వద్దు","ఉంది","ఉన్న","ఉన్నారు","ఉన్నాను","ఉన్నావు","చెప్పు","చెప్పండి","రా","రండి","వెళ్లు","వెళ్లి","చేయి","చేయండి","అవును","సరే","హా","హాయ్"}
@@ -44,5 +45,19 @@ def audit_response(text):
 def strict_violations(text):
     inv=lexical_inventory(); return [{"standard":w,"melimi":inv["standard_to_melimi"][w]} for w in tokenize(text) if w in inv["standard_to_melimi"]]
 def analyze_word(word):
-    inv=lexical_inventory(); roots=load_root_dictionary(); form=reduce_to_root(word,roots); mel=inv["standard_to_melimi"].get(form.root,""); transformed=reapply_operations(mel,form) if mel else ""
-    return {"word":word,"registered":word in inv["registered"],"native":word in inv["native"],"loan":word in inv["loan"],"melimi_equivalent":transformed or mel,"root_candidate":form.root,"operations":[{"kind":k,"suffix":s} for k,s in form.operations]}
+    inv=lexical_inventory()
+    roots=load_root_dictionary()
+    analysis=analyze_surface(word, roots)
+    transformed=transform_surface(word, roots)
+    mel=inv["standard_to_melimi"].get(analysis.root, "")
+    return {
+        "word":word,
+        "registered":word in inv["registered"],
+        "native":word in inv["native"],
+        "loan":word in inv["loan"],
+        "melimi_equivalent":transformed.target_surface if transformed.status != "UNSUPPORTED" else mel,
+        "root_candidate":analysis.root,
+        "operations":[{"kind":k,"suffix":s} for k,s in analysis.operations],
+        "features":analysis.features.as_dict(),
+        "transformation":transformed.as_dict(),
+    }

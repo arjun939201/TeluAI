@@ -142,7 +142,13 @@ def apply_operation(root,kind,suffix):
             if root.endswith("లు"):return root[:-1]
             if root.endswith("ు"):return root[:-1]
             return root
-    if kind=="adjective":return root[:-1]+"మైన" if root.endswith("ం") else root+"మైన"
+    if kind=="adjective":
+        if root.endswith("ం"): return root[:-1]+"మైన"
+        # A documented -మైన derivation can surface as -ైన after an /i/-final
+        # Melimi lemma. Keep this as a central phonological realization rather
+        # than storing each derived adjective as a separate lexical entry.
+        if root.endswith("ి"): return root[:-1]+"ైన"
+        return root+"మైన"
     if kind=="adjective_predicate":return root+"గా"
     if kind=="adjective_invariant":return root
     if kind=="bare_nominal":return root[:-1] if root.endswith("ం") else root
