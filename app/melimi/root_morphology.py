@@ -43,13 +43,7 @@ def _known_candidate(candidates,roots):
     return None
 
 def _nominal_plural_candidates(base: str):
-    """Return plausible lemma candidates for the productive -లు plural.
-
-    Telugu nouns ending in -ి commonly surface with stem-final -ు before the
-    plural marker: e.g. నది → నదులు. This is a grammatical stem alternation,
-    not a lexical exception, so it belongs in root analysis rather than in
-    individual dictionary entries.
-    """
+    """Return plausible lemma candidates for the productive -లు plural."""
     candidates = [base]
     if base.endswith("ు"):
         candidates.append(base[:-1] + "ి")
@@ -77,7 +71,7 @@ def _case_candidate(surface,roots):
     singular_cases={"ను":ACCUSATIVE,"కు":DATIVE,"కి":DATIVE,"తో":INSTRUMENTAL,"లో":LOCATIVE,"పై":LOCATIVE}
     for suffix,case_name in sorted(singular_cases.items(),key=lambda item:len(item[0]),reverse=True):
         if surface.endswith(suffix):
-            base=surface[:-len(suffix);]
+            base=surface[:-len(suffix)]
             candidate=_known_candidate((base,base+"ం"),roots)
             if candidate:return candidate,(("case",case_name),)
     if surface.endswith("న్ని"):
