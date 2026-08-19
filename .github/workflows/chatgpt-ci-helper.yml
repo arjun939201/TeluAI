@@ -1,76 +1,138 @@
+name: ChatGPT CI Helper
 
-  # Triggers when a primary CI workflow finishes
+on:
   workflow_run:
-    workflows: ["CI"] # Change this to the exact name of your main test/build workflow
+    workflows: ["TeluAI CI"]
     types: [completed]
-  # Triggers when someone comments on a PR
-  issue_comment:
-    types: [created]
 
 permissions:
+  contents: read
   pull-requests: write
-  contents: write
   issues: write
 
 jobs:
-  handle_ci_failure:
-    runs-on: ubuntu-latest
-    # Run only if the main CI workflow failed
+  analyze_ci_failure:
+    name: Analyze failed CI with ChatGPT
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-    steps:
-      - name: Fetch Failed CI Logs
-        run: |
-          echo "Fetching logs for run ${{ github.event.workflow_run.id }}"
-          # Optional: Use GitHub CLI 'gh run view --log' to extract specific error lines
-
-      - name: Ask ChatGPT for Debugging Help
-        uses: openai/chatgpt-action@v1 # Replace with your preferred community action
-        with:
-          api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt: "The CI build failed. Here are the logs. Identify the root cause and provide a fix: [Insert Log Data]"
-
-      - name: Comment Fix on PR
-        uses: mshick/add-pr-comment@v2
-        with:
-          message: |
-            ### 🤖 CI Failure Analysis
-            ChatGPT found the following issue and suggested this fix:
-            ${{ steps.chatgpt.outputs.reply }}
-
-  chatgpt_merge_review:
     runs-on: ubuntu-latest
-    # Trigger when a PR author comments "@chatgpt review and merge"
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '@chatgpt review and merge') }}
+    timeout-minutes: 10
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Fetch PR Diff
-        run: |
-          git diff origin/main...HEAD > pr_diff.txt
-
-      - name: ChatGPT Code Review Evaluation
-        id: ai_review
-        uses: openai/chatgpt-action@v1
-        with:
-          api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt: "Review this diff. If it looks safe, reply with exactly 'APPROVED'. Otherwise, list the issues: $(cat pr_diff.txt)"
-
-      - name: Add Automerge Label
-        if: steps.ai_review.outputs.reply == 'APPROVED'
-        run: |
-          gh pr edit ${{ github.event.issue.number }} --add-label "automerge"
+      - name: Collect failed CI logs
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          gh run view "$RUN_ID" --repo "$REPO" --log > ci.log
+          if [ "$(wc -c < ci.log)" -gt 120000 ]; then
+            tail -c 120000 ci.log > ci-trimmed.log
+            mv ci-trimmed.log ci.log
+          fi
+          echo "Collected $(wc -c < ci.log) bytes from failed run $RUN_ID."
 
-  automerge:
-    needs: chatgpt_merge_review
-    runs-on: ubuntu-latest
-    if: steps.ai_review.outputs.reply == 'APPROVED'
-    steps:
-      - name: Automatically Merge PR
-        uses: pascalgn/automerge-action@v0.16.4
+      - name: Find pull request
+        id: pr
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MERGE_LABELS: "automerge"
-          MERGE_METHOD: "squash"
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="$(gh run view "$RUN_ID" --repo "$REPO" --json pullRequests --jq '.pullRequests[0].number // empty')"
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No pull request is associated with this failed workflow run."
+          else
+            echo "Found PR #$PR_NUMBER."
+          fi
+
+      - name: Ask OpenAI for failure diagnosis
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          with open("ci.log", "r", encoding="utf-8", errors="replace") as f:
+              logs = f.read()
+
+          prompt = f"""You are the CI debugging assistant for the TeluAI repository.
+
+Analyze the failed GitHub Actions run below.
+
+Your job is to:
+1. Identify the first/root failure rather than merely repeating downstream failures.
+2. Identify the affected file/module/test when possible.
+3. Explain why the current implementation fails.
+4. Give the smallest safe code change needed to fix it.
+5. Mention regression risk.
+6. Do not claim that a fix was applied; this workflow only reports the diagnosis.
+7. Preserve TeluAI's existing architecture and deterministic Melimi language authority.
+
+Return concise Markdown with these headings:
+## Root cause
+## Evidence
+## Recommended fix
+## Regression risk
+
+FAILED CI LOG:
+{logs}
+"""
+
+          payload = {
+              "model": os.environ.get("OPENAI_MODEL") or "gpt-4.1-mini",
+              "input": prompt,
+              "max_output_tokens": 1800,
+          }
+          request = urllib.request.Request(
+              "https://api.openai.com/v1/responses",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Authorization": "Bearer " + os.environ["OPENAI_API_KEY"],
+                  "Content-Type": "application/json",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=90) as response:
+              data = json.load(response)
+
+          text = data.get("output_text", "").strip()
+          if not text:
+              parts = []
+              for item in data.get("output", []):
+                  for content in item.get("content", []):
+                      if content.get("type") == "output_text":
+                          parts.append(content.get("text", ""))
+              text = "\n".join(parts).strip()
+          if not text:
+              raise RuntimeError("OpenAI returned no diagnosis text")
+
+          with open("diagnosis.md", "w", encoding="utf-8") as f:
+              f.write(text)
+          PY
+
+      - name: Comment diagnosis on pull request
+        if: ${{ steps.pr.outputs.number != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## 🤖 TeluAI CI Failure Analysis"
+            echo
+            echo "Failed workflow run: [#$RUN_ID](https://github.com/$REPO/actions/runs/$RUN_ID)"
+            echo
+            cat diagnosis.md
+            echo
+            echo "---"
+            echo "This is an automated diagnosis from the ChatGPT CI Helper. No code was changed or merged by this workflow."
+          } > comment.md
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
