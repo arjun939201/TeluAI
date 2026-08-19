@@ -34,7 +34,7 @@ def test_rule_realizes_case_from_abstract_grammatical_feature():
         status="MASTER",
         authority="MASTER",
     )
-    assert rule.realize("అలరిక", analysis) == "అలరికానికి"
+    assert rule.realize("అలరిక", analysis) == "అలరికకి"
 
 
 def test_rule_does_not_generate_when_analysis_lacks_required_feature():
