@@ -32,8 +32,6 @@ def load_root_dictionary(version: int | None = None) -> Dict[str,str]:
         version = language_space_version()
     return _load_root_dictionary_for_version(int(version))
 
-# Preserve the cache-management API used by existing callers while keeping the
-# actual cache key tied to the database-published language version.
 load_root_dictionary.cache_clear = _load_root_dictionary_for_version.cache_clear  # type: ignore[attr-defined]
 
 def reload_root_dictionary():
@@ -44,10 +42,24 @@ def _known_candidate(candidates,roots):
         if candidate in roots:return candidate
     return None
 
+def _nominal_plural_candidates(base: str):
+    """Return plausible lemma candidates for the productive -లు plural.
+
+    Telugu nouns ending in -ి commonly surface with stem-final -ు before the
+    plural marker: e.g. నది → నదులు. This is a grammatical stem alternation,
+    not a lexical exception, so it belongs in root analysis rather than in
+    individual dictionary entries.
+    """
+    candidates = [base]
+    if base.endswith("ు"):
+        candidates.append(base[:-1] + "ి")
+    return tuple(dict.fromkeys(candidates))
+
 def _plural_candidate(surface,roots):
     for suffix in ("ాలు","లు"):
         if surface.endswith(suffix):
-            base=surface[:-len(suffix)]; candidate=_known_candidate((base,base+"ం"),roots)
+            base=surface[:-len(suffix)]
+            candidate=_known_candidate(_nominal_plural_candidates(base) + (base+"ం",),roots)
             if candidate:return candidate,suffix,"plural"
     return None
 
@@ -55,7 +67,8 @@ def _case_candidate(surface,roots):
     plural_cases={"ాలను":ACCUSATIVE,"ాలని":ACCUSATIVE,"ాలకు":DATIVE,"ాలకై":DATIVE,"ాలతో":INSTRUMENTAL,"ాలలో":LOCATIVE,"ాలపై":LOCATIVE,"ాలవల్ల":OBLIQUE,"లను":ACCUSATIVE,"లని":ACCUSATIVE,"లకు":DATIVE,"లకై":DATIVE,"లతో":INSTRUMENTAL,"లలో":LOCATIVE,"లపై":LOCATIVE,"లవల్ల":OBLIQUE,"ల":OBLIQUE}
     for suffix,case_name in sorted(plural_cases.items(),key=lambda item:len(item[0]),reverse=True):
         if surface.endswith(suffix):
-            base=surface[:-len(suffix)]; candidate=_known_candidate((base,base+"ం"),roots)
+            base=surface[:-len(suffix)]; candidates=_nominal_plural_candidates(base)
+            candidate=_known_candidate(candidates + (base+"ం",),roots)
             if candidate:return candidate,(("case",case_name),("plural","లు"))
     for surface_suffix,case_name in (("ాన్ని",ACCUSATIVE),("ానికి",DATIVE)):
         if surface.endswith(surface_suffix):
@@ -64,7 +77,8 @@ def _case_candidate(surface,roots):
     singular_cases={"ను":ACCUSATIVE,"కు":DATIVE,"కి":DATIVE,"తో":INSTRUMENTAL,"లో":LOCATIVE,"పై":LOCATIVE}
     for suffix,case_name in sorted(singular_cases.items(),key=lambda item:len(item[0]),reverse=True):
         if surface.endswith(suffix):
-            base=surface[:-len(suffix)]; candidate=_known_candidate((base,base+"ం"),roots)
+            base=surface[:-len(suffix);]
+            candidate=_known_candidate((base,base+"ం"),roots)
             if candidate:return candidate,(("case",case_name),)
     if surface.endswith("న్ని"):
         base=surface[:-3]; candidate=_known_candidate((base,base+"ం"),roots)
@@ -144,9 +158,6 @@ def apply_operation(root,kind,suffix):
             return root
     if kind=="adjective":
         if root.endswith("ం"): return root[:-1]+"మైన"
-        # A documented -మైన derivation can surface as -ైన after an /i/-final
-        # Melimi lemma. Keep this as a central phonological realization rather
-        # than storing each derived adjective as a separate lexical entry.
         if root.endswith("ి"): return root[:-1]+"ైన"
         return root+"మైన"
     if kind=="adjective_predicate":return root+"గా"
