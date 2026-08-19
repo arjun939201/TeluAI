@@ -1,0 +1,76 @@
+
+  # Triggers when a primary CI workflow finishes
+  workflow_run:
+    workflows: ["CI"] # Change this to the exact name of your main test/build workflow
+    types: [completed]
+  # Triggers when someone comments on a PR
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  contents: write
+  issues: write
+
+jobs:
+  handle_ci_failure:
+    runs-on: ubuntu-latest
+    # Run only if the main CI workflow failed
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Fetch Failed CI Logs
+        run: |
+          echo "Fetching logs for run ${{ github.event.workflow_run.id }}"
+          # Optional: Use GitHub CLI 'gh run view --log' to extract specific error lines
+
+      - name: Ask ChatGPT for Debugging Help
+        uses: openai/chatgpt-action@v1 # Replace with your preferred community action
+        with:
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: "The CI build failed. Here are the logs. Identify the root cause and provide a fix: [Insert Log Data]"
+
+      - name: Comment Fix on PR
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            ### 🤖 CI Failure Analysis
+            ChatGPT found the following issue and suggested this fix:
+            ${{ steps.chatgpt.outputs.reply }}
+
+  chatgpt_merge_review:
+    runs-on: ubuntu-latest
+    # Trigger when a PR author comments "@chatgpt review and merge"
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '@chatgpt review and merge') }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Fetch PR Diff
+        run: |
+          git diff origin/main...HEAD > pr_diff.txt
+
+      - name: ChatGPT Code Review Evaluation
+        id: ai_review
+        uses: openai/chatgpt-action@v1
+        with:
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: "Review this diff. If it looks safe, reply with exactly 'APPROVED'. Otherwise, list the issues: $(cat pr_diff.txt)"
+
+      - name: Add Automerge Label
+        if: steps.ai_review.outputs.reply == 'APPROVED'
+        run: |
+          gh pr edit ${{ github.event.issue.number }} --add-label "automerge"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  automerge:
+    needs: chatgpt_merge_review
+    runs-on: ubuntu-latest
+    if: steps.ai_review.outputs.reply == 'APPROVED'
+    steps:
+      - name: Automatically Merge PR
+        uses: pascalgn/automerge-action@v0.16.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_LABELS: "automerge"
+          MERGE_METHOD: "squash"
