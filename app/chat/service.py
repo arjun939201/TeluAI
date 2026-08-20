@@ -11,6 +11,7 @@ from app.memory.manager import extract_memory_candidates
 from app.melimi.engine import build_language_engine_context
 from app.melimi.grammar import grammar_policy
 from app.prompts import build_prompt
+from app.prompt_registry import CHAT_PROMPT, prompt_metadata
 from app.settings_runtime import settings_for_user
 
 
@@ -39,14 +40,39 @@ def prepare_prompt(message: str, requested_mode: str, history: list[dict], user_
 
     melimi_engine = ""
     grammar = ""
+    knowledge_version = 0
     if decision.use_melimi:
-        melimi_engine = build_language_engine_context(user_message=message, conversation_context=conversation,
-            linguistic_analysis=linguistic_text, response_plan=plan, max_profile_chars=2600, max_relevant_chars=3000)
+        melimi_engine = build_language_engine_context(
+            user_message=message,
+            conversation_context=conversation,
+            linguistic_analysis=linguistic_text,
+            response_plan=plan,
+            max_profile_chars=2600,
+            max_relevant_chars=3000,
+        )
         grammar = grammar_policy()
+        try:
+            from app.melimi.db_subject import language_space_version
+            knowledge_version = language_space_version()
+        except Exception:
+            knowledge_version = 0
 
-    prompt = build_prompt(mode=decision.mode, language=decision.language, conversation=conversation,
-        linguistics=linguistic_text if decision.use_melimi else "", memory=memory, grammar=grammar,
-        plan=plan, melimi_engine=melimi_engine, knowledge="")
-    metadata = {"intent": decision.intent or understanding.get("intent"), "language": decision.language,
-                "understanding": understanding, "response_length": response_length}
+    prompt = build_prompt(
+        mode=decision.mode,
+        language=decision.language,
+        conversation=conversation,
+        linguistics=linguistic_text if decision.use_melimi else "",
+        memory=memory,
+        grammar=grammar,
+        plan=plan,
+        melimi_engine=melimi_engine,
+        knowledge="",
+    )
+    metadata = {
+        "intent": decision.intent or understanding.get("intent"),
+        "language": decision.language,
+        "understanding": understanding,
+        "response_length": response_length,
+        "prompt": prompt_metadata(CHAT_PROMPT, knowledge_version=knowledge_version),
+    }
     return decision, prompt, metadata
