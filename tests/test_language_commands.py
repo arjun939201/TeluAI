@@ -1,28 +1,37 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.server import app
 from app import database as db
 
 
+def _remove_root(standard: str) -> None:
+    with db.SessionLocal() as session:
+        row = session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == standard))
+        if row is not None:
+            session.delete(row)
+            session.commit()
+
+
 def test_explicit_word_command_is_master_and_normal_mapping_is_ignored():
+    standard = "ద్వేషస్పదం"
+    _remove_root(standard)
     with TestClient(app) as client:
         guest = client.post("/auth/guest", json={"username": "command_guest", "password": "strong-pass-123"})
         assert guest.status_code == 200, guest.text
 
-        normal = client.post("/chat", json={"message": "ద్వేషస్పదం = కంటుపాదు", "mode": "melimi"})
+        normal = client.post("/chat", json={"message": f"{standard} = కంటుపాదు", "mode": "melimi"})
         # A normal mapping is not a language command. In CI no Groq token is
-        # configured, so the request may legitimately fail with the provider
-        # configuration status; the important invariant is that it must not
-        # silently promote the mapping into MASTER language data.
+        # configured, so the request may legitimately fail with provider
+        # configuration status; it must not silently promote the mapping.
         assert normal.status_code in {200, 502, 503}, normal.text
         with db.SessionLocal() as session:
-            assert session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == "ద్వేషస్పదం")) is None
+            assert session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == standard)) is None
 
-        command = client.post("/chat", json={"message": "/word ద్వేషస్పదం = కంటుపాదు", "mode": "melimi"})
+        command = client.post("/chat", json={"message": f"/word {standard} = కంటుపాదు", "mode": "melimi"})
         assert command.status_code == 200, command.text
         assert "MASTER" in command.json()["reply"]
         with db.SessionLocal() as session:
-            row = session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == "ద్వేషస్పదం"))
+            row = session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == standard))
             assert row is not None
             assert row.melimi_root == "కంటుపాదు"
             assert row.status == "MASTER"
