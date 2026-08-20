@@ -12,7 +12,7 @@ def _remove_root(standard: str) -> None:
             session.commit()
 
 
-def test_explicit_word_command_is_master_and_normal_mapping_is_ignored():
+def test_explicit_word_command_is_queued_for_regular_users():
     standard = "ద్వేషస్పదం"
     _remove_root(standard)
     with TestClient(app) as client:
@@ -20,24 +20,26 @@ def test_explicit_word_command_is_master_and_normal_mapping_is_ignored():
         assert guest.status_code == 200, guest.text
 
         normal = client.post("/chat", json={"message": f"{standard} = కంటుపాదు", "mode": "melimi"})
-        # A normal mapping is not a language command. In CI no Groq token is
-        # configured, so the request may legitimately fail with provider
-        # configuration status; it must not silently promote the mapping.
         assert normal.status_code in {200, 502, 503}, normal.text
         with db.SessionLocal() as session:
             assert session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == standard)) is None
 
         command = client.post("/chat", json={"message": f"/word {standard} = కంటుపాదు", "mode": "melimi"})
         assert command.status_code == 200, command.text
-        assert "MASTER" in command.json()["reply"]
+        assert "PENDING" in command.json()["reply"]
         with db.SessionLocal() as session:
             row = session.scalar(db.select(db.MelimiRoot).where(db.MelimiRoot.standard_root == standard))
-            assert row is not None
-            assert row.melimi_root == "కంటుపాదు"
-            assert row.status == "MASTER"
+            assert row is None
+            candidate = session.scalar(
+                db.select(db.LearningCandidate)
+                .where(db.LearningCandidate.knowledge_type == "ROOT")
+                .order_by(db.LearningCandidate.id.desc())
+            )
+            assert candidate is not None
+            assert candidate.status == "PENDING"
 
 
-def test_explicit_content_command_is_master():
+def test_explicit_content_command_is_queued_for_regular_users():
     with TestClient(app) as client:
         guest = client.post("/auth/guest", json={"username": "content_command_guest", "password": "strong-pass-123"})
         assert guest.status_code == 200, guest.text
@@ -46,5 +48,11 @@ def test_explicit_content_command_is_master():
         assert response.status_code == 200, response.text
         with db.SessionLocal() as session:
             row = session.scalar(db.select(db.KnowledgeEntry).where(db.KnowledgeEntry.kind == "CONTENT", db.KnowledgeEntry.value == text))
-            assert row is not None
-            assert row.status == "MASTER"
+            assert row is None
+            candidate = session.scalar(
+                db.select(db.LearningCandidate)
+                .where(db.LearningCandidate.knowledge_type == "CONTENT")
+                .order_by(db.LearningCandidate.id.desc())
+            )
+            assert candidate is not None
+            assert candidate.status == "PENDING"
