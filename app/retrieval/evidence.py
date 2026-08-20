@@ -26,12 +26,7 @@ _STATUS_AUTHORITY = {
 
 @dataclass(frozen=True)
 class KnowledgeEvidence:
-    """One traceable piece of language evidence.
-
-    The evidence object deliberately keeps authority separate from confidence:
-    a model can be highly confident about a guess, but that guess is still not
-    language authority until it is published in Language Space.
-    """
+    """One traceable piece of language evidence."""
 
     source: str
     status: str
@@ -56,7 +51,9 @@ class KnowledgeEvidence:
 
     @property
     def evidence_id(self) -> str:
-        return self.source_id or f"{self.source_type}:{self.source}"
+        if self.source_id:
+            return f"{self.source_type}:{self.source_id}" if self.source_type else self.source_id
+        return f"{self.source_type}:{self.source}"
 
 
 @dataclass(frozen=True)
@@ -136,16 +133,10 @@ def _lexical_score(query: str, payload: dict[str, Any]) -> float:
     return score
 
 
-def rank_evidence(
-    entries: Iterable[dict[str, Any]],
-    query: str,
-    knowledge_version: int,
-    limit: int = 16,
-) -> EvidenceSet:
+def rank_evidence(entries: Iterable[dict[str, Any]], query: str, knowledge_version: int, limit: int = 16) -> EvidenceSet:
     """Rank retrieved records without allowing weak evidence to become authority."""
     ranked: list[KnowledgeEvidence] = []
     current_version = int(knowledge_version or 0)
-
     for entry in entries:
         payload = dict(entry.get("entry") or entry)
         source = str(entry.get("source") or payload.get("source") or "unknown")
@@ -155,52 +146,31 @@ def rank_evidence(
         lexical = _lexical_score(query, payload)
         if lexical <= 0:
             continue
-
         semantic = _bounded(payload.get("semantic_score", payload.get("semantic_match", 0.0)))
         grammatical = _bounded(payload.get("grammatical_score", payload.get("grammatical_match", 0.0)))
         contextual = _bounded(payload.get("contextual_score", payload.get("contextual_match", 0.0)))
         freshness = 1.0 if version == current_version else max(0.0, 1.0 - min(abs(current_version - version), 10) / 10)
         authority_factor = authority / 100.0
-        confidence = max(
-            0.0,
-            min(
-                1.0,
-                authority_factor * 0.65
-                + min(lexical / 100.0, 0.20)
-                + semantic * 0.05
-                + grammatical * 0.05
-                + contextual * 0.05,
-            ),
-        )
-        relevance = (
-            authority * 2.0
-            + lexical
-            + semantic * 20.0
-            + grammatical * 15.0
-            + contextual * 15.0
-            + freshness * 5.0
-        )
-        ranked.append(
-            KnowledgeEvidence(
-                source=source,
-                status=status,
-                authority=authority,
-                confidence=confidence,
-                version=version,
-                kind=str(entry.get("kind") or payload.get("kind") or "other"),
-                payload=payload,
-                source_id=str(entry.get("source_id") or payload.get("id") or ""),
-                source_type=str(entry.get("source_type") or payload.get("source_type") or "language_space"),
-                provenance=str(entry.get("provenance") or payload.get("provenance") or source),
-                lexical_score=lexical,
-                semantic_score=semantic,
-                grammatical_score=grammatical,
-                contextual_score=contextual,
-                freshness_score=freshness,
-                relevance_score=relevance,
-            )
-        )
-
+        confidence = max(0.0, min(1.0, authority_factor * 0.65 + min(lexical / 100.0, 0.20) + semantic * 0.05 + grammatical * 0.05 + contextual * 0.05))
+        relevance = authority * 2.0 + lexical + semantic * 20.0 + grammatical * 15.0 + contextual * 15.0 + freshness * 5.0
+        ranked.append(KnowledgeEvidence(
+            source=source,
+            status=status,
+            authority=authority,
+            confidence=confidence,
+            version=version,
+            kind=str(entry.get("kind") or payload.get("kind") or "other"),
+            payload=payload,
+            source_id=str(entry.get("source_id") or payload.get("id") or ""),
+            source_type=str(entry.get("source_type") or payload.get("source_type") or "language_space"),
+            provenance=str(entry.get("provenance") or payload.get("provenance") or source),
+            lexical_score=lexical,
+            semantic_score=semantic,
+            grammatical_score=grammatical,
+            contextual_score=contextual,
+            freshness_score=freshness,
+            relevance_score=relevance,
+        ))
     ranked.sort(key=lambda item: (-item.authority, -item.relevance_score, -item.lexical_score, item.source))
     ranked = ranked[: max(1, min(limit, 50))]
     sufficient = any(item.authoritative and item.lexical_score > 0 for item in ranked)
@@ -210,24 +180,14 @@ def rank_evidence(
 
 def format_evidence(evidence: EvidenceSet, max_chars: int = 5000) -> str:
     if evidence.insufficient:
-        return (
-            "INSUFFICIENT_LANGUAGE_EVIDENCE: no authoritative language evidence was retrieved. "
-            "Do not invent a Melimi fact."
-        )
-    lines = [
-        f"LANGUAGE EVIDENCE (knowledge_version={evidence.knowledge_version}):",
-        "Authority order: MASTER > VERIFIED > APPROVED > PROPOSED > MODEL_KNOWLEDGE > UNKNOWN.",
-        f"Evidence state: {evidence.reason}.",
-    ]
+        return "INSUFFICIENT_LANGUAGE_EVIDENCE: no authoritative language evidence was retrieved. Do not invent a Melimi fact."
+    lines = [f"LANGUAGE EVIDENCE (knowledge_version={evidence.knowledge_version}):", "Authority order: MASTER > VERIFIED > APPROVED > PROPOSED > MODEL_KNOWLEDGE > UNKNOWN.", f"Evidence state: {evidence.reason}."]
     for item in evidence.items:
         payload = item.payload
         standard = str(payload.get("standard", "")).strip()
         melimi = str(payload.get("melimi", "")).strip()
         description = f"{standard} → {melimi}" if (standard or melimi) else str(payload.get("content") or payload.get("value") or "").strip()
-        lines.append(
-            f"- [{item.status}] authority={item.authority.name} confidence={item.confidence:.2f} "
-            f"source={item.source} version={item.version}: {description}"
-        )
+        lines.append(f"- [{item.status}] authority={item.authority.name} confidence={item.confidence:.2f} source={item.source} version={item.version}: {description}")
         if len("\n".join(lines)) >= max_chars:
             break
     return "\n".join(lines)[:max_chars]
