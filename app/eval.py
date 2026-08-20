@@ -37,11 +37,30 @@ def _check_authority(case: dict[str, Any]) -> bool:
     return bool(result.sufficient) == bool(case.get("expected_sufficient", False))
 
 
+def _retrieval_metrics(case: dict[str, Any]) -> tuple[float, float, list[str]] | None:
+    expected = {str(item) for item in (case.get("expected_evidence_ids") or []) if str(item)}
+    if not expected:
+        return None
+    result = rank_evidence(
+        case.get("entries") or [],
+        str(case.get("query", "")),
+        int(case.get("knowledge_version", 0)),
+        limit=int(case.get("retrieval_limit", 5)),
+    )
+    returned = [item.evidence_id for item in result.items]
+    hit = expected.intersection(returned)
+    precision = len(hit) / len(returned) if returned else 0.0
+    recall = len(hit) / len(expected)
+    return precision, recall, returned
+
+
 def run() -> dict[str, Any]:
     cases = json.loads(CASES.read_text(encoding="utf-8"))
     intent_total = intent_pass = language_total = language_pass = mode_total = mode_pass = 0
     morphology_total = morphology_pass = unsupported_total = unsupported_pass = 0
     authority_total = authority_pass = 0
+    retrieval_precision_sum = retrieval_recall_sum = 0.0
+    retrieval_cases = 0
     failures: list[dict[str, Any]] = []
     state = from_history([])
 
@@ -89,6 +108,15 @@ def run() -> dict[str, Any]:
                 authority_pass += 1
             else:
                 failures.append({"id": case_id, "metric": "authority", "expected": case["expected_sufficient"], "actual": "opposite"})
+        retrieval = _retrieval_metrics(case)
+        if retrieval is not None:
+            precision, recall, returned = retrieval
+            retrieval_cases += 1
+            retrieval_precision_sum += precision
+            retrieval_recall_sum += recall
+            expected = {str(item) for item in case.get("expected_evidence_ids", [])}
+            if not expected.intersection(returned):
+                failures.append({"id": case_id, "metric": "retrieval", "expected": sorted(expected), "actual": returned})
 
     return {
         "cases": len(cases),
@@ -98,8 +126,8 @@ def run() -> dict[str, Any]:
         "melimi_morphology_accuracy": _pct(morphology_pass, morphology_total),
         "unsupported_rejection_accuracy": _pct(unsupported_pass, unsupported_total),
         "authority_adherence": _pct(authority_pass, authority_total),
-        "retrieval_precision": None,
-        "retrieval_recall": None,
+        "retrieval_precision": round(100.0 * retrieval_precision_sum / retrieval_cases, 2) if retrieval_cases else None,
+        "retrieval_recall": round(100.0 * retrieval_recall_sum / retrieval_cases, 2) if retrieval_cases else None,
         "hallucination_rate": None,
         "latency_ms": None,
         "token_efficiency": None,
@@ -111,6 +139,7 @@ def run() -> dict[str, Any]:
             "morphology_cases": morphology_total,
             "unsupported_cases": unsupported_total,
             "authority_cases": authority_total,
+            "retrieval_cases": retrieval_cases,
         },
         "note": "Metrics without deterministic offline ground truth are reported as null, never fabricated. LLM quality, latency and token metrics require a provider-backed evaluation run.",
     }
