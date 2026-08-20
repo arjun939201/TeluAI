@@ -1,13 +1,16 @@
-"""Install chat-learning and lightweight agent orchestration before FastAPI imports."""
+"""Optional chat-learning helpers without implicit authority mutation.
+
+Ordinary conversation is runtime input, not a language-authority publication
+channel. Authoritative Melimi changes must arrive through explicit language
+commands and the reviewed/publication workflow. This module therefore keeps
+the advisory tool helpers available but deliberately does not monkey-patch
+FastAPI, ``local_answer`` or prompt construction.
+"""
 from __future__ import annotations
 
-from contextvars import ContextVar
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import Callable
-
-_CURRENT_MESSAGE: ContextVar[str] = ContextVar("teluai_chat_learning_message", default="")
-_CURRENT_ROUTE: ContextVar[str] = ContextVar("teluai_agent_route", default="general")
 
 
 @dataclass(frozen=True)
@@ -33,7 +36,7 @@ def _explicit_melimi_request(text: str) -> bool:
 
 
 def route_request(message: str, mode: str) -> str:
-    """Choose the smallest useful execution path without forcing Telugu through Melimi."""
+    """Choose the smallest useful execution path without mutating authority."""
     if mode == "melimi":
         return "melimi"
     if mode == "standard":
@@ -96,12 +99,12 @@ TOOLS = (
     AgentTool("lookup_word", "Look up exact established lexical mappings.", _lookup_word),
     AgentTool("lookup_grammar_rule", "Retrieve grammar evidence for grammar/morphology questions.", _lookup_grammar),
     AgentTool("find_examples", "Retrieve relevant corpus examples.", _find_examples),
-    AgentTool("ai_linguistics", "Use general AI linguistic knowledge constrained by authoritative Melimi roots and grammar to analyze/generate morphology.", _ai_linguistics),
+    AgentTool("ai_linguistics", "Use general AI linguistic knowledge only as advisory analysis.", _ai_linguistics),
 )
 
 
 def run_agent_tools(message: str, route: str, max_chars: int = 12000) -> str:
-    """Run relevant Melimi tools; AI proposals are explicitly advisory data."""
+    """Run advisory Melimi tools; their output is never published automatically."""
     if route != "melimi":
         return ""
     parts = []
@@ -122,42 +125,9 @@ def run_agent_tools(message: str, route: str, max_chars: int = 12000) -> str:
 
 
 def install() -> None:
-    from app import local_answer, prompts
-    if getattr(local_answer, "_chat_learning_installed", False):
-        return
-    original_answer = local_answer.answer
-    original_build_prompt = prompts.build_prompt
+    """Compatibility hook retained without import-time monkey patching.
 
-    def learned_answer(message: str, mode: str):
-        _CURRENT_MESSAGE.set(str(message or ""))
-        _CURRENT_ROUTE.set(route_request(str(message or ""), mode))
-        if mode == "melimi":
-            try:
-                from app.chat_learning import learn_from_chat
-                learn_from_chat(message)
-            except Exception:
-                pass
-        result = original_answer(message, mode)
-        if result and "".join(str(result).split()).casefold() == "".join(str(message).split()).casefold():
-            return None
-        return result
-
-    def learned_build_prompt(*args, **kwargs):
-        message = _CURRENT_MESSAGE.get()
-        route = _CURRENT_ROUTE.get()
-        if message and route == "melimi":
-            try:
-                from app.chat_learning import retrieve_chat_knowledge
-                learned = retrieve_chat_knowledge(message)
-            except Exception:
-                learned = ""
-            agent_evidence = run_agent_tools(message, route)
-            combined = "\n\n".join(x for x in (str(learned).strip(), agent_evidence.strip()) if x)
-            if combined:
-                existing = str(kwargs.get("knowledge") or "").strip()
-                kwargs["knowledge"] = (existing + "\n" + combined).strip()
-        return original_build_prompt(*args, **kwargs)
-
-    local_answer.answer = learned_answer
-    prompts.build_prompt = learned_build_prompt
-    local_answer._chat_learning_installed = True
+    Runtime composition is explicit in ``app.server``. Ordinary conversation
+    must never call ``learn_from_chat`` or mutate MASTER language data.
+    """
+    return None
