@@ -68,7 +68,7 @@ def _case_candidate(surface,roots):
         if surface.endswith(surface_suffix):
             candidate=surface[:-len(surface_suffix)]+"ం"
             if candidate in roots:return candidate,(("case",case_name),)
-    singular_cases={"ను":ACCUSATIVE,"కు":DATIVE,"కి":DATIVE,"తో":INSTRUMENTAL,"లో":LOCATIVE,"పై":LOCATIVE}
+    singular_cases={"ను":ACCUSATIVE,"ని":ACCUSATIVE,"కు":DATIVE,"కి":DATIVE,"తో":INSTRUMENTAL,"లో":LOCATIVE,"పై":LOCATIVE}
     for suffix,case_name in sorted(singular_cases.items(),key=lambda item:len(item[0]),reverse=True):
         if surface.endswith(suffix):
             base=surface[:-len(suffix)]
