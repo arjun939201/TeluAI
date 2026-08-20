@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from sqlalchemy import inspect, text
 
 MIGRATIONS = [
@@ -26,7 +27,12 @@ def _column_exists(conn, table: str, column: str) -> bool:
 
 def _apply_registered_migrations(engine):
     with engine.begin() as conn:
-        conn.execute(text("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"))
+        conn.execute(
+            text(
+                "CREATE TABLE IF NOT EXISTS schema_migrations "
+                "(version INTEGER PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+            )
+        )
         applied = {row[0] for row in conn.execute(text("SELECT version FROM schema_migrations"))}
         for version, statements in MIGRATIONS:
             if version in applied:
@@ -39,31 +45,23 @@ def _apply_registered_migrations(engine):
                     if _column_exists(conn, "learning_candidates", "review_note"):
                         continue
                 conn.execute(text(statement))
-            conn.execute(text("INSERT INTO schema_migrations(version) VALUES (:version)"), {"version": version})
+            conn.execute(
+                text("INSERT INTO schema_migrations(version) VALUES (:version)"),
+                {"version": version},
+            )
 
 
 def run_migrations():
+    """Create/update database schema only.
+
+    Runtime route registration, middleware composition and application wiring
+    belong to the ASGI composition boundary, not the migration layer.
+    """
     from app.database import Base, engine, UserSetting
+
     Base.metadata.create_all(engine)
     _apply_registered_migrations(engine)
     try:
         UserSetting.__table__.c.preferred_mode.default.arg = "auto"
     except Exception:
         pass
-    from app.language_space import install_routes as install_language_space
-    from app.chat_learning import install_chat_learning
-    from app.melimi.registration_routes import install_routes as install_registration_routes
-    from app.main import app
-    install_chat_learning()
-    if not getattr(app.state, "language_space_installed", False):
-        install_language_space(app)
-        app.state.language_space_installed = True
-    install_registration_routes(app)
-    if not getattr(app.state, "chat_overhaul_installed", False):
-        from app.chat.middleware import ChatOverrideMiddleware
-        # Starlette builds middleware_stack before lifespan. Resetting the lazy
-        # stack here is safe during startup and lets the compatibility layer be
-        # installed without changing the application factory in main.py.
-        app.middleware_stack = None
-        app.add_middleware(ChatOverrideMiddleware)
-        app.state.chat_overhaul_installed = True
