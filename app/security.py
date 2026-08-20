@@ -81,9 +81,14 @@ def session_fingerprint(request: Request):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Rate-limit non-chat endpoints.
+
+    Chat has a canonical limiter in ``app.chat.middleware``. Keeping chat out
+    of this second layer prevents each /chat request from consuming two slots
+    from the same in-process window.
+    """
+
     RULES = (
-        ("/chat", 30, 60),
-        ("/chat/stream", 30, 60),
         ("/auth/login", 10, 60),
         ("/auth/register", 6, 300),
         ("/auth/guest", 6, 300),
@@ -108,13 +113,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if rule:
             route, limit, window = rule
             identity = client_identifier(request)
-
-            if route.startswith("/chat"):
-                identity = (
-                    f"{identity}:"
-                    f"{session_fingerprint(request)}"
-                )
-
             allowed, retry = RATE_LIMITER.check(
                 f"{route}:{identity}",
                 limit,
@@ -142,22 +140,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
 
-        # Prevent MIME-type sniffing.
         response.headers.setdefault(
             "X-Content-Type-Options",
             "nosniff",
         )
-
-        # IMPORTANT:
-        # Do NOT use X-Frame-Options: SAMEORIGIN here.
-        #
-        # The app is hosted on:
-        # https://teluai.onrender.com
-        #
-        # but is embedded by:
-        # https://teluai.github.io
-        #
-        # SAMEORIGIN would block that iframe.
 
         response.headers.setdefault(
             "Referrer-Policy",
@@ -169,7 +155,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "camera=(), microphone=(), geolocation=()",
         )
 
-        # Allow the GitHub Pages site to embed this application.
         response.headers.setdefault(
             "Content-Security-Policy",
             (
