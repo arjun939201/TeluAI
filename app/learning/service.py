@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.database import AuditLog, LearningCandidate, SessionLocal, add_learning_candidate, now
-from app.language.publication import PublicationConflict, publish_root_candidate
+from app.language_publication import PublicationConflict, publish_root_candidate
 from app.melimi.content_store import review_candidate as review_content_candidate
 
 
