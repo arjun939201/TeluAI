@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import select
-
-from app.database import LearningCandidate, SessionLocal, add_learning_candidate, review_candidate as review_root_candidate
+from app.database import AuditLog, LearningCandidate, SessionLocal, add_learning_candidate, now
+from app.language_publication import PublicationConflict, publish_root_candidate
 from app.melimi.content_store import review_candidate as review_content_candidate
 
 
@@ -51,7 +51,84 @@ def submit_command_candidate(kind: str, payload: dict[str, Any], raw_text: str, 
     return LearningSubmission(candidate_id=candidate_id, knowledge_type=knowledge_type)
 
 
-def review_learning_candidate(candidate_id: int, approve: bool, reviewer_note: str = "", reviewer_id: int | None = None):
+def _review_root_candidate(
+    candidate_id: int,
+    approve: bool,
+    reviewer_note: str,
+    reviewer_id: int | None,
+):
+    with SessionLocal() as db:
+        candidate = db.get(LearningCandidate, candidate_id)
+        if candidate is None:
+            return None
+        if candidate.status != "PENDING":
+            return {"id": candidate.id, "status": candidate.status, "payload": json.loads(candidate.payload_json or "{}")}
+
+        payload = json.loads(candidate.payload_json or "{}")
+        if approve:
+            try:
+                return publish_root_candidate(
+                    db,
+                    candidate,
+                    payload,
+                    reviewer_id=reviewer_id,
+                    reviewer_note=reviewer_note,
+                )
+            except PublicationConflict as exc:
+                candidate.status = "CONFLICT"
+                candidate.reviewed_at = now()
+                candidate.reviewer_user_id = reviewer_id
+                candidate.review_note = reviewer_note[:10000]
+                db.add(
+                    AuditLog(
+                        actor_user_id=reviewer_id,
+                        action="language.publish_conflict",
+                        target_type="learning_candidate",
+                        target_id=str(candidate.id),
+                        details_json=json.dumps(
+                            {
+                                "candidate_id": candidate.id,
+                                "existing_melimi": exc.existing_melimi,
+                                "payload": payload,
+                            },
+                            ensure_ascii=False,
+                        ),
+                    )
+                )
+                db.commit()
+                return {
+                    "id": candidate.id,
+                    "status": "CONFLICT",
+                    "payload": payload,
+                    "existing_melimi": exc.existing_melimi,
+                }
+
+        candidate.status = "REJECTED"
+        candidate.reviewed_at = now()
+        candidate.reviewer_user_id = reviewer_id
+        candidate.review_note = reviewer_note[:10000]
+        db.add(
+            AuditLog(
+                actor_user_id=reviewer_id,
+                action="language.reject",
+                target_type="learning_candidate",
+                target_id=str(candidate.id),
+                details_json=json.dumps(
+                    {"candidate_id": candidate.id, "payload": payload, "review_note": reviewer_note[:10000]},
+                    ensure_ascii=False,
+                ),
+            )
+        )
+        db.commit()
+        return {"id": candidate.id, "status": "REJECTED", "payload": payload}
+
+
+def review_learning_candidate(
+    candidate_id: int,
+    approve: bool,
+    reviewer_note: str = "",
+    reviewer_id: int | None = None,
+):
     with SessionLocal() as db:
         candidate = db.get(LearningCandidate, candidate_id)
         if candidate is None:
@@ -59,11 +136,5 @@ def review_learning_candidate(candidate_id: int, approve: bool, reviewer_note: s
         kind = candidate.knowledge_type
 
     if kind in {"CONTENT", "LANGUAGE_PACKAGE"}:
-        result = review_content_candidate(candidate_id, approve, reviewer_note)
-    else:
-        result = review_root_candidate(candidate_id, approve, reviewer_note, reviewer_id)
-
-    if result is None:
-        return None
-
-    return result
+        return review_content_candidate(candidate_id, approve, reviewer_note)
+    return _review_root_candidate(candidate_id, approve, reviewer_note, reviewer_id)
