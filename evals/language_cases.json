@@ -13,7 +13,7 @@
   {"id":"melimi-01","text":"మేలిమి తెలుగు పదం చెప్పు","expected_mode":"melimi"},
   {"id":"morphology-lemma-01","source":"నదులు","roots":{"నది":"ఏరు"},"expected":"ఏరులు"},
   {"id":"morphology-case-dative-01","source":"నదికి","roots":{"నది":"ఏరు"},"expected":"ఏరుకు"},
-  {"id":"morphology-case-accusative-01","source":"నదిని","roots":{"నది":"ఏరు"},"expected":"ఏరుని"},
+  {"id":"morphology-case-accusative-01","source":"నదిని","roots":{"నది":"ఏరు"},"expected":"ఏరును"},
   {"id":"morphology-case-locative-01","source":"నదిలో","roots":{"నది":"ఏరు"},"expected":"ఏరులో"},
   {"id":"morphology-case-instrumental-01","source":"నదితో","roots":{"నది":"ఏరు"},"expected":"ఏరుతో"},
   {"id":"unsupported-01","source":"అజ్ఞాతపదం","roots":{"నది":"ఏరు"},"check_unsupported_preservation":true},
