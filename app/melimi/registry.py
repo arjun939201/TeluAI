@@ -14,10 +14,7 @@ def _values(entry,keys):
         elif isinstance(v,str) and v.strip(): out.append(v.strip())
     return out
 
-@lru_cache(maxsize=16)
-def lexical_inventory(version:int|None=None):
-    from app.melimi.db_subject import language_space_version
-    if version is None: version=language_space_version()
+def _build_lexical_inventory(version:int):
     registered=set(FUNCTION_WORDS); native=set(FUNCTION_WORDS); loan=set(); standard_to_melimi={}; melimi_to_standard={}; forbidden=set()
     try:
         roots=load_root_dictionary(version)
@@ -37,7 +34,22 @@ def lexical_inventory(version:int|None=None):
     except Exception: pass
     return {"registered":frozenset(registered),"native":frozenset(native),"loan":frozenset(loan),"standard_to_melimi":standard_to_melimi,"melimi_to_standard":melimi_to_standard,"forbidden_standard":frozenset(forbidden)}
 
-def reload_registry(): lexical_inventory.cache_clear()
+@lru_cache(maxsize=16)
+def _lexical_inventory_for_version(version:int):
+    return _build_lexical_inventory(int(version))
+
+def lexical_inventory(version:int|None=None):
+    """Return lexical inventory for a specific or current Language Space version.
+
+    The current version is resolved before entering the cached layer. ``None``
+    is therefore never a cache key and a newly published MASTER version cannot
+    be trapped behind the first process-local snapshot.
+    """
+    from app.melimi.db_subject import language_space_version
+    resolved_version=int(version) if version is not None else int(language_space_version())
+    return _lexical_inventory_for_version(resolved_version)
+
+def reload_registry(): _lexical_inventory_for_version.cache_clear()
 def audit_response(text):
     inv=lexical_inventory(); out=[]
     for w in tokenize(text): out.append({"word":w,"registered":w in inv["registered"],"native":w in inv["native"],"loan":w in inv["loan"],"melimi_equivalent":inv["standard_to_melimi"].get(w,""),"clickable":w in inv["loan"] or w in inv["forbidden_standard"]})
