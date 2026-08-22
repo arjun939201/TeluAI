@@ -7,7 +7,7 @@ def test_chat_preparation_uses_single_application_boundary(monkeypatch):
     class User:
         id = 7
 
-    async def fake_prepare_prompt(message, mode, history, user_id, response_length="normal"):
+    def fake_prepare_prompt(message, mode, history, user_id, response_length="normal"):
         class Decision:
             use_melimi = False
             language = "telugu"
