@@ -8,11 +8,9 @@ vocabulary copies.
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 
 from app.melimi.db_subject import (
     language_affixes,
-    language_lexical_entries,
     language_rules,
     language_space_version,
 )
@@ -43,9 +41,8 @@ def _token_record(token: str, lexicon: dict) -> dict:
 def analyze(text: str, *, max_tokens: int = 80) -> dict:
     """Analyze input using the current shared Language Space.
 
-    This is intentionally deterministic and read-only. It gives the AI a
-    compact linguistic representation for understanding; it does not replace
-    semantic reasoning performed by the model.
+    This is deterministic and read-only. It gives the AI a compact linguistic
+    representation for understanding; it does not replace semantic reasoning.
     """
     text = (text or "").strip()
     lexicon = subject_lexicon()
