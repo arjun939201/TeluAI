@@ -1,14 +1,10 @@
-"""Deterministic answers for tiny, high-confidence Melimi knowledge queries.
-
-These avoid spending a Groq request on questions whose answer is already an
-explicit part of the authoritative language contract.
-"""
+"""Deterministic high-confidence answers for the Melimi runtime."""
 
 import re
 
 
 def _key(text: str) -> str:
-    return re.sub(r"\s+", " ", (text or "").strip().lower())
+    return re.sub(r"\s+", " ", (text or "").strip().casefold())
 
 
 MELIMI_DEFINITION = (
@@ -18,11 +14,21 @@ MELIMI_DEFINITION = (
     "పాటు కొనసాగుతుంది."
 )
 
+GREETING = "నమస్కారం, ఏవైనా ఆసక్తికరమైన విషయాలు పంచుకోవాలని అనుకుంటున్నారా?"
+
 
 def local_answer(message: str, mode: str) -> str | None:
     if mode != "melimi":
         return None
+
     key = _key(message)
+    if key in {
+        "hi", "hello", "hey", "నమస్కారం", "టేంకణం",
+    }:
+        # Keep this response in the neutral Telugu layer. The deterministic
+        # Melimi vocabulary runtime performs the established lexical rendering.
+        return GREETING
+
     if key in {
         "మేలిమి తెలుగు అంటే ఏమిటి?",
         "మేలిమి తెలుగు అంటే ఏమిటి",
@@ -30,4 +36,5 @@ def local_answer(message: str, mode: str) -> str | None:
         "మేలిమి తెలుగు ఏమిటి",
     }:
         return MELIMI_DEFINITION
+
     return None
