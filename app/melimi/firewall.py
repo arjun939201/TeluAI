@@ -4,6 +4,7 @@ from functools import lru_cache
 from app.melimi.index import build_index
 from app.melimi.root_morphology import load_root_dictionary, reduce_to_root, reapply_operations
 from app.melimi.grammar import is_non_am_ending_melimi
+from app.melimi.vocabulary_runtime import convert_text
 
 TOKEN_RE=re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 _STANDARD_KEYS=("standard","standard_or_source","source_word")
@@ -69,4 +70,7 @@ def deterministic_repair(text):
     def replace(match):
         result=_match_root(match.group(0),lex["forbidden"],lex.get("adjective_capable"))
         return result[2] if result else match.group(0)
-    return TOKEN_RE.sub(replace,text)
+    repaired=TOKEN_RE.sub(replace,text)
+    # Apply the explicit runtime vocabulary contract after the corpus-backed
+    # morphology firewall. Unknown words remain untouched.
+    return convert_text(repaired)
