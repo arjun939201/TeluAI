@@ -47,7 +47,7 @@ jobs:
             echo "Found PR #$PR_NUMBER."
           fi
 
-      - name: Ask OpenAI for failure diagnosis
+      - name: Diagnose failure
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
@@ -56,6 +56,7 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import urllib.error
           import urllib.request
 
           with open("ci.log", "r", encoding="utf-8", errors="replace") as f:
@@ -65,16 +66,9 @@ jobs:
 
 Analyze the failed GitHub Actions run below.
 
-Your job is to:
-1. Identify the first/root failure rather than merely repeating downstream failures.
-2. Identify the affected file/module/test when possible.
-3. Explain why the current implementation fails.
-4. Give the smallest safe code change needed to fix it.
-5. Mention regression risk.
-6. Do not claim that a fix was applied; this workflow only reports the diagnosis.
-7. Preserve TeluAI's existing architecture and deterministic Melimi language authority.
+Identify the first/root failure, affected file/module/test, why it fails, the smallest safe fix, and regression risk. Preserve TeluAI's existing architecture and deterministic Melimi language authority.
 
-Return concise Markdown with these headings:
+Return concise Markdown with exactly these headings:
 ## Root cause
 ## Evidence
 ## Recommended fix
@@ -83,6 +77,27 @@ Return concise Markdown with these headings:
 FAILED CI LOG:
 {logs}
 """
+
+          api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+          if not api_key:
+              with open("diagnosis.md", "w", encoding="utf-8") as f:
+                  f.write("""## Root cause
+
+The failed CI run was collected, but `OPENAI_API_KEY` is not configured for the ChatGPT CI Helper.
+
+## Evidence
+
+The helper can read the failed run using the GitHub Actions token, but no OpenAI API credential is available.
+
+## Recommended fix
+
+Configure the repository secret `OPENAI_API_KEY`. Optionally configure `OPENAI_MODEL`. The helper should not block the main TeluAI CI pipeline.
+
+## Regression risk
+
+None to the application; this workflow only reports CI failures.
+""")
+              raise SystemExit(0)
 
           payload = {
               "model": os.environ.get("OPENAI_MODEL") or "gpt-4.1-mini",
@@ -93,13 +108,34 @@ FAILED CI LOG:
               "https://api.openai.com/v1/responses",
               data=json.dumps(payload).encode("utf-8"),
               headers={
-                  "Authorization": "Bearer " + os.environ["OPENAI_API_KEY"],
+                  "Authorization": "Bearer " + api_key,
                   "Content-Type": "application/json",
               },
               method="POST",
           )
-          with urllib.request.urlopen(request, timeout=90) as response:
-              data = json.load(response)
+
+          try:
+              with urllib.request.urlopen(request, timeout=90) as response:
+                  data = json.load(response)
+          except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+              with open("diagnosis.md", "w", encoding="utf-8") as f:
+                  f.write(f"""## Root cause
+
+The CI failure diagnosis service could not be reached.
+
+## Evidence
+
+OpenAI API request failed: `{type(exc).__name__}`.
+
+## Recommended fix
+
+Inspect the failed TeluAI CI run directly and restore the OpenAI API credential/service before relying on automated diagnosis.
+
+## Regression risk
+
+None to the application; this workflow does not modify source code.
+""")
+              raise SystemExit(0)
 
           text = data.get("output_text", "").strip()
           if not text:
