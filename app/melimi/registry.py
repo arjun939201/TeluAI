@@ -2,6 +2,7 @@ import re
 from functools import lru_cache
 from app.melimi.root_morphology import load_root_dictionary, reduce_to_root, reapply_operations
 from app.melimi.linguistic_model import analyze_surface, transform_surface
+from app.melimi.word_formation import derive_many
 
 TOKEN_RE = re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 FUNCTION_WORDS = {"నేను","నాకు","నా","నువ్వు","నీ","నీకు","మీరు","మీకు","అతను","ఆమె","వారు","ఇది","అది","ఇవి","అవి","ఏమి","ఏం","ఏంటి","ఎలా","ఎందుకు","ఎక్కడ","ఎప్పుడు","ఎవరు","ఎంత","ఎన్ని","ఒక","మరియు","లేదా","కానీ","అయితే","కూడా","మాత్రం","ఇంకా","ఇప్పుడు","అప్పుడు","ఇక్కడ","అక్కడ","లో","కు","కి","తో","నుండి","నుంచి","పై","కింద","కోసం","వల్ల","గురించి","మధ్య","లా","గా","అని","అంటే","లేదు","లేను","లేవు","కాదు","వద్దు","ఉంది","ఉన్న","ఉన్నారు","ఉన్నాను","ఉన్నావు","చెప్పు","చెప్పండి","రా","రండి","వెళ్లు","వెళ్లి","చేయి","చేయండి","అవును","సరే","హా","హాయ్"}
@@ -69,7 +70,6 @@ def _lexical_inventory_for_version(version: int):
 
 
 def lexical_inventory(version: int | None = None):
-    """Return lexical inventory for a specific or current Language Space version."""
     from app.melimi.db_subject import language_space_version
     resolved_version = int(version) if version is not None else int(language_space_version())
     return _lexical_inventory_for_version(resolved_version)
@@ -84,12 +84,6 @@ def _clean_word(word: str) -> str:
 
 
 def lookup_word(word: str, version: int | None = None) -> dict:
-    """Perform a deterministic lexical lookup before morphology is attempted.
-
-    Exact Language Space evidence wins. This prevents a known lexical item from
-    being treated as an invented morphological form merely because it happens
-    to resemble a root or suffix pattern.
-    """
     clean = _clean_word(word)
     inv = lexical_inventory(version)
     standard_target = inv["standard_to_melimi"].get(clean, "")
@@ -111,10 +105,7 @@ def lookup_word(word: str, version: int | None = None) -> dict:
 
 def audit_response(text):
     inv = lexical_inventory()
-    out = []
-    for w in tokenize(text):
-        out.append({"word": w, "registered": w in inv["registered"], "native": w in inv["native"], "loan": w in inv["loan"], "melimi_equivalent": inv["standard_to_melimi"].get(w, ""), "clickable": w in inv["loan"] or w in inv["forbidden_standard"]})
-    return out
+    return [{"word": w, "registered": w in inv["registered"], "native": w in inv["native"], "loan": w in inv["loan"], "melimi_equivalent": inv["standard_to_melimi"].get(w, ""), "clickable": w in inv["loan"] or w in inv["forbidden_standard"]} for w in tokenize(text)]
 
 
 def strict_violations(text):
@@ -131,6 +122,7 @@ def analyze_word(word):
     transformed = transform_surface(clean, roots)
     mel = inv["standard_to_melimi"].get(analysis.root, "")
     target = transformed.target_surface if transformed.status != "UNSUPPORTED" else mel
+    formations = [item.as_dict() for item in derive_many(analysis.root, limit=40)] if analysis.root in roots else []
     return {
         "word": word,
         "normalized": clean,
@@ -143,4 +135,5 @@ def analyze_word(word):
         "operations": [{"kind": k, "suffix": s} for k, s in analysis.operations],
         "features": analysis.features.as_dict(),
         "transformation": transformed.as_dict(),
+        "authorized_formations": formations,
     }
