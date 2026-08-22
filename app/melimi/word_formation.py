@@ -15,6 +15,7 @@ from app.melimi.db_subject import language_affixes, language_roots, language_spa
 @dataclass(frozen=True)
 class FormationResult:
     root: str
+    melimi_root: str
     affix: str
     word: str
     status: str
@@ -26,6 +27,7 @@ class FormationResult:
     def as_dict(self) -> dict:
         return {
             "root": self.root,
+            "melimi_root": self.melimi_root,
             "affix": self.affix,
             "word": self.word,
             "status": self.status,
@@ -55,12 +57,9 @@ def _normalize(value: str) -> str:
 def _find_affix(affix: str, version: int) -> dict | None:
     wanted = _normalize(affix)
     for item in _affix_inventory(int(version)):
-        forms = [str(item.get("form") or "")]
-        # A Language Space record may explicitly document slash-separated
-        # variants such as "కాను/కాన్". Treat each documented variant equally.
-        for form in list(forms):
-            forms.extend(part.strip() for part in form.split("/") if part.strip())
-        if any(_normalize(form) == wanted for form in forms):
+        form = str(item.get("form") or "")
+        variants = [part.strip() for part in form.split("/") if part.strip()]
+        if any(_normalize(candidate) == wanted for candidate in variants):
             return item
     return None
 
@@ -68,16 +67,15 @@ def _find_affix(affix: str, version: int) -> dict | None:
 def derive_word(root: str, affix: str, *, version: int | None = None) -> FormationResult:
     """Derive a Melimi word using one authoritative MASTER affix.
 
-    The current implementation uses the corpus spelling operation (suffix
-    concatenation). More specialized operations can be added later as explicit
-    MASTER rules without changing this API.
+    The current operation is documented suffix concatenation. Specialized
+    spelling changes can later be introduced as explicit MASTER operations.
     """
     resolved = int(version) if version is not None else int(language_space_version())
     root = (root or "").strip()
     affix = (affix or "").strip()
 
     if not root or not affix:
-        return FormationResult(root, affix, root, "UNSUPPORTED")
+        return FormationResult(root, "", affix, root, "UNSUPPORTED")
 
     try:
         roots = language_roots()
@@ -86,23 +84,23 @@ def derive_word(root: str, affix: str, *, version: int | None = None) -> Formati
 
     canonical_root = next((r for r in roots if _normalize(r) == _normalize(root)), None)
     if canonical_root is None:
-        return FormationResult(root, affix, root, "UNKNOWN_ROOT")
+        return FormationResult(root, "", affix, root, "UNKNOWN_ROOT")
 
+    melimi_root = roots[canonical_root]
     record = _find_affix(affix, resolved)
     if record is None or str(record.get("status", "")).upper() != "MASTER":
-        return FormationResult(canonical_root, affix, canonical_root, "UNSUPPORTED_AFFIX")
+        return FormationResult(canonical_root, melimi_root, affix, melimi_root, "UNSUPPORTED_AFFIX")
 
     canonical_affix = next(
         (part.strip() for part in str(record.get("form") or "").split("/")
          if _normalize(part) == _normalize(affix)),
-        str(record.get("form") or affix).strip(),
+        affix,
     )
 
-    # Do not silently apply a non-suffix rule. The database's applies_to field
-    # remains evidence for callers and future specialized operations.
-    word = canonical_root + canonical_affix
+    word = melimi_root + canonical_affix
     return FormationResult(
         root=canonical_root,
+        melimi_root=melimi_root,
         affix=canonical_affix,
         word=word,
         status="MASTER_DERIVED",
@@ -121,7 +119,6 @@ def derive_many(root: str, *, version: int | None = None, limit: int = 50) -> li
         form = str(item.get("form") or "").strip()
         if not form:
             continue
-        # For slash variants, return each documented form independently.
         for variant in (part.strip() for part in form.split("/") if part.strip()):
             result = derive_word(root, variant, version=resolved)
             if result.status == "MASTER_DERIVED":
