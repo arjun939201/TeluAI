@@ -4,16 +4,33 @@ from functools import lru_cache
 from app.melimi.index import build_index
 from app.melimi.root_morphology import load_root_dictionary, reduce_to_root, reapply_operations
 from app.melimi.grammar import is_non_am_ending_melimi
-from app.melimi.vocabulary_runtime import convert_text
 
 TOKEN_RE=re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
 _STANDARD_KEYS=("standard","standard_or_source","source_word")
 _MELIMI_KEYS=("melimi","word","headword")
 
+# Core lexical contract lives in the existing TeluAI Melimi firewall.
+# There is intentionally no separate vocabulary runtime/engine.
+_CORE_VOCABULARY={
+    "నమస్కారం":"టేంకణం",
+    "hello":"టేంకణం",
+    "hi":"టేంకణం",
+    "ఆసక్తికరం":"హాళికాను",
+    "ఆసక్తికరమైన":"హాళికాను",
+    "interesting":"హాళికాను",
+    "విషయం":"ఎడాటం",
+    "subject":"ఎడాటం",
+    "matter":"ఎడాటం",
+}
+_PUNCTUATION=",.!?;:\u0964\u0965。！？、"
+
 def _as_list(value):
     if isinstance(value,list): return [str(x).strip() for x in value if str(x).strip()]
     if isinstance(value,str) and value.strip(): return [value.strip()]
     return []
+
+def _norm(value:str)->str:
+    return re.sub(r"\s+"," ",str(value or "").strip()).casefold()
 
 @lru_cache(maxsize=16)
 def _subject_lexicon_for_version(version:int):
@@ -34,6 +51,13 @@ def _subject_lexicon_for_version(version:int):
                     forbidden[std]=m; preferred[std]=m
                     if capable and is_non_am_ending_melimi(m): adjective_capable.add((std,m))
     except Exception: pass
+    # These are part of the core TeluAI Melimi contract, while the database
+    # remains the primary source for the larger authoritative vocabulary.
+    for source,melimi in _CORE_VOCABULARY.items():
+        if source not in forbidden:
+            forbidden[source]=melimi
+            preferred[source]=melimi
+        registered.add(melimi)
     return {"forbidden":forbidden,"preferred":preferred,"registered":registered,"adjective_capable":adjective_capable}
 
 def subject_lexicon(version:int|None=None):
@@ -68,9 +92,7 @@ def lexical_violations(text):
 def deterministic_repair(text):
     lex=subject_lexicon()
     def replace(match):
-        result=_match_root(match.group(0),lex["forbidden"],lex.get("adjective_capable"))
-        return result[2] if result else match.group(0)
-    repaired=TOKEN_RE.sub(replace,text)
-    # Apply the explicit runtime vocabulary contract after the corpus-backed
-    # morphology firewall. Unknown words remain untouched.
-    return convert_text(repaired)
+        token=match.group(0)
+        result=_match_root(token,lex["forbidden"],lex.get("adjective_capable"))
+        return result[2] if result else token
+    return TOKEN_RE.sub(replace,text)
