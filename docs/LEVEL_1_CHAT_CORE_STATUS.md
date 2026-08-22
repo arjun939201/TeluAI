@@ -2,7 +2,7 @@
 
 ## Current status
 
-The canonical chat application boundary is now established in `app/chat/application.py`.
+The canonical chat application boundary is established in `app/chat/application.py`.
 
 ### Canonical path
 
@@ -29,18 +29,18 @@ response persistence / transport
 - Streaming chat preparation uses the same application boundary.
 - Regeneration/branching reuses the same preparation path before streaming.
 - The middleware contains a compatibility `_prepare()` shim rather than a second prompt-building implementation.
-- Contract tests cover both the application boundary and middleware delegation.
-- CI #428 passed the complete test suite and offline language evaluation for the corrected contract.
+- Contract tests cover the application boundary and middleware delegation.
+- Runtime transport tests cover JSON completion and streaming responses with a mocked provider.
+- Message editing is verified as persistence-only and does not invoke AI preparation.
+- Regeneration is verified to branch the conversation and route the resulting turn through the streaming handler.
+- CI #431 passed the complete test suite and offline language evaluation for the canonical transport boundary.
 
 ## Remaining Level 1 work
 
-1. Add production-style JSON chat integration coverage.
-2. Add streaming chat integration coverage.
-3. Add regeneration/branch integration coverage.
-4. Verify message editing remains persistence-only and does not create a second AI orchestration path.
-5. Audit the legacy `/chat` handlers in `app/main.py`; keep them only while compatibility requires them and document them as shadowed by the explicit ASGI transport boundary.
-6. Remove legacy orchestration only after integration tests prove equivalent behavior.
-7. Publish a final Level 1 architecture audit and then advance to Level 2.
+1. Run and verify CI for the latest runtime transport tests.
+2. Audit the legacy `/chat` handlers in `app/main.py`; keep them only while compatibility requires them and document them as shadowed by the explicit ASGI transport boundary.
+3. Remove legacy orchestration only after the current transport tests prove equivalent behavior and the frontend/deployment path has been verified.
+4. Publish a final Level 1 architecture audit and then advance to Level 2.
 
 ## Architectural rule
 
