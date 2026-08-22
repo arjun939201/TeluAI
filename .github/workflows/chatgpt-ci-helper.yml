@@ -2,8 +2,10 @@ name: ChatGPT CI Helper
 
 on:
   workflow_run:
-    workflows: ["TeluAI CI"]
-    types: [completed]
+    workflows:
+      - TeluAI CI
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -13,11 +15,11 @@ permissions:
 jobs:
   analyze_ci_failure:
     name: Analyze failed CI with ChatGPT
-    # This helper must never turn a healthy TeluAI CI result red.
-    continue-on-error: true
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
     steps:
       - name: Collect failed CI logs
         env:
@@ -43,11 +45,6 @@ jobs:
           set -euo pipefail
           PR_NUMBER="$(gh run view "$RUN_ID" --repo "$REPO" --json pullRequests --jq '.pullRequests[0].number // empty')"
           echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No pull request is associated with this failed workflow run."
-          else
-            echo "Found PR #$PR_NUMBER."
-          fi
 
       - name: Diagnose failure
         env:
@@ -61,51 +58,49 @@ jobs:
           import urllib.error
           import urllib.request
 
-          with open("ci.log", "r", encoding="utf-8", errors="replace") as f:
-              logs = f.read()
-
-          prompt = f"""You are the CI debugging assistant for the TeluAI repository.
-
-Analyze the failed GitHub Actions run below.
-
-Identify the first/root failure, affected file/module/test, why it fails, the smallest safe fix, and regression risk. Preserve TeluAI's existing architecture and deterministic Melimi language authority.
-
-Return concise Markdown with exactly these headings:
-## Root cause
-## Evidence
-## Recommended fix
-## Regression risk
-
-FAILED CI LOG:
-{logs}
-"""
+          with open("ci.log", "r", encoding="utf-8", errors="replace") as handle:
+              logs = handle.read()
 
           api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+
           if not api_key:
-              with open("diagnosis.md", "w", encoding="utf-8") as f:
-                  f.write("""## Root cause
+              diagnosis = """## Root cause
 
-The failed CI run was collected, but `OPENAI_API_KEY` is not configured for the ChatGPT CI Helper.
+          The failed TeluAI CI run was collected, but OPENAI_API_KEY is not configured.
 
-## Evidence
+          ## Evidence
 
-The helper can read the failed run using the GitHub Actions token, but no OpenAI API credential is available.
+          The ChatGPT CI Helper can collect the GitHub Actions logs, but it cannot call the OpenAI API without the repository secret.
 
-## Recommended fix
+          ## Recommended fix
 
-Configure the repository secret `OPENAI_API_KEY`. Optionally configure `OPENAI_MODEL`.
+          Configure the OPENAI_API_KEY repository secret if automated OpenAI diagnosis is wanted.
 
-## Regression risk
+          ## Regression risk
 
-None to the application; this workflow only reports CI failures.
-""")
-              exit(0)
+          None to TeluAI. This helper does not modify application code.
+          """
+              with open("diagnosis.md", "w", encoding="utf-8") as handle:
+                  handle.write(diagnosis)
+              raise SystemExit(0)
+
+          prompt = (
+              "You are the CI debugging assistant for the TeluAI repository.\n\n"
+              "Analyze the failed GitHub Actions run below.\n"
+              "Identify the first/root failure, affected file/module/test, why it fails, "
+              "the smallest safe fix, and regression risk. Preserve TeluAI's existing "
+              "architecture and deterministic Melimi language authority.\n\n"
+              "Return exactly these headings:\n"
+              "## Root cause\n## Evidence\n## Recommended fix\n## Regression risk\n\n"
+              "FAILED CI LOG:\n" + logs
+          )
 
           payload = {
               "model": os.environ.get("OPENAI_MODEL") or "gpt-4.1-mini",
               "input": prompt,
               "max_output_tokens": 1800,
           }
+
           request = urllib.request.Request(
               "https://api.openai.com/v1/responses",
               data=json.dumps(payload).encode("utf-8"),
@@ -120,24 +115,19 @@ None to the application; this workflow only reports CI failures.
               with urllib.request.urlopen(request, timeout=90) as response:
                   data = json.load(response)
           except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
-              with open("diagnosis.md", "w", encoding="utf-8") as f:
-                  f.write(f"""## Root cause
-
-The CI failure diagnosis service could not be reached.
-
-## Evidence
-
-OpenAI API request failed: `{type(exc).__name__}`.
-
-## Recommended fix
-
-Inspect the failed TeluAI CI run directly and restore the OpenAI API credential/service before relying on automated diagnosis.
-
-## Regression risk
-
-None to the application; this workflow does not modify source code.
-""")
-              exit(0)
+              diagnosis = (
+                  "## Root cause\n\n"
+                  "The automated OpenAI diagnosis request failed.\n\n"
+                  "## Evidence\n\n"
+                  f"OpenAI API request failed with {type(exc).__name__}.\n\n"
+                  "## Recommended fix\n\n"
+                  "Inspect the failed TeluAI CI run directly and verify the OpenAI API credential/service.\n\n"
+                  "## Regression risk\n\n"
+                  "None to TeluAI. This helper does not modify application code.\n"
+              )
+              with open("diagnosis.md", "w", encoding="utf-8") as handle:
+                  handle.write(diagnosis)
+              raise SystemExit(0)
 
           text = data.get("output_text", "").strip()
           if not text:
@@ -147,11 +137,12 @@ None to the application; this workflow does not modify source code.
                       if content.get("type") == "output_text":
                           parts.append(content.get("text", ""))
               text = "\n".join(parts).strip()
+
           if not text:
               raise RuntimeError("OpenAI returned no diagnosis text")
 
-          with open("diagnosis.md", "w", encoding="utf-8") as f:
-              f.write(text)
+          with open("diagnosis.md", "w", encoding="utf-8") as handle:
+              handle.write(text)
           PY
 
       - name: Comment diagnosis on pull request
@@ -171,6 +162,6 @@ None to the application; this workflow does not modify source code.
             cat diagnosis.md
             echo
             echo "---"
-            echo "This is an automated diagnosis from the ChatGPT CI Helper. No code was changed or merged by this workflow."
+            echo "Automated diagnosis only. No source code was changed by this workflow."
           } > comment.md
           gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
