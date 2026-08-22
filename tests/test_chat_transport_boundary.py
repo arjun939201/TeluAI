@@ -32,15 +32,13 @@ def test_middleware_preparation_delegates_to_application_boundary(monkeypatch):
     class User:
         id = 7
 
-    result = asyncio.run(middleware._prepare({"message": "hello"}, User()))
+    user = User()
+    result = asyncio.run(middleware._prepare({"message": "hello"}, user))
 
     assert result.prompt == "canonical prompt"
-    assert calls == [({"message": "hello"}, result)] or len(calls) == 1
+    assert calls == [({"message": "hello"}, user)]
 
 
-def test_transport_has_explicit_canonical_preparation_shim():
-    source = middleware.ChatOverrideMiddleware.__call__.__doc__ or ""
-    # The class itself is the transport boundary; preparation is intentionally
-    # delegated through _prepare rather than duplicated in the middleware.
+def test_transport_uses_async_canonical_preparation_shim():
     assert hasattr(middleware.ChatOverrideMiddleware, "__call__")
     assert asyncio.iscoroutinefunction(middleware._prepare)
