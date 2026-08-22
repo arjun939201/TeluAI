@@ -17,6 +17,7 @@ from app.melimi.db_subject import (
 from app.melimi.firewall import subject_lexicon
 from app.melimi.grammar import grammar_policy
 from app.melimi.root_morphology import reduce_to_root
+from app.melimi.word_formation import derive_many
 from app.language_space import language_space_context
 
 TOKEN_RE = re.compile(r"[\u0C00-\u0C7F]+|[A-Za-z]+(?:['’-][A-Za-z]+)*")
@@ -61,6 +62,36 @@ def analyze(text: str, *, max_tokens: int = 80) -> dict:
     }
 
 
+def _authorized_formations(text: str, *, limit: int = 24) -> list[str]:
+    """Return only MASTER productive formations relevant to the input.
+
+    This is generation guidance, not a license to invent words. The formation
+    engine itself verifies the root and affix against MASTER Language Space.
+    """
+    lexicon = subject_lexicon()
+    candidates: list[str] = []
+    seen_roots: set[str] = set()
+    for token in TOKEN_RE.findall(text or "")[:80]:
+        preferred = lexicon["preferred"].get(token) or lexicon["preferred"].get(token.casefold())
+        melimi_root = preferred if preferred else (token if token in lexicon["registered"] else "")
+        if not melimi_root or melimi_root in seen_roots:
+            continue
+        seen_roots.add(melimi_root)
+        try:
+            formations = derive_many(melimi_root, limit=12)
+        except Exception:
+            formations = []
+        for formation in formations:
+            if formation.status != "MASTER_DERIVED":
+                continue
+            line = f"{formation.root} + {formation.affix} => {formation.word} ({formation.meaning})"
+            if line not in candidates:
+                candidates.append(line)
+            if len(candidates) >= limit:
+                return candidates
+    return candidates
+
+
 def build_understanding_context(text: str, *, max_chars: int = 6000) -> str:
     """Build compact authoritative language context for AI understanding."""
     analysis = analyze(text)
@@ -101,8 +132,18 @@ def build_understanding_context(text: str, *, max_chars: int = 6000) -> str:
 
 
 def build_generation_context(text: str, *, max_chars: int = 6000) -> str:
-    """Build the same shared language context for response generation."""
-    return build_understanding_context(text, max_chars=max_chars)
+    """Build generation context including only authorized productive formations."""
+    context = build_understanding_context(text, max_chars=max_chars)
+    formations = _authorized_formations(text)
+    if formations:
+        formation_block = "\n".join([
+            "",
+            "AUTHORIZED PRODUCTIVE FORMATIONS (MASTER ONLY):",
+            *[f"- {item}" for item in formations],
+            "Use these formations only when their meaning and grammatical role fit the response. Do not invent similar forms.",
+        ])
+        context = (context + formation_block)[:max_chars]
+    return context
 
 
 def validate_response(text: str) -> dict:
