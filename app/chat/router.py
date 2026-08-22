@@ -58,16 +58,28 @@ def _looks_melimi(text: str) -> bool:
 def route_message(message: str, requested_mode: str = "auto") -> RouteDecision:
     text = (message or "").strip()
     language = detect_language(text)
+
+    # Explicit user choice always wins.
     if requested_mode == "melimi":
         return RouteDecision("melimi", "melimi", language, True, True)
     if requested_mode == "standard":
         return RouteDecision("standard", "conversation", language, False, True)
+
     if text.startswith("/"):
         return RouteDecision("melimi", "language_command", language, True, True)
+
+    # Telugu, Roman-Telugu, and mixed Telugu are the product's Melimi-aware
+    # conversational path by default. This does NOT mean every word is Melimi:
+    # the language system must use approved Melimi data where available and
+    # retain the user's existing/non-Melimi wording where no approved form
+    # exists.
+    if language in {"telugu", "roman_telugu", "mixed"}:
+        return RouteDecision("melimi", "conversation", language, True, False)
+
     if _looks_melimi(text):
         return RouteDecision("melimi", "melimi", language, True, False)
+
     if _looks_coding(text):
         return RouteDecision("standard", "coding", language, False, False)
-    if language in {"telugu", "roman_telugu", "mixed"}:
-        return RouteDecision("standard", "conversation", language, False, False)
+
     return RouteDecision("standard", "conversation", language, False, False)
