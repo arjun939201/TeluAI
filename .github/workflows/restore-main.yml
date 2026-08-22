@@ -9,15 +9,14 @@ permissions:
 
 jobs:
   restore:
-    if: startsWith(github.event.head_commit.message, 'refactor: route Melimi responses through generation finalizer')
+    if: startsWith(github.event.head_commit.message, 'ops: trigger recovery')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Restore main.py from last known-good commit
+      - name: Restore and commit
         run: |
           git checkout 40e421e8c8e61a5b3b0ee12bf6448539342fee8a -- app/main.py
           rm -f .github/workflows/restore-main.yml
