@@ -13,6 +13,8 @@ permissions:
 jobs:
   analyze_ci_failure:
     name: Analyze failed CI with ChatGPT
+    # This helper must never turn a healthy TeluAI CI result red.
+    continue-on-error: true
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -91,13 +93,13 @@ The helper can read the failed run using the GitHub Actions token, but no OpenAI
 
 ## Recommended fix
 
-Configure the repository secret `OPENAI_API_KEY`. Optionally configure `OPENAI_MODEL`. The helper should not block the main TeluAI CI pipeline.
+Configure the repository secret `OPENAI_API_KEY`. Optionally configure `OPENAI_MODEL`.
 
 ## Regression risk
 
 None to the application; this workflow only reports CI failures.
 """)
-              raise SystemExit(0)
+              exit(0)
 
           payload = {
               "model": os.environ.get("OPENAI_MODEL") or "gpt-4.1-mini",
@@ -135,7 +137,7 @@ Inspect the failed TeluAI CI run directly and restore the OpenAI API credential/
 
 None to the application; this workflow does not modify source code.
 """)
-              raise SystemExit(0)
+              exit(0)
 
           text = data.get("output_text", "").strip()
           if not text:
