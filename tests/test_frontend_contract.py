@@ -28,3 +28,10 @@ def test_chat_transport_normalizes_legacy_auto_to_melimi():
     assert "payload.mode!=='standard'" in js
     assert "mode:'melimi'" in js
     assert "'/chat',requestInit" in js
+
+
+def test_settings_transport_normalizes_legacy_auto_to_melimi():
+    js=ENGINE.read_text(encoding='utf-8')
+    assert "url==='/me/settings'" in js
+    assert "preferred_mode:'melimi'" in js
+    assert "data.preferred_mode='melimi'" in js
