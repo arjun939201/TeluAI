@@ -2,10 +2,12 @@ from app.chat.router import detect_language, route_message
 from app.melimi import lexical
 
 
-def test_auto_router_keeps_general_chat_out_of_melimi():
-    assert route_message('hi', 'auto').mode == 'standard'
-    assert route_message('Explain black holes', 'auto').mode == 'standard'
+def test_auto_router_is_native_melimi_by_default():
+    assert route_message('hi', 'auto').mode == 'melimi'
+    assert route_message('Explain black holes', 'auto').mode == 'melimi'
     assert route_message('Write a Python REST API', 'auto').intent == 'coding'
+    assert route_message('Write a Python REST API', 'auto').use_melimi is True
+    assert route_message('Explain black holes', 'standard').mode == 'standard'
 
 
 def test_language_detection_supports_telugu_roman_and_mixed():
