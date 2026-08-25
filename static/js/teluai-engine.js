@@ -6,8 +6,37 @@
 const nativeFetch=window.fetch.bind(window);
 window.fetch=async(input,init={})=>{
   const url=typeof input==='string'?input:input?.url||'';
+
+  if(url==='/me/settings'){
+    let requestInit=init;
+    try{
+      if(init?.method==='PUT'&&typeof init.body==='string'){
+        const payload=JSON.parse(init.body||'{}');
+        if(payload.preferred_mode!=='standard'){
+          requestInit={...init,body:JSON.stringify({...payload,preferred_mode:'melimi'})};
+        }
+      }
+    }catch(_){}
+    const response=await nativeFetch(input,requestInit);
+    if(init?.method==='PUT'||!response.ok)return response;
+    try{
+      const data=await response.clone().json();
+      if(data.preferred_mode!=='standard')data.preferred_mode='melimi';
+      return new Response(JSON.stringify(data),{status:response.status,statusText:response.statusText,headers:{'Content-Type':'application/json'}});
+    }catch(_){return response}
+  }
+
   if(url==='/chat/stream' && init?.method==='POST'){
-    const response=await nativeFetch('/chat',init);
+    let requestInit=init;
+    try{
+      const payload=JSON.parse(init.body||'{}');
+      // Melimi is the native product language. Standard Telugu is the only
+      // explicit opt-out; legacy/auto clients are normalized here too.
+      if(payload.mode!=='standard'){
+        requestInit={...init,body:JSON.stringify({...payload,mode:'melimi'})};
+      }
+    }catch(_){}
+    const response=await nativeFetch('/chat',requestInit);
     if(!response.ok)return response;
     let data;
     try{data=await response.clone().json()}catch{return response}

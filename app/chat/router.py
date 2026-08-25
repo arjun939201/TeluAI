@@ -21,8 +21,6 @@ def detect_language(text: str) -> str:
         return "mixed"
     if telugu:
         return "telugu"
-    # Lightweight Roman-Telugu detection; deliberately conservative so one
-    # Telugu loan word does not flip an otherwise English response.
     words = re.findall(r"[A-Za-z]+", value.lower())
     roman_markers = {
         "ela", "em", "enti", "enduku", "ekkada", "evaru", "evvaru",
@@ -59,27 +57,22 @@ def route_message(message: str, requested_mode: str = "auto") -> RouteDecision:
     text = (message or "").strip()
     language = detect_language(text)
 
-    # Explicit user choice always wins.
-    if requested_mode == "melimi":
-        return RouteDecision("melimi", "melimi", language, True, True)
+    # Explicit user choice always wins. Standard Telugu is an opt-in mode;
+    # everything else uses TeluAI's native Melimi language intelligence path.
     if requested_mode == "standard":
         return RouteDecision("standard", "conversation", language, False, True)
+    if requested_mode == "melimi":
+        return RouteDecision("melimi", "melimi", language, True, True)
 
     if text.startswith("/"):
         return RouteDecision("melimi", "language_command", language, True, True)
 
-    # Telugu, Roman-Telugu, and mixed Telugu are the product's Melimi-aware
-    # conversational path by default. This does NOT mean every word is Melimi:
-    # the language system must use approved Melimi data where available and
-    # retain the user's existing/non-Melimi wording where no approved form
-    # exists.
-    if language in {"telugu", "roman_telugu", "mixed"}:
-        return RouteDecision("melimi", "conversation", language, True, False)
-
     if _looks_melimi(text):
         return RouteDecision("melimi", "melimi", language, True, False)
 
-    if _looks_coding(text):
-        return RouteDecision("standard", "coding", language, False, False)
-
-    return RouteDecision("standard", "conversation", language, False, False)
+    # Telugu, Roman-Telugu, mixed input, English, and coding requests all enter
+    # the native Melimi conversation path unless the user explicitly selected
+    # Standard Telugu. This keeps the product language-centric while still
+    # allowing the model to reason about arbitrary subjects.
+    intent = "coding" if _looks_coding(text) else "conversation"
+    return RouteDecision("melimi", intent, language, True, False)

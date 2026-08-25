@@ -16,15 +16,15 @@ def test_roman_telugu_conversation_uses_melimi_path_by_default():
     assert decision.mode == "melimi"
 
 
+def test_english_conversation_uses_native_melimi_path_by_default():
+    decision = route_message("How do I explain this Python function?", "auto")
+    assert decision.language == "english"
+    assert decision.mode == "melimi"
+    assert decision.use_melimi is True
+
+
 def test_explicit_standard_request_stays_standard():
     decision = route_message("నాకు AI గురించి చెప్పు", "standard")
     assert decision.mode == "standard"
     assert decision.use_melimi is False
     assert decision.explicit is True
-
-
-def test_english_coding_request_does_not_force_melimi():
-    decision = route_message("How do I debug this Python function?", "auto")
-    assert decision.language == "english"
-    assert decision.mode == "standard"
-    assert decision.use_melimi is False
