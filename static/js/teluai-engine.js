@@ -7,7 +7,16 @@ const nativeFetch=window.fetch.bind(window);
 window.fetch=async(input,init={})=>{
   const url=typeof input==='string'?input:input?.url||'';
   if(url==='/chat/stream' && init?.method==='POST'){
-    const response=await nativeFetch('/chat',init);
+    let requestInit=init;
+    try{
+      const payload=JSON.parse(init.body||'{}');
+      // Melimi is the native product language. Standard Telugu is the only
+      // explicit opt-out; legacy/auto clients are normalized here too.
+      if(payload.mode!=='standard'){
+        requestInit={...init,body:JSON.stringify({...payload,mode:'melimi'})};
+      }
+    }catch(_){}
+    const response=await nativeFetch('/chat',requestInit);
     if(!response.ok)return response;
     let data;
     try{data=await response.clone().json()}catch{return response}
