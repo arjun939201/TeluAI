@@ -33,6 +33,20 @@
     return button;
   }
 
+  function displayText(value) {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (Array.isArray(value)) return value.map(displayText).filter(Boolean).join("\n");
+    if (typeof value === "object") {
+      for (const key of ["reply", "answer", "content", "text", "message", "detail"]) {
+        if (value[key] != null) return displayText(value[key]);
+      }
+      try { return JSON.stringify(value, null, 2); } catch (_) { return String(value); }
+    }
+    return String(value);
+  }
+
   async function sendFeedback(rating, button) {
     button.disabled = true;
     try {
@@ -58,10 +72,11 @@
     const actions = document.createElement("div");
     actions.className = "message-actions";
     actions.setAttribute("aria-label", "Message actions");
+    const normalized = displayText(text);
 
     const copy = makeAction("Copy", "Copy response", async () => {
       try {
-        await navigator.clipboard.writeText(String(text));
+        await navigator.clipboard.writeText(normalized);
         copy.textContent = "Copied";
         copy.classList.add("active");
         setTimeout(() => { copy.textContent = "Copy"; copy.classList.remove("active"); }, 1200);
@@ -77,17 +92,26 @@
 
   function install() {
     installStyles();
-    if (typeof window.addMessage !== "function" || window.addMessage.__messageActionsWrapped) return;
-    const original = window.addMessage;
-    function wrappedAddMessage(text, role, melimi, audit) {
-      original(text, role, melimi, audit);
-      if (role !== "assistant") return;
-      const messages = document.querySelectorAll("#chatContainer .message.assistant");
-      const wrapper = messages[messages.length - 1];
-      addActions(wrapper, text);
+    if (typeof window.addMessage === "function" && !window.addMessage.__messageActionsWrapped) {
+      const originalAddMessage = window.addMessage;
+      function wrappedAddMessage(text, role, melimi, audit) {
+        const normalized = displayText(text);
+        originalAddMessage(normalized, role, melimi, audit);
+        if (role !== "assistant") return;
+        const messages = document.querySelectorAll("#chatContainer .message.assistant");
+        const wrapper = messages[messages.length - 1];
+        addActions(wrapper, normalized);
+      }
+      wrappedAddMessage.__messageActionsWrapped = true;
+      window.addMessage = wrappedAddMessage;
     }
-    wrappedAddMessage.__messageActionsWrapped = true;
-    window.addMessage = wrappedAddMessage;
+
+    if (typeof window.addError === "function" && !window.addError.__objectSafe) {
+      const originalAddError = window.addError;
+      function wrappedAddError(value) { originalAddError(displayText(value)); }
+      wrappedAddError.__objectSafe = true;
+      window.addError = wrappedAddError;
+    }
   }
 
   if (document.readyState === "loading") {
