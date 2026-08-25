@@ -1,6 +1,7 @@
 [
   {"id":"greeting-01","text":"enti","expected_intent":"what_question"},
   {"id":"greeting-02","text":"haa","expected_intent":"acknowledgement"},
+  {"id":"agreement-01","text":"sare","expected_intent":"agreement"},
   {"id":"continue-01","text":"cheppu","expected_intent":"continue_current_topic"},
   {"id":"negative-01","text":"ఏంలేదు","expected_intent":"nothing_or_negative"},
   {"id":"question-why-01","text":"ఎందుకు ఇలా జరిగింది?","expected_intent":"why_question"},
@@ -16,7 +17,7 @@
   {"id":"morphology-lemma-01","source":"నదులు","roots":{"నది":"ఏరు"},"expected":"ఏరులు"},
   {"id":"morphology-case-dative-01","source":"నదికి","roots":{"నది":"ఏరు"},"expected":"ఏరుకు"},
   {"id":"morphology-case-accusative-01","source":"నదిని","roots":{"నది":"ఏరు"},"expected":"ఏరును"},
-  {"id":"morphology-case-locative-01","source":"నదిలో","roots":{"నది":"ఏరు"},"expected":"ఏరులో"},
+  {"id":"morphology-case-locative-01","source":"נదిలో","roots":{"నది":"ఏరు"},"expected":"ఏరులో"},
   {"id":"morphology-case-instrumental-01","source":"నదితో","roots":{"నది":"ఏరు"},"expected":"ఏరుతో"},
   {"id":"unsupported-01","source":"అజ్ఞాతపదం","roots":{"నది":"ఏరు"},"check_unsupported_preservation":true},
   {"id":"authority-master-01","query":"విషయం","knowledge_version":3,"expected_sufficient":true,"entries":[{"source":"knowledge/1:word","kind":"vocabulary","status":"MASTER","version":3,"entry":{"standard":"విషయం","melimi":"ఎడాటం"}}]},
