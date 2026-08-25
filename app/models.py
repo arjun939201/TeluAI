@@ -1,5 +1,5 @@
 from typing import Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 
 class ChatTurn(BaseModel):
     role: Literal["user", "assistant"]
@@ -7,15 +7,24 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=12000)
-    mode: Literal["auto", "standard", "melimi"] = "auto"
+    # Melimi is the product's native chat language. Standard Telugu remains
+    # available only when explicitly requested by the caller.
+    mode: Literal["auto", "standard", "melimi"] = "melimi"
     history: List[ChatTurn] = Field(default_factory=list)
     conversation_id: Optional[str] = None
+
+    @field_validator("mode", mode="before")
+    @classmethod
+    def native_mode(cls, value):
+        # Existing clients may still send `auto`; for the MT-centric product,
+        # auto means native Melimi unless Standard Telugu is explicitly chosen.
+        return "melimi" if value in (None, "", "auto") else value
 
 class ChatResponse(BaseModel):
     reply: str
     mode: str
     intent: str
-    language: str = "english"
+    language: str = "telugu"
     conversation_id: str | None = None
     message_id: int | None = None
     understanding: Dict = Field(default_factory=dict)
@@ -67,9 +76,14 @@ class HealthResponse(BaseModel):
     database: str
 
 class SettingsUpdateRequest(BaseModel):
-    preferred_mode: Literal["auto", "standard", "melimi"] = "auto"
+    preferred_mode: Literal["auto", "standard", "melimi"] = "melimi"
     response_length: Literal["short", "normal", "long"] = "normal"
     memory_enabled: bool = True
+
+    @field_validator("preferred_mode", mode="before")
+    @classmethod
+    def native_preferred_mode(cls, value):
+        return "melimi" if value in (None, "", "auto") else value
 
 class MemoryRequest(BaseModel):
     key: str = Field(min_length=1, max_length=160)
