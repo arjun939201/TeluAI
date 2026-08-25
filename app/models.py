@@ -7,7 +7,9 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=12000)
-    mode: Literal["auto", "standard", "melimi"] = "auto"
+    # Melimi is the product's native chat language. Standard Telugu remains
+    # available only when explicitly requested by the caller.
+    mode: Literal["auto", "standard", "melimi"] = "melimi"
     history: List[ChatTurn] = Field(default_factory=list)
     conversation_id: Optional[str] = None
 
@@ -15,7 +17,7 @@ class ChatResponse(BaseModel):
     reply: str
     mode: str
     intent: str
-    language: str = "english"
+    language: str = "telugu"
     conversation_id: str | None = None
     message_id: int | None = None
     understanding: Dict = Field(default_factory=dict)
@@ -67,7 +69,7 @@ class HealthResponse(BaseModel):
     database: str
 
 class SettingsUpdateRequest(BaseModel):
-    preferred_mode: Literal["auto", "standard", "melimi"] = "auto"
+    preferred_mode: Literal["auto", "standard", "melimi"] = "melimi"
     response_length: Literal["short", "normal", "long"] = "normal"
     memory_enabled: bool = True
 
