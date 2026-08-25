@@ -6,6 +6,26 @@
 const nativeFetch=window.fetch.bind(window);
 window.fetch=async(input,init={})=>{
   const url=typeof input==='string'?input:input?.url||'';
+
+  if(url==='/me/settings'){
+    let requestInit=init;
+    try{
+      if(init?.method==='PUT'&&typeof init.body==='string'){
+        const payload=JSON.parse(init.body||'{}');
+        if(payload.preferred_mode!=='standard'){
+          requestInit={...init,body:JSON.stringify({...payload,preferred_mode:'melimi'})};
+        }
+      }
+    }catch(_){}
+    const response=await nativeFetch(input,requestInit);
+    if(init?.method==='PUT'||!response.ok)return response;
+    try{
+      const data=await response.clone().json();
+      if(data.preferred_mode!=='standard')data.preferred_mode='melimi';
+      return new Response(JSON.stringify(data),{status:response.status,statusText:response.statusText,headers:{'Content-Type':'application/json'}});
+    }catch(_){return response}
+  }
+
   if(url==='/chat/stream' && init?.method==='POST'){
     let requestInit=init;
     try{
