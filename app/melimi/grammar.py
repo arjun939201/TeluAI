@@ -5,8 +5,6 @@ from app.melimi.corpus_rules import (
     NEW_MUNUJERPULU, PADAGRAMULU, corpus_manifest,
 )
 
-# Only these agent forms are candidates for NEW generation. Existing lexical
-# entries using older forms remain recognizable through Language Space.
 PRODUCTIVE_AGENT_SUFFIXES = {"కాను", "అరి", "వాను"}
 NON_GENERATIVE_AGENT_SUFFIXES = {"కాన్", "కాఁడు", "గాఁడు", "కత్తె", "కత్తియ"}
 
@@ -14,6 +12,7 @@ NOUN_SUFFIXES = {
     "కాను": "noun-based characterizing/agentive formation; meaning depends on the base noun",
     "అరి": "documented agentive formation; meaning depends on the base",
     "వాను": "noun-based having/related-to formation; meaning depends on the base noun",
+    "మారి": "documented good/neutral characteristic or habitual-nature formation",
     "పాదు": "noun-based worthy/suitable-for formation",
     "పఱ": "noun-based unsuitable/not-worthy-of formation",
     "మాలు": "noun-based absence/lacking formation",
@@ -46,7 +45,8 @@ INFLECTIONAL_FEATURES = {
 }
 INVARIANT_NOUN_ADJECTIVE_RULE = (
     "Relevant Melimi lexical forms may function directly as both nouns and adjectives when the corpus supports the lexical item. "
-    "Example: హాళి = interest; హాళికాను = interesting. Do not mechanically add an adjective suffix when an established form already exists."
+    "Example: హాళి = interest; హాళికాను = interesting. Existing established adjective forms such as ఆసక్తికరం must not be overwritten or replaced by invention. "
+    "Do not mechanically add an adjective suffix when an established form already exists."
 )
 MAPPING_PIPELINE = "surface → morphological analysis → source lemma/root → authoritative mapping → target lemma → reapply derivation/inflection/case/agreement → supported phonology → surface form"
 DERIVATIONAL_MARKERS = {**NOUN_SUFFIXES, **VERB_SUFFIXES}
