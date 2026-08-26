@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from fastapi.responses import JSONResponse
 
+from app.database import Message, SessionLocal
+
 
 def _workspace(scope) -> str:
     for key, value in scope.get("headers", []):
@@ -11,8 +13,23 @@ def _workspace(scope) -> str:
     return "main"
 
 
+def _message_is_command(payload: dict) -> bool:
+    message = str(payload.get("message", "")).strip()
+    if message.startswith("/"):
+        return True
+    message_id = payload.get("message_id")
+    if message_id is None:
+        return False
+    try:
+        with SessionLocal() as db:
+            row = db.get(Message, int(message_id))
+        return bool(row and str(row.content or "").strip().startswith("/"))
+    except (TypeError, ValueError):
+        return False
+
+
 class WorkspaceGuardMiddleware:
-    """Keep Lab commands in the Lab even when the browser UI is bypassed."""
+    """Keep Melimi Lab commands inside the Lab, including regeneration paths."""
 
     def __init__(self, app):
         self.app = app
@@ -42,19 +59,23 @@ class WorkspaceGuardMiddleware:
             payload = {}
 
         workspace = _workspace(scope)
-        message = str(payload.get("message", "")).strip()
-        if workspace == "main" and message.startswith("/"):
-            if path == "/chat/stream" or path.startswith("/chat/"):
-                body = (
-                    'data: ' + json.dumps({"type": "error", "message": "Melimi Lab commands are available only in the Melimi Telugu Lab.", "code": "workspace_boundary"}, ensure_ascii=False)
-                    + "\\n\\n"
-                    + 'data: ' + json.dumps({"type": "done"}) + "\\n\\n"
-                ).encode("utf-8")
-                await send({"type": "http.response.start", "status": 200, "headers": [(b"content-type", b"text/event-stream")]})
-                await send({"type": "http.response.body", "body": body, "more_body": False})
-                return
-            response = JSONResponse({"detail": {"message": "Melimi Lab commands are available only in the Melimi Telugu Lab.", "code": "workspace_boundary"}}, status_code=403)
-            await response(scope, lambda: {"type": "http.request", "body": b"", "more_body": False}, send)
+        if workspace == "main" and _message_is_command(payload):
+            body = (
+                'data: ' + json.dumps({
+                    "type": "error",
+                    "message": "Melimi Lab commands are available only in the Melimi Telugu Lab.",
+                    "code": "workspace_boundary",
+                }, ensure_ascii=False)
+                + "\n\n"
+                + 'data: ' + json.dumps({"type": "done"})
+                + "\n\n"
+            ).encode("utf-8")
+            await send({
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [(b"content-type", b"text/event-stream")],
+            })
+            await send({"type": "http.response.body", "body": body, "more_body": False})
             return
 
         if workspace == "lab":
@@ -62,6 +83,7 @@ class WorkspaceGuardMiddleware:
             raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
         sent = False
+
         async def replay():
             nonlocal sent
             if sent:
