@@ -39,7 +39,6 @@ def _token_record(token: str, lexicon: dict, melimi_roots: dict[str, str]) -> di
             "kinds": list(mt_morph.kinds), "known": True, "language_side": "melimi",
         }
 
-    # Source/Standard Telugu is an input bridge, not a preferred output lexicon.
     source_morph = reduce_to_root(token, lexicon["forbidden"])
     source_known = source_morph.root in lexicon["forbidden"] or preferred is not None
     return {
@@ -76,7 +75,6 @@ def _authorized_formations(text: str, *, limit: int = 24) -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
 
-    # Existing registered forms are the strongest generation evidence.
     for token in TOKEN_RE.findall(text or "")[:80]:
         if token in lexicon["registered"] and token not in seen:
             seen.add(token)
@@ -84,7 +82,6 @@ def _authorized_formations(text: str, *, limit: int = 24) -> list[str]:
             if len(candidates) >= limit:
                 return candidates
 
-    # Only derive from a known MT root, never from an unknown/guessed root.
     for token in TOKEN_RE.findall(text or "")[:80]:
         root = token if token in melimi_roots else reduce_to_root(token, set(melimi_roots)).root
         if root not in melimi_roots or root in seen:
@@ -97,10 +94,6 @@ def _authorized_formations(text: str, *, limit: int = 24) -> list[str]:
         for formation in formations:
             if formation.status != "MASTER_DERIVED" or formation.affix in NON_GENERATIVE_AGENT_SUFFIXES:
                 continue
-            # Avoid presenting every possible derivative as vocabulary. Only
-            # forms already present in the registered lexicon are generation
-            # candidates; productive rules remain available to deterministic
-            # grammar code when a future update explicitly requests one.
             if formation.word not in lexicon["registered"]:
                 continue
             line = f"{formation.root} + {formation.affix} => {formation.word} ({formation.meaning})"
@@ -145,7 +138,7 @@ def build_generation_context(text: str, *, max_chars: int = 6000) -> str:
     context = build_understanding_context(text, max_chars=max_chars)
     formations = _authorized_formations(text)
     if formations:
-        context = (context + "\n\nAUTHORIZED EXISTING MT FORMS / FORMATIONS:\n" +
+        context = (context + "\n\nAUTHORIZED PRODUCTIVE FORMATIONS (MASTER ONLY):\n" +
                    "\n".join(f"- {item}" for item in formations) +
                    "\nPrefer these existing forms. Do not invent parallel forms.")[:max_chars]
     return context
