@@ -45,7 +45,7 @@ INFLECTIONAL_FEATURES = {
 }
 INVARIANT_NOUN_ADJECTIVE_RULE = (
     "Relevant Melimi lexical forms may function directly as both nouns and adjectives when the corpus supports the lexical item. "
-    "Example: హాళి = interest; హాళికాను = interesting. Existing established adjective forms such as ఆసక్తికరం must not be overwritten or replaced by invention. "
+    "Example: హాళి = interest; హాళికాను = interesting. Existing established adjective forms such as ఆసక్తికరం and ఆసక్తికరమైన must not be overwritten or replaced by invention. "
     "Do not mechanically add an adjective suffix when an established form already exists."
 )
 MAPPING_PIPELINE = "surface → morphological analysis → source lemma/root → authoritative mapping → target lemma → reapply derivation/inflection/case/agreement → supported phonology → surface form"
