@@ -70,6 +70,14 @@ Some words directly function as noun and adjective. Others require an establishe
 LEXICAL EXAMPLE
 Where the authoritative source establishes a native MT equivalent, preserve it as the preferred lexical form. For example: సమస్య→చిక్కు. Do not replace an established MT form with a more familiar Standard Telugu synonym.
 
+EXPLICIT USER LANGUAGE TEACHING
+- A new MT word, meaning, root, affix, rule, example, or correction explicitly supplied by the user is valid language-source input and may become MASTER through the controlled language-learning path.
+- `/word source = MT` and a single clean `source = MT` mapping are explicit teaching forms; they are not ordinary corpus observations.
+- Explicit user teaching must preserve provenance as `explicit_user` and refresh the shared Language Space/indexes so Main Chat can use the new knowledge in later conversations.
+- Ordinary conversation text is evidence/observation only. It must not silently promote every encountered word, phrase, or sentence into MASTER vocabulary or grammar.
+- Model-generated vocabulary, guessed meanings, and unsupported derivations must never promote themselves to MASTER.
+- An explicitly supplied new word may be used even if it was not present in the older corpus; the newest authoritative user update extends the language source.
+
 PLURAL AND CASE
 Plural and case forms are formed from the existing MT word/form using the normal MT/Telugu grammatical foundation, while preserving established MT forms and alternations. Never blindly copy a source suffix onto a target word. Prefer an already-established inflected form when one exists.
 
