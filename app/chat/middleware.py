@@ -153,8 +153,11 @@ async def handle_stream(request, user, data=None):
         input_tokens = output_tokens = latency_ms = None
         try:
             async for event in get_llm_provider().stream(turn.prompt, turn.history, turn.message):
-                if await request.is_disconnected():
-                    return
+                # Do not probe Request.is_disconnected() here. Once request.json()
+                # has consumed the request body, a test/ASGI receive channel may
+                # legitimately report http.disconnect even though the streaming
+                # response is still being consumed. Client cancellation is already
+                # surfaced to this generator as asyncio.CancelledError.
                 if event["type"] == "delta":
                     parts.append(event["text"])
                     yield _sse({"type": "delta", "text": event["text"]})
