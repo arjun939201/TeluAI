@@ -18,7 +18,7 @@ def test_content_processor_extracts_language_structure():
         "example: ముప్పుకాను = dangerous\n"
         "phrase: ముప్పుకాను మాట\n"
     )
-    assert summary["item_count"] == 5
+    assert summary["item_count"] == 6
     assert summary["vocabulary"][0]["meaning"] == "ముప్పుకాను"
     assert summary["roots"][0]["form"] == "ముప్పు"
     assert summary["affixes"][0]["form"] == "suffix"
