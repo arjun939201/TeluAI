@@ -11,7 +11,7 @@ from app.database import Conversation, Message, SessionLocal, create_conversatio
 from app.server import app
 
 LAB_PREFIX = "[Melimi Lab] "
-ASSET_VERSION = "20260818-2"
+ASSET_VERSION = "20260826-1"
 
 
 def _headers(scope):
