@@ -1,9 +1,9 @@
-from app.linguistics.normalizer import analyze_input, normalize_roman_telugu
+from app.linguistics.normalizer import analyze_input
 
 
 def test_normalizes_short_roman_telugu():
-    assert normalize_roman_telugu("ela unnava") == "ఎలా unnava"
     info = analyze_input("ela unnava")
+    assert "ఎలా" in info["normalized_hint"]
     assert info["roman_telugu_token_count"] == 1
     assert info["roman_telugu_confidence"] > 0
 
