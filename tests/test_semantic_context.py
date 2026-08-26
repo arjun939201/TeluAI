@@ -19,6 +19,17 @@ def test_negation_and_context_are_preserved_as_evidence():
     assert result["context_present"] is True
 
 
+def test_topic_continuity_uses_shared_evidence():
+    result = analyze_context("తెలుగు గురించి ఎలా నేర్చుకోవాలి?", "మనం తెలుగు భాష గురించి మాట్లాడుతున్నాం")
+    assert result["topic_continuity"] is True
+    assert "తెలుగు" in result["shared_topic_tokens"]
+
+
+def test_unrelated_context_does_not_force_continuity():
+    result = analyze_context("కాఫీ ఎలా చేయాలి?", "మనం తెలుగు భాష గురించి మాట్లాడుతున్నాం")
+    assert result["topic_continuity"] is False
+
+
 def test_context_output_does_not_claim_new_vocabulary():
     output = build_semantic_context("ఎలా చేయాలి?")
     assert "SEMANTIC / CONTEXT EVIDENCE" in output
