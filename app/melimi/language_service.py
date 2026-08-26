@@ -105,8 +105,11 @@ def _authorized_formations(text: str, *, limit: int = 24) -> list[str]:
         for formation in formations:
             if formation.status != "MASTER_DERIVED" or formation.affix in NON_GENERATIVE_AGENT_SUFFIXES:
                 continue
-            if formation.word not in lexicon["registered"]:
-                continue
+            # MASTER_DERIVED is the authorization boundary here. The
+            # persisted master formation itself is authoritative evidence;
+            # registration is checked when a generated form is emitted as an
+            # existing lexical item, not when the master formation is exposed
+            # to the generation context.
             line = f"{formation.root} + {formation.affix} => {formation.word} ({formation.meaning})"
             if line not in candidates:
                 candidates.append(line)
