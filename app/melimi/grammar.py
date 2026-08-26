@@ -5,12 +5,15 @@ from app.melimi.corpus_rules import (
     NEW_MUNUJERPULU, PADAGRAMULU, corpus_manifest,
 )
 
+# Only these agent forms are candidates for NEW generation. Existing lexical
+# entries using older forms remain recognizable through Language Space.
+PRODUCTIVE_AGENT_SUFFIXES = {"కాను", "అరి", "వాను"}
+NON_GENERATIVE_AGENT_SUFFIXES = {"కాన్", "కాఁడు", "గాఁడు", "కత్తె", "కత్తియ"}
+
 NOUN_SUFFIXES = {
     "కాను": "noun-based characterizing/agentive formation; meaning depends on the base noun",
-    "కాన్": "noun-based characterizing/agentive formation; meaning depends on the base noun",
-    "మారి": "noun-based quality/characteristic formation; meaning depends on the base noun",
+    "అరి": "documented agentive formation; meaning depends on the base",
     "వాను": "noun-based having/related-to formation; meaning depends on the base noun",
-    "వాన్": "noun-based having/related-to formation; meaning depends on the base noun",
     "పాదు": "noun-based worthy/suitable-for formation",
     "పఱ": "noun-based unsuitable/not-worthy-of formation",
     "మాలు": "noun-based absence/lacking formation",
@@ -30,30 +33,30 @@ VERB_SUFFIXES = {
     "అర్ది": "verb-based not-doable/not-possible/not-suitable formation",
 }
 INFLECTIONAL_FEATURES = {
-    "number": "singular/plural, including lexical and irregular plural patterns",
-    "case": "nominative, accusative, dative, instrumental/comitative, locative, source/ablative, genitive, vocative and productive postpositional relations",
+    "number": "normal Telugu/MT singular and plural formation; prefer established lexical forms",
+    "case": "normal Telugu/MT case and postpositional relations",
     "person": "first/second/third person",
-    "gender": "masculine/feminine/neuter plus honorific/plural agreement where relevant",
-    "tense": "present, past, future and habitual/narrative uses as supported by Telugu grammar",
-    "aspect": "progressive, perfective, habitual/imperfective, completive, iterative, durative and prospective constructions",
-    "mood": "indicative, imperative, prohibitive, desiderative, possibility, obligation, permission, ability, intention and conditional/hypothetical constructions",
+    "gender": "normal Telugu/MT gender and agreement; explicit feminine -ఇత where established",
+    "tense": "present, past, future and supported Telugu constructions",
+    "aspect": "supported Telugu aspectual constructions",
+    "mood": "supported Telugu mood constructions",
     "polarity": "positive and negative constructions",
-    "voice": "active and supported passive-like/reflexive/middle/impersonal constructions",
+    "voice": "supported active/passive-like/reflexive/middle/impersonal constructions",
     "register": "colloquial, standard/formal, literary and dialect-sensitive realization",
 }
 INVARIANT_NOUN_ADJECTIVE_RULE = (
-    "Relevant Melimi lexical forms that do NOT end in ం (the am/nasal ending) may function directly as both nouns and adjectives when the corpus supports the lexical item. "
-    "Examples: భాషా → mapped lemma directly; హాళికాను is an invariant Melimi adjective form; do not mechanically add ము, పు, మైన, or another suffix. "
-    "For the standard adjective source forms ఆసక్తికరం and ఆసక్తికరమైన, the supported Melimi realization is the invariant form హాళికాను."
+    "Relevant Melimi lexical forms may function directly as both nouns and adjectives when the corpus supports the lexical item. "
+    "Example: హాళి = interest; హాళికాను = interesting. Do not mechanically add an adjective suffix when an established form already exists."
 )
-MAPPING_PIPELINE = "surface → morphological analysis → source lemma/root → authoritative mapping → target lemma → reapply derivation/inflection/case/agreement → supported sandhi/phonology → surface form"
+MAPPING_PIPELINE = "surface → morphological analysis → source lemma/root → authoritative mapping → target lemma → reapply derivation/inflection/case/agreement → supported phonology → surface form"
 DERIVATIONAL_MARKERS = {**NOUN_SUFFIXES, **VERB_SUFFIXES}
 
 def grammar_policy() -> str:
     manifest = corpus_manifest()
     lines = [
         "MELIMI GRAMMAR/WORD-FORMATION SYSTEM POLICY:",
-        "- Telugu grammar is productive and hierarchical; do not model mapped words as isolated string substitutions.",
+        "- Telugu grammar is the foundation unless the MT source explicitly establishes a difference.",
+        "- Prefer existing registered/native Melimi words and established forms. New word formation is exceptional.",
         "- `/word X = Y` is a lemma-level lexical mapping. Analyze the source surface form first, map its lemma, then regenerate the target with the same supported grammatical features.",
         "- Mapping pipeline: " + MAPPING_PIPELINE,
         "- Never use raw text.replace(source, target) as the primary lexical transformation mechanism.",
@@ -61,9 +64,9 @@ def grammar_policy() -> str:
         "- Do not blindly append source suffixes to the target. Identify the grammatical operation and generate its natural target form.",
         "- Prefer lexical/irregular plural and case patterns supported by Language Space; do not assume every plural is simply +లు.",
         "- The supplied Melimi corpus is a MASTER_RULESET for documented word formation; it does not authorize invention of unsupported words.",
-        "- Preserve Telugu syntax, semantic roles, agreement, negation, politeness and register during lexical substitution.",
-        "- Derivational operations must precede compatible inflectional generation, followed by supported sandhi/phonological adjustment.",
-        "- Noun-based suffixes attach to nouns/nominal bases and change the whole meaning according to the base word; do not interpret them as independent word replacements.",
+        "- New words require an established native/MT base, an established MT formation rule, and a clear intended meaning. Otherwise use an existing word/form or remain uncertain.",
+        "- For new agent words prefer కాను; అరి remains active. Do not newly generate కాన్, కాఁడు, గాఁడు, కత్తె or కత్తియ.",
+        "- Existing lexical entries using older forms remain valid and recognizable; the non-generative rule applies only to new formation.",
         "- Verb-based suffixes such as అలవి/అల్వి and అరిది/అర్ది attach to verb bases; do not attach them indiscriminately to nouns.",
         f"- CORPUS SOURCE: {manifest['name']} ({manifest['status']})",
         f"- MUNUJERPULU: {', '.join(MUNUJERPULU)}",
@@ -75,8 +78,7 @@ def grammar_policy() -> str:
         f"- VERB-BASED SUFFIXES: {', '.join(VERB_SUFFIXES)}",
         f"- INFLECTIONAL FEATURES: {', '.join(INFLECTIONAL_FEATURES)}",
         f"- NOUN/ADJECTIVE DUAL-FUNCTION RULE: {INVARIANT_NOUN_ADJECTIVE_RULE}",
-        "- A supported source adjective operation such as -మైన must be regenerated from the mapped target lemma; do not create a separate lexical entry for every derived surface.",
-        "- Bare non-ం forms such as a corpus-supported adjective realization must be resolved against the registered lemma before mapping; do not guess from spelling alone.",
+        "- Bare supported lexical forms must be resolved against the registered lemma before mapping; do not guess from spelling alone.",
         "- Recognize participles, verbal nouns/infinitives, causatives, compound/light verbs, reduplication, comparison, questions, emphasis and clause-level grammatical relations when supported by the parser/generator.",
         "- Apply lexical mapping only after contextual disambiguation when a surface form has multiple possible analyses.",
         "- Prefer exact/more-specific lexical mapping before root mapping and never double-transform an already mapped constituent.",
