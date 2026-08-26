@@ -8,8 +8,10 @@
     catch { return false; }
   };
 
+  const isGenerating = () => Boolean(document.querySelector('#send.stop'));
+
   const refreshVisibleConversation = () => {
-    if (window.__teluaiGenerating) return;
+    if (isGenerating()) return;
     const input = document.querySelector('#input');
     if (input && (document.activeElement === input || input.value.trim())) return;
     const active = document.querySelector('.history-item.active');
@@ -65,7 +67,6 @@
     return response;
   };
 
-  // The Lab always has an explicit Melimi mode even though the control is hidden.
   if (!document.querySelector('#modeSelect')) {
     const select = document.createElement('select');
     select.id = 'modeSelect';
@@ -81,13 +82,12 @@
     document.body.appendChild(select);
   }
 
-  // Keep the Lab UI synchronized with database state without interrupting typing/generation.
   window.setInterval(refreshVisibleConversation, 15000);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) refreshVisibleConversation();
   });
 
-  // A successful command/message should settle into the persisted conversation immediately.
-  const composer = document.querySelector('#composer');
-  composer?.addEventListener('submit', () => window.setTimeout(refreshVisibleConversation, 900));
+  document.querySelector('#composer')?.addEventListener('submit', () => {
+    window.setTimeout(refreshVisibleConversation, 1200);
+  });
 })();
