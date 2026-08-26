@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from app.database import KnowledgeEntry, KnowledgeVersion, LearningCandidate, MelimiDocument, MelimiRoot, SessionLocal
+from app.database import KnowledgeEntry, KnowledgeVersion, LearningCandidate, MelimiAffix, MelimiDocument, MelimiRoot, MelimiRule, SessionLocal
+from app.melimi.content_processor import ContentItem, extract_explicit_items
 
 TELUGU_RE = re.compile(r"[\u0C00-\u0C7F]")
 MAP_RE = re.compile(r"^\s*(.+?)\s+(?:→|->|=|[-–—])\s+(.+?)\s*$")
@@ -54,13 +55,6 @@ def parse_mapping_line(line: str) -> list[dict]:
     else:
         melimi, aliases = left, [right]
     return [{"standard": alias, "melimi": melimi, "source_type": "uploaded_mapping", "status": "master"} for alias in aliases if alias]
-
-
-def parse_text(text: str) -> list[dict]:
-    entries: list[dict] = []
-    for line in text.splitlines():
-        entries.extend(parse_mapping_line(line))
-    return entries
 
 
 def _structured_entries(obj) -> list[dict]:
@@ -112,12 +106,58 @@ def _upsert_entry(db, entry: dict, source: str) -> bool:
     return True
 
 
+def _store_structured_items(db, text: str, source: str) -> list[dict]:
+    """Persist explicit non-vocabulary MT assertions into their native tables."""
+    structured: list[dict] = []
+    for item in extract_explicit_items(text):
+        record = {
+            "kind": item.kind,
+            "form": item.form,
+            "meaning": item.meaning,
+            "evidence": item.evidence,
+            "metadata": item.metadata,
+        }
+        structured.append(record)
+        if item.kind == "rule":
+            name = item.form.strip()
+            if not name:
+                continue
+            row = db.scalar(select(MelimiRule).where(MelimiRule.name == name))
+            if row:
+                row.rule_text = item.meaning
+                row.category = "grammar"
+                row.status = "MASTER"
+                row.source = source
+                row.version += 1
+            else:
+                db.add(MelimiRule(name=name, category="grammar", rule_text=item.meaning, operation="", status="MASTER", source=source))
+        elif item.kind == "language_metadata":
+            key = item.form.casefold()
+            metadata = dict(item.metadata)
+            metadata["evidence"] = item.evidence
+            row = db.scalar(select(KnowledgeEntry).where((KnowledgeEntry.kind == "MELIMI_METADATA") & (KnowledgeEntry.key == key)))
+            if row:
+                row.value = item.meaning
+                row.metadata_json = json.dumps(metadata, ensure_ascii=False)
+                row.status = "MASTER"
+                row.source = source
+                row.version += 1
+            else:
+                db.add(KnowledgeEntry(kind="MELIMI_METADATA", key=key, value=item.meaning, metadata_json=json.dumps(metadata, ensure_ascii=False), status="MASTER", source=source))
+    return structured
+
+
 def _store_document(db, name: str, text: str, entries: list[dict], source: str) -> None:
     path = f"uploads/{source}/{name}"
     payload = json.dumps(entries, ensure_ascii=False)
     row = db.scalar(select(MelimiDocument).where(MelimiDocument.path == path))
     if row:
-        row.text = text; row.entries_json = payload; row.kind = "uploaded_content"; row.source = source; row.status = "MASTER"; row.version += 1
+        row.text = text
+        row.entries_json = payload
+        row.kind = "uploaded_content"
+        row.source = source
+        row.status = "MASTER"
+        row.version += 1
     else:
         db.add(MelimiDocument(path=path, kind="uploaded_content", text=text, entries_json=payload, source=source, status="MASTER"))
 
@@ -135,8 +175,6 @@ def _invalidate_indexes() -> None:
         from app.melimi.root_morphology import reload_root_dictionary
         reload_root_dictionary(); reload_registry(); reload_index(); reload_firewall()
     except Exception:
-        # A failed cache refresh must not turn a committed database change into
-        # an API failure. The next request will lazily rebuild the indexes.
         pass
 
 
@@ -172,6 +210,13 @@ def _files(filename: str, raw: bytes) -> list[tuple[str, bytes]]:
     return result
 
 
+def _entries_for_text(text: str) -> list[dict]:
+    entries: list[dict] = []
+    for line in text.splitlines():
+        entries.extend(parse_mapping_line(line))
+    return entries
+
+
 def ingest_language_package(filename: str, raw: bytes, approved: bool, actor_user_id: int | None = None):
     files = _files(filename, raw)
     if not approved:
@@ -186,7 +231,7 @@ def ingest_language_package(filename: str, raw: bytes, approved: bool, actor_use
             return {"status": "PENDING", "candidate_id": candidate.id, "files": len(files)}
 
     source = f"upload:{filename}:user:{actor_user_id or 0}"
-    counts = {"files": 0, "documents": 0, "mappings": 0}
+    counts = {"files": 0, "documents": 0, "mappings": 0, "rules": 0, "metadata": 0}
     with SessionLocal() as db:
         for name, data in files:
             text = data.decode("utf-8-sig", "replace")
@@ -196,12 +241,17 @@ def ingest_language_package(filename: str, raw: bytes, approved: bool, actor_use
                     entries = _structured_entries(json.loads(text))
                 except json.JSONDecodeError as exc:
                     raise ValueError(f"Invalid JSON in {name}: {exc}") from exc
+                structured = []
             else:
-                entries = parse_text(text)
+                entries = _entries_for_text(text)
+                structured = _store_structured_items(db, text, source)
             for entry in entries:
                 if _upsert_entry(db, entry, source):
                     counts["mappings"] += 1
-            _store_document(db, name, text, entries, source)
+            counts["rules"] += sum(1 for item in structured if item["kind"] == "rule")
+            counts["metadata"] += sum(1 for item in structured if item["kind"] == "language_metadata")
+            combined = entries + structured
+            _store_document(db, name, text, combined, source)
             counts["files"] += 1
             counts["documents"] += 1
         db.add(KnowledgeVersion(version=_knowledge_version(db) + 1, source=source, checksum=hashlib.sha256(raw).hexdigest()))
@@ -245,21 +295,31 @@ def approve_candidate(candidate_id: int, reviewer_note: str = ""):
     elif kind == "LANGUAGE_PACKAGE":
         files = payload.get("files", [])
         source = f"approved-package:{payload.get('filename', candidate.source_text)}:reviewed"
-        counts = {"files": 0, "documents": 0, "mappings": 0}
+        counts = {"files": 0, "documents": 0, "mappings": 0, "rules": 0, "metadata": 0}
         with SessionLocal() as db:
             for item in files:
                 name = str(item.get("name", "")).strip()
                 text = str(item.get("content", ""))
                 extension = os.path.splitext(name.lower())[1]
                 if extension == ".json":
-                    try: entries = _structured_entries(json.loads(text))
-                    except json.JSONDecodeError as exc: raise ValueError(f"Invalid JSON in {name}: {exc}") from exc
+                    try:
+                        entries = _structured_entries(json.loads(text))
+                    except json.JSONDecodeError as exc:
+                        raise ValueError(f"Invalid JSON in {name}: {exc}") from exc
+                    structured = []
                 else:
-                    entries = parse_text(text)
+                    entries = _entries_for_text(text)
+                    structured = _store_structured_items(db, text, source)
                 for entry in entries:
-                    if _upsert_entry(db, entry, source): counts["mappings"] += 1
-                _store_document(db, name, text, entries, source); counts["files"] += 1; counts["documents"] += 1
-            db.add(KnowledgeVersion(version=_knowledge_version(db) + 1, source=source, checksum=hashlib.sha256(json.dumps(payload, ensure_ascii=False).encode()).hexdigest())); db.commit()
+                    if _upsert_entry(db, entry, source):
+                        counts["mappings"] += 1
+                counts["rules"] += sum(1 for x in structured if x["kind"] == "rule")
+                counts["metadata"] += sum(1 for x in structured if x["kind"] == "language_metadata")
+                _store_document(db, name, text, entries + structured, source)
+                counts["files"] += 1
+                counts["documents"] += 1
+            db.add(KnowledgeVersion(version=_knowledge_version(db) + 1, source=source, checksum=hashlib.sha256(json.dumps(payload, ensure_ascii=False).encode()).hexdigest()))
+            db.commit()
         result = {"status": "APPROVED", "files": counts["files"], "documents": counts["documents"], "counts": counts}
     else:
         return {"id": candidate_id, "status": "APPROVED", "payload": payload}
