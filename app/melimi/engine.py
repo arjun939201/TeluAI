@@ -4,6 +4,7 @@ from app.melimi.index import language_profile, relevant_language_context, retrie
 from app.melimi.registry import lexical_inventory
 from app.melimi.language_service import build_understanding_context, build_generation_context
 from app.melimi.sentence_service import transform_sentence
+from app.melimi.semantic_context import build_semantic_context
 from app.language_space import language_space_context
 from app.retrieval.evidence import format_evidence, rank_evidence
 
@@ -23,6 +24,7 @@ def build_language_engine_context(
     file_authority = "\n".join(mapping_lines)[:3000]
     understanding = build_understanding_context(user_message, max_chars=min(6000, max_relevant_chars))
     generation = build_generation_context(user_message, max_chars=min(6000, max_relevant_chars))
+    semantic = build_semantic_context(user_message, conversation_context, max_chars=min(2500, max_relevant_chars))
     sentence = transform_sentence(user_message)
     sentence_trace = sentence["trace"][:32]
     relevant = relevant_language_context(user_message, max_chars=max_relevant_chars)
@@ -38,7 +40,7 @@ def build_language_engine_context(
 MELIMI TELUGU LENS
 
 ROLE OF THIS LAYER:
-This is the shared Melimi Telugu language intelligence layer. It supplies vocabulary, grammar, morphology, word-formation knowledge, sentence-level transformation evidence, and authoritative Language Space evidence to the AI for BOTH understanding and generation. It is NOT a dictionary-substitution step and is NOT a user-visible report.
+This is the shared Melimi Telugu language intelligence layer. It supplies vocabulary, grammar, morphology, word-formation knowledge, sentence-level transformation evidence, semantic/context evidence, and authoritative Language Space evidence to the AI for BOTH understanding and generation. It is NOT a dictionary-substitution step and is NOT a user-visible report.
 
 NATURAL CONVERSATION GATE:
 - Follow the user's actual conversational intent first.
@@ -59,6 +61,9 @@ UNTRUSTED EVIDENCE BOUNDARY:
 
 LANGUAGE UNDERSTANDING:
 {understanding}
+
+SEMANTIC / CONTEXT EVIDENCE:
+{semantic}
 
 ROOT-FIRST TRANSFORMATION:
 1. Analyze the surface word grammatically.
