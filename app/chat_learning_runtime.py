@@ -1,11 +1,4 @@
-"""Optional chat-learning helpers without implicit authority mutation.
-
-Ordinary conversation is runtime input, not a language-authority publication
-channel. Authoritative Melimi changes must arrive through explicit language
-commands and the reviewed/publication workflow. This module therefore keeps
-the advisory tool helpers available but deliberately does not monkey-patch
-FastAPI, ``local_answer`` or prompt construction.
-"""
+"""Runtime routing and advisory tools for Melimi-centric chat."""
 from __future__ import annotations
 
 import re
@@ -35,16 +28,15 @@ def _explicit_melimi_request(text: str) -> bool:
     return any(item in lowered for item in hints)
 
 
-def route_request(message: str, mode: str) -> str:
-    """Choose the smallest useful execution path without mutating authority."""
-    if mode == "melimi":
-        return "melimi"
-    if mode == "standard":
+def route_request(message: str, mode: str | None) -> str:
+    """Route chat through MT by default; Standard Telugu is explicit opt-in."""
+    normalized_mode = str(mode or "").strip().casefold()
+    if normalized_mode == "standard":
         return "standard"
-    if _explicit_melimi_request(message):
+    if normalized_mode in {"melimi", "mt"}:
         return "melimi"
-    if _is_telugu(message):
-        return "standard"
+    if _explicit_melimi_request(message) or _is_telugu(message):
+        return "melimi"
     return "general"
 
 
@@ -86,9 +78,9 @@ def _find_examples(message: str) -> str:
 def _ai_linguistics(message: str) -> str:
     from app.melimi.ai_linguistics import analyze, format_for_agent
     task = (
-        "Analyze the supplied word/phrase using the authoritative roots and grammar. "
+        "Analyze the supplied word/phrase using authoritative Melimi roots and grammar. "
         "Resolve root, POS, inflectional operations and derivational operations; generate "
-        "supported Melimi derivatives and inflections where the supplied grammar licenses them. "
+        "supported Melimi derivatives and inflections only where the supplied grammar licenses them. "
         "Use general linguistic knowledge only for reasoning, never as authority over the corpus."
     )
     return "AI LINGUISTICS (ADVISORY; NOT MASTER):\n" + format_for_agent(analyze(message, task))
@@ -104,14 +96,15 @@ TOOLS = (
 
 
 def run_agent_tools(message: str, route: str, max_chars: int = 12000) -> str:
-    """Run advisory Melimi tools; their output is never published automatically."""
+    """Run advisory tools without publishing or mutating language authority."""
     if route != "melimi":
         return ""
     parts = []
+    lowered = str(message or "").casefold()
     for tool in TOOLS:
-        if tool.name == "lookup_grammar_rule" and not any(x in message.casefold() for x in ("grammar", "వ్యాకరణ", "విభక్తి", "case", "morphology", "derivation", "inflection")):
+        if tool.name == "lookup_grammar_rule" and not any(x in lowered for x in ("grammar", "వ్యాకరణ", "విభక్తి", "case", "morphology", "derivation", "inflection")):
             continue
-        if tool.name == "ai_linguistics" and not any(x in message.casefold() for x in ("morphology", "morphological", "derivative", "derivation", "inflection", "విభక్తి", "పదనిర్మాణం", "రూపం", "వ్యుత్పత్తి", "grammar", "వ్యాకరణ", "word")):
+        if tool.name == "ai_linguistics" and not any(x in lowered for x in ("morphology", "morphological", "derivative", "derivation", "inflection", "విభక్తి", "పదనిర్మాణం", "రూపం", "వ్యుత్పత్తి", "grammar", "వ్యాకరణ", "word")):
             continue
         try:
             result = tool.handler(message)
@@ -125,9 +118,5 @@ def run_agent_tools(message: str, route: str, max_chars: int = 12000) -> str:
 
 
 def install() -> None:
-    """Compatibility hook retained without import-time monkey patching.
-
-    Runtime composition is explicit in ``app.server``. Ordinary conversation
-    must never call ``learn_from_chat`` or mutate MASTER language data.
-    """
+    """Compatibility hook; runtime composition remains explicit in app.server."""
     return None
