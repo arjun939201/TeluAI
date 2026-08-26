@@ -1,9 +1,24 @@
 (() => {
   const originalFetch = window.fetch.bind(window);
   const LAB_PREFIX = '[Melimi Lab] ';
+  let activeConversationId = null;
+
   const sameOrigin = (url) => {
     try { return new URL(url, window.location.href).origin === window.location.origin; }
     catch { return false; }
+  };
+
+  const refreshVisibleConversation = () => {
+    if (window.__teluaiGenerating) return;
+    const input = document.querySelector('#input');
+    if (input && (document.activeElement === input || input.value.trim())) return;
+    const active = document.querySelector('.history-item.active');
+    if (active) {
+      activeConversationId = active.dataset.id || activeConversationId;
+      active.click();
+      return;
+    }
+    document.querySelector('#historyRefresh')?.click();
   };
 
   window.fetch = async (input, init = {}) => {
@@ -20,7 +35,22 @@
         } catch {}
       }
     }
+
     const response = await originalFetch(input, options);
+
+    if (url.includes('/chat/stream') && response.ok) {
+      response.clone().text().then(text => {
+        for (const frame of text.split('\n\n')) {
+          const line = frame.split('\n').find(x => x.startsWith('data:'));
+          if (!line) continue;
+          try {
+            const event = JSON.parse(line.slice(5).trim());
+            if (event.conversation_id) activeConversationId = event.conversation_id;
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+
     if (response.ok && url.includes('/conversations') && response.headers.get('content-type')?.includes('application/json')) {
       const data = await response.clone().json().catch(() => null);
       if (data && Array.isArray(data.conversations)) {
@@ -35,6 +65,7 @@
     return response;
   };
 
+  // The Lab always has an explicit Melimi mode even though the control is hidden.
   if (!document.querySelector('#modeSelect')) {
     const select = document.createElement('select');
     select.id = 'modeSelect';
@@ -50,23 +81,13 @@
     document.body.appendChild(select);
   }
 
-  const refresh = async () => {
-    if (window.__teluaiGenerating) return;
-    const id = window.__teluaiConversationId;
-    if (!id) return;
-    try {
-      const response = await originalFetch(`/conversations/${encodeURIComponent(id)}`, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { 'X-TeluAI-Workspace': 'lab' },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      if (Array.isArray(data.messages)) window.__teluaiRefreshConversation?.(data.messages);
-    } catch {}
-  };
+  // Keep the Lab UI synchronized with database state without interrupting typing/generation.
+  window.setInterval(refreshVisibleConversation, 15000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshVisibleConversation();
+  });
 
-  window.__teluaiLabRefresh = refresh;
-  window.setInterval(refresh, 12000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  // A successful command/message should settle into the persisted conversation immediately.
+  const composer = document.querySelector('#composer');
+  composer?.addEventListener('submit', () => window.setTimeout(refreshVisibleConversation, 900));
 })();
