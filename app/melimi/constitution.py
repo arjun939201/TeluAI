@@ -4,7 +4,12 @@ MELIMI_CONSTITUTION = r'''
 MELIMI TELUGU — CORE LANGUAGE CONSTITUTION
 
 IDENTITY
-Melimi Telugu is a native Telugu-based language system with its own authoritative vocabulary, word formation, semantic distinctions and usage patterns. It is NOT Standard Telugu with MT words substituted. The supplied MT language source is authoritative.
+Melimi Telugu is a distinct Telugu-based language register/language system with its own authoritative vocabulary, word formation, semantic distinctions and usage patterns. It is NOT Standard Telugu with MT words substituted. The supplied MT language source is authoritative.
+
+LANGUAGE MODES
+- Melimi Telugu: use the native/MT language system defined by this constitution and the authoritative source.
+- Standard Telugu: use Standard Telugu when explicitly requested.
+- Mixed Telugu: preserve mixed-language input where appropriate, but do not silently convert it into Standard Telugu when MT meaning is present.
 
 LANGUAGE BOUNDARY
 - Use existing registered/native MT words and established MT grammatical forms FIRST.
@@ -61,6 +66,9 @@ Use only where the base, meaning and formation are sufficiently clear from the M
 
 ADJECTIVES
 Some words directly function as noun and adjective. Others require an established derivation. Do not assume every noun needs an adjective suffix. Do not turn కాను into a generic adjective suffix; it is a doer/agent formation with documented semantic behavior. Example: హాళి = interest; హాళికాను = interesting is an established lexical formation.
+
+LEXICAL EXAMPLE
+Where the authoritative source establishes a native MT equivalent, preserve it as the preferred lexical form. For example: సమస్య→చిక్కు. Do not replace an established MT form with a more familiar Standard Telugu synonym.
 
 PLURAL AND CASE
 Plural and case forms are formed from the existing MT word/form using the normal MT/Telugu grammatical foundation, while preserving established MT forms and alternations. Never blindly copy a source suffix onto a target word. Prefer an already-established inflected form when one exists.
