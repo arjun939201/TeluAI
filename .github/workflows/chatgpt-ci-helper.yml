@@ -38,12 +38,9 @@ jobs:
       - name: Find pull request
         id: pr
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
         run: |
           set -euo pipefail
-          PR_NUMBER="$(gh run view "$RUN_ID" --repo "$REPO" --json pullRequests --jq '.pullRequests[0].number // empty')"
           echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Diagnose failure
