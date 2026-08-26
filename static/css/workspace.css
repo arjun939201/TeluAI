@@ -28,6 +28,8 @@
   box-shadow: 0 0 0 3px rgba(114,224,184,.10);
 }
 
+.lab-sidebar { position: relative; }
+
 .account-trigger {
   position: relative;
   width: 100%;
