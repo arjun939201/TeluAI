@@ -82,9 +82,20 @@ def _authorized_formations(text: str, *, limit: int = 24) -> list[str]:
             if len(candidates) >= limit:
                 return candidates
 
+    # A source/standard token can be an authoritative input bridge to an
+    # already-registered MT lemma. Use that mapped MT lemma for derivation,
+    # but never derive from an unknown or unregistered guessed root.
     for token in TOKEN_RE.findall(text or "")[:80]:
-        root = token if token in melimi_roots else reduce_to_root(token, set(melimi_roots)).root
-        if root not in melimi_roots or root in seen:
+        preferred = lexicon["preferred"].get(token) or lexicon["preferred"].get(token.casefold())
+        mapped_root = preferred if preferred in lexicon["registered"] else ""
+        root = (
+            token if token in melimi_roots else
+            mapped_root if mapped_root else
+            reduce_to_root(token, set(melimi_roots)).root
+        )
+        if root not in melimi_roots and root not in lexicon["registered"]:
+            continue
+        if root in seen:
             continue
         seen.add(root)
         try:
