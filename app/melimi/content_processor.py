@@ -81,7 +81,7 @@ def _labeled_item(line: str) -> ContentItem | None:
     # A labelled assertion can be either ``root: word = meaning`` or simply
     # ``grammar: ...``.  Preserve the original assertion as evidence.
     mapping = _MAPPING.match(value)
-    if mapping and label in {"root", "affix", "prefix", "suffix", "word", "vocabulary", "meaning"}:
+    if mapping and label in {"root", "affix", "prefix", "suffix", "word", "vocabulary", "meaning", "example", "phrase"}:
         return ContentItem(
             _kind_from_label(label),
             _clean(mapping.group("source")),
