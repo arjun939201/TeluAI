@@ -28,10 +28,89 @@
   box-shadow: 0 0 0 3px rgba(114,224,184,.10);
 }
 
+.account-trigger {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid rgba(114,224,184,.14);
+  padding: 13px 7px 5px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-trigger:hover,
+.account-trigger:focus-visible,
+.account-trigger.is-open {
+  background: rgba(114,224,184,.07);
+  border-radius: 10px;
+  outline: none;
+}
+
+.account-trigger .account-chevron {
+  margin-left: auto;
+  color: #9ab5aa;
+  font-size: 14px;
+  transition: transform .18s ease;
+}
+
+.account-trigger.is-open .account-chevron {
+  transform: rotate(180deg);
+}
+
+.account-menu {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 72px;
+  z-index: 30;
+  padding: 7px;
+  border: 1px solid rgba(114,224,184,.18);
+  border-radius: 14px;
+  background: rgba(10,31,27,.98);
+  box-shadow: 0 18px 50px rgba(0,0,0,.38);
+  backdrop-filter: blur(16px);
+}
+
+.account-menu-header {
+  padding: 8px 10px 9px;
+  border-bottom: 1px solid rgba(114,224,184,.12);
+  margin-bottom: 5px;
+}
+
+.account-menu-header strong,
+.account-menu-header span { display: block; }
+.account-menu-header strong { color: #e7f5ef; font-size: 13px; }
+.account-menu-header span { color: #8fa99f; font-size: 11px; margin-top: 2px; }
+
+.account-menu-item.sidebar-button {
+  width: 100%;
+  margin: 1px 0;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px;
+  color: #cfe4dc;
+  background: transparent;
+}
+
+.account-menu-item.sidebar-button:hover,
+.account-menu-item.sidebar-button:focus-visible {
+  background: rgba(114,224,184,.10);
+  color: #e7f5ef;
+  outline: none;
+}
+
 @media (max-width: 700px) {
   .melimi-lab-link { padding: 10px 11px; }
+  .account-menu { left: 10px; right: 10px; bottom: 68px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .melimi-lab-link { transition: none; }
+  .melimi-lab-link,
+  .account-trigger .account-chevron { transition: none; }
 }
