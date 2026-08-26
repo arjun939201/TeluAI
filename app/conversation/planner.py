@@ -1,9 +1,9 @@
+from typing import Dict, Optional
 
-from typing import Dict
 
-
-def plan_response(understanding: Dict) -> str:
+def plan_response(understanding: Dict, semantic: Optional[Dict] = None) -> str:
     intent = understanding.get("intent", "")
+    semantic = semantic or {}
 
     plans = {
         "clarification_request": "Clarify the immediately previous question or statement. Do not invent a new subject.",
@@ -13,7 +13,17 @@ def plan_response(understanding: Dict) -> str:
         "nothing_or_negative": "Accept the user's response naturally. Do not force an unrelated activity or topic.",
         "greeting": "Return a natural greeting appropriate to the current tone.",
     }
-    return plans.get(
+    plan = plans.get(
         intent,
         "Respond directly to the user's meaning and context. Introduce a question only when conversationally useful.",
     )
+
+    # Semantic signals are evidence for response planning, never replacement commands.
+    dominant = semantic.get("dominant_signal", "statement")
+    if dominant == "question":
+        plan += " The current utterance has question evidence; answer the question directly before adding anything else."
+    elif dominant == "request":
+        plan += " The current utterance has request evidence; fulfill the requested action directly when possible."
+    elif dominant == "negation":
+        plan += " The current utterance has negation evidence; preserve the user's negative constraint and do not infer an opposite request."
+    return plan

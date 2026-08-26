@@ -10,6 +10,7 @@ from app.linguistics.parser import extract_linguistic_hints
 from app.memory.manager import extract_memory_candidates
 from app.melimi.engine import build_language_engine_context
 from app.melimi.grammar import grammar_policy
+from app.melimi.semantic_context import analyze_context
 from app.prompts import build_prompt
 from app.prompt_registry import CHAT_PROMPT, prompt_metadata
 from app.settings_runtime import settings_for_user
@@ -22,7 +23,8 @@ def prepare_prompt(message: str, requested_mode: str, history: list[dict], user_
     input_info = analyze_input(message) if decision.use_melimi else ""
     understanding = infer_intent(message, state)
     conversation = build_context(message, state, linguistic)
-    plan = plan_response(understanding)
+    semantic = analyze_context(message, conversation) if decision.use_melimi else {}
+    plan = plan_response(understanding, semantic)
     user_settings = settings_for_user(user_id)
     memory = format_memory(user_settings.get("memory", [])) if user_settings.get("memory_enabled", True) else ""
     if not memory and decision.use_melimi and response_length == "long":
@@ -72,6 +74,7 @@ def prepare_prompt(message: str, requested_mode: str, history: list[dict], user_
         "intent": decision.intent or understanding.get("intent"),
         "language": decision.language,
         "understanding": understanding,
+        "semantic": semantic,
         "response_length": response_length,
         "prompt": prompt_metadata(CHAT_PROMPT, knowledge_version=knowledge_version),
     }
