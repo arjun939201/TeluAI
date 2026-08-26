@@ -7,10 +7,12 @@ IDENTITY
 Melimi Telugu is a native Telugu-based language system with its own authoritative vocabulary, word formation, semantic distinctions and usage patterns. It is NOT Standard Telugu with MT words substituted. The supplied MT language source is authoritative.
 
 LANGUAGE BOUNDARY
-- Use native Telugu grammatical foundations unless the MT source explicitly establishes a different rule.
-- Use only established/native MT vocabulary and MT word-formation rules supported by the project source.
+- Use existing registered/native MT words and established MT grammatical forms FIRST.
+- Use only native Telugu vocabulary or vocabulary explicitly established by the MT source for MT output.
 - Do not import a Standard Telugu synonym, suffix, derivation, or semantic assumption merely because it is familiar to the model.
-- If an MT form is not sufficiently supported, keep it unresolved rather than inventing a form or silently translating it through Standard Telugu.
+- New MT words are exceptional, not the default. Create one only when genuinely necessary and when its base/root, meaning, and MT formation rule are all clearly established by the source.
+- If the source is unclear, keep the expression unresolved or use an already-established word/form. Never invent a plausible-looking MT word.
+- Future language updates must extend the existing authoritative lexicon/rules rather than create competing parallel systems.
 
 CORE TELUGU GRAMMAR
 Basic pronouns, pronoun inflection, SOV word order, case behavior, agreement, tense, aspect, mood, negation, questions, imperatives, participles/non-finite forms, clauses, comparison, possession, existential constructions, demonstratives, conjunctions and ordinary sentence syntax follow the Telugu foundation unless explicitly overridden by the MT source.
@@ -19,11 +21,12 @@ MT WORD FORMATION
 Treat lexical formation as first-class language knowledge. A formation is a word derived from an existing root/word through an authoritative MT mechanism. Preserve the root, formation element, formation mechanism, meaning, examples, provenance and authority state.
 
 FORMATION PRIORITY
-1. Established MASTER MT word/form.
-2. Explicitly documented MT formation rule.
-3. Supported productive formation using native/MT vocabulary.
-4. Where several permitted forms are possible, use established usage and general Telugu వినసొంపు (sound suitability).
-5. If the evidence is unclear, do not generate.
+1. Existing registered MASTER MT word/form.
+2. Existing established MT grammatical form.
+3. Explicitly documented MT formation rule applied to an established native/MT base.
+4. Supported productive formation using native/MT vocabulary, only when the meaning and formation are clear.
+5. Where several permitted forms are possible, prefer established usage and general Telugu వినసొంపు (sound suitability).
+6. If evidence is unclear, do not generate a new word; prefer an existing form or preserve uncertainty.
 
 PREFIXES
 A prefix may have multiple meanings/functions. Do not collapse one prefix to one gloss. For example:
@@ -60,7 +63,7 @@ ADJECTIVES
 Some words directly function as noun and adjective. Others require an established derivation. Do not assume every noun needs an adjective suffix. Do not turn కాను into a generic adjective suffix; it is a doer/agent formation with documented semantic behavior. Example: హాళి = interest; హాళికాను = interesting is an established lexical formation.
 
 PLURAL AND CASE
-Plural and case forms are formed from the existing MT word/form using the normal MT/Telugu grammatical foundation, while preserving established MT forms and alternations. Never blindly copy a source suffix onto a target word.
+Plural and case forms are formed from the existing MT word/form using the normal MT/Telugu grammatical foundation, while preserving established MT forms and alternations. Never blindly copy a source suffix onto a target word. Prefer an already-established inflected form when one exists.
 
 PERSON AND NUMBER
 Person/agent words use the normal MT plural formation. Example: ఏలువాను → ఏలువానులు. Do not create a special people-only plural system.
@@ -69,11 +72,11 @@ REDUPLICATION / ANALOGY
 Reduplication and analogy are genuine MT word-formation mechanisms. Recognize documented transformations such as మఱు+మఱు→మమ్మఱు, సలుపు+సలుపు→సంసల్పు, వంచి+వంచి→వావంచి, and analogy formations such as క్రొత్త→క్రోచి as structured language evidence. Do not mechanically concatenate repeated strings or force analogy into a suffix rule.
 
 UNKNOWN / UNCERTAIN
-Unknown evidence is not permission to guess. Never silently reinterpret an MT form as a similar Standard Telugu word. Never invent a root, suffix meaning, derivation, or MT equivalent. If the source does not establish the formation clearly, preserve uncertainty.
+Unknown evidence is not permission to guess. Never silently reinterpret an MT form as a similar Standard Telugu word. Never invent a root, suffix meaning, derivation, or MT equivalent. If the source does not establish the formation clearly, preserve uncertainty and prefer an existing known expression.
 
 GENERATION
-meaning → context → authoritative MT root/lexeme → documented word formation → Telugu grammatical operation → surface form → validation.
-The LLM is the generation engine, not the linguistic authority. The deterministic MT knowledge layer constrains generation.
+meaning → context → existing authoritative MT lexeme → existing grammatical form → documented word formation only if necessary → Telugu grammatical operation → surface form → validation.
+The LLM is the generation engine, not the linguistic authority. The deterministic MT knowledge layer constrains generation. Existing language is preferred over newly generated language.
 '''.strip()
 
 def language_constitution() -> str:
