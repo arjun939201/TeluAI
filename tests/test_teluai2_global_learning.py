@@ -29,3 +29,24 @@ def test_global_memory_is_not_written_for_normal_user(monkeypatch):
     # that the shared table is untouched by an ordinary-user role.
     remember_suggestion(3, LearningSuggestion("VOCABULARY", "దుఃఖం", "విషాదం", "user teaching"), "user")
     assert not any(item["key"] == "దుఃఖం" for item in learned_global())
+
+
+def test_omitted_role_resolves_authenticated_owner_scope(monkeypatch):
+    _isolated_engine(monkeypatch)
+    monkeypatch.setattr(teluai2_learning, "_role_for_user", lambda user_id: "owner")
+    remember_suggestion(7, LearningSuggestion("VOCABULARY", "జ్ఞానం", "తెలివి", "owner chat"))
+    assert any(item["key"] == "జ్ఞానం" and item["source"] == "owner_chat" for item in learned_global())
+
+
+def test_omitted_role_resolves_authenticated_admin_scope(monkeypatch):
+    _isolated_engine(monkeypatch)
+    monkeypatch.setattr(teluai2_learning, "_role_for_user", lambda user_id: "admin")
+    remember_suggestion(8, LearningSuggestion("VOCABULARY", "చదువు", "విద్య", "admin chat"))
+    assert any(item["key"] == "చదువు" and item["source"] == "approved_admin_chat" for item in learned_global())
+
+
+def test_omitted_role_resolves_to_private_scope_for_normal_user(monkeypatch):
+    _isolated_engine(monkeypatch)
+    monkeypatch.setattr(teluai2_learning, "_role_for_user", lambda user_id: "user")
+    remember_suggestion(9, LearningSuggestion("VOCABULARY", "ఇల్లు", "గృహం", "user chat"))
+    assert not any(item["key"] == "ఇల్లు" for item in learned_global())
