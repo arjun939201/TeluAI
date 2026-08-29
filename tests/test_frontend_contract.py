@@ -1,40 +1,42 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-INDEX = ROOT / 'static/index.html'
-JS = ROOT / 'static/js/professional.js'
-ENGINE = ROOT / 'static/js/teluai-engine.js'
+INDEX = ROOT / "static/index.html"
+JS = ROOT / "static/teluai2.js"
+CSS = ROOT / "static/teluai2.css"
 
 
-def test_main_ui_has_native_melimi_controls():
-    html = INDEX.read_text(encoding='utf-8')
-    for element_id in ('newChat', 'historySearch', 'historySort', 'settings', 'modeSelect', 'composer', 'input', 'send', 'chat'):
+def test_main_ui_is_focused_telugu_chat():
+    html = INDEX.read_text(encoding="utf-8")
+    for element_id in ("newChat", "history", "composer", "input", "send", "chat", "messages", "auth"):
         assert f'id="{element_id}"' in html
-    assert 'Auto' in html and 'Standard Telugu' in html and 'Melimi Telugu' in html
-    assert 'professional.js' in html
-    assert 'marked' in html and 'dompurify' in html
+    assert 'lang="te"' in html
+    assert "తెలుగులో మాట్లాడండి" in html
+    assert "/static/teluai2.js" in html
+    assert "/static/teluai2.css" in html
+    assert "/melimi-lab" not in html
+    assert "modeSelect" not in html
 
 
-def test_frontend_has_streaming_and_message_actions():
-    js = JS.read_text(encoding='utf-8')
-    for token in ('/chat/stream', 'AbortController', 'Regenerate', 'navigator.clipboard', '/feedback', '/messages/'):
-        assert token in js
+def test_new_frontend_uses_one_chat_transport():
+    js = JS.read_text(encoding="utf-8")
+    assert "fetch('/chat'" in js or "fetch('/chat'," in js
+    assert "conversation_id" in js
+    assert "/conversations" in js
+    assert "credentials:'same-origin'" in js
+    assert "innerHTML" in js  # rendering is escaped through esc() before insertion
+    assert "const esc" in js
 
 
-def test_frontend_escapes_fallback_content():
-    js = JS.read_text(encoding='utf-8')
-    assert 'function esc' in js and '&lt;' in js
+def test_frontend_has_no_legacy_stream_or_workspace_controls():
+    html = INDEX.read_text(encoding="utf-8")
+    js = JS.read_text(encoding="utf-8")
+    assert "/chat/stream" not in js
+    assert "Melimi Telugu Lab" not in html
+    assert "adminButton" not in html
 
 
-def test_engine_status_uses_health_without_transport_override():
-    js = ENGINE.read_text(encoding='utf-8')
-    assert "fetch('/health'" in js
-    assert 'window.fetch' not in js
-    assert 'ReadableStream' not in js
-    assert "'/chat'" not in js
-
-
-def test_mode_routing_is_owned_by_backend_transport():
-    js = ENGINE.read_text(encoding='utf-8')
-    assert 'mode' not in js
-    assert 'preferred_mode' not in js
+def test_product_css_is_responsive():
+    css = CSS.read_text(encoding="utf-8")
+    assert "@media(max-width:760px)" in css
+    assert "overflow:hidden" in css
