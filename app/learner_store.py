@@ -105,8 +105,18 @@ def _row_dict(row: Any) -> dict[str, Any]:
     return d
 
 
+_AUTO_LEARNED_KINDS = {"sentence", "word_observation", "phrase", "pattern"}
+
+
+def _effective_status(kind: str, source: str, status: str) -> str:
+    """Prevent passive chat observations from becoming trusted knowledge."""
+    if kind in _AUTO_LEARNED_KINDS and source == "chat" and status == "approved":
+        return "pending"
+    return status
+
+
 def add_learning(*, kind: str, standard: str = "", melimi: str = "", rule: str = "", meaning: str = "", evidence: str = "", source: str = "chat", status: str = "pending", confidence: float = 0.5, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
-    init_store(); now = _now(); metadata_json = json.dumps(metadata or {}, ensure_ascii=False)
+    init_store(); now = _now(); status = _effective_status(kind, source, status); metadata_json = json.dumps(metadata or {}, ensure_ascii=False)
     if _is_postgres():
         conn = _pg_connect()
         try:
