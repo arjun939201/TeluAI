@@ -6,11 +6,16 @@ JS = ROOT / 'static/js/professional.js'
 ENGINE = ROOT / 'static/js/teluai-engine.js'
 
 
-def test_main_ui_has_native_melimi_controls():
+def test_main_ui_is_a_single_telugu_chat_surface():
     html = INDEX.read_text(encoding='utf-8')
-    for element_id in ('newChat', 'historySearch', 'historySort', 'settings', 'modeSelect', 'composer', 'input', 'send', 'chat'):
+    for element_id in ('newChat', 'historySearch', 'historySort', 'settingsButton', 'composer', 'input', 'send', 'chat'):
         assert f'id="{element_id}"' in html
-    assert 'Auto' in html and 'Standard Telugu' in html and 'Melimi Telugu' in html
+    assert 'id="modeSelect"' not in html
+    assert 'Standard Telugu' not in html
+    assert 'Melimi Telugu' not in html
+    assert 'Melimi Telugu Lab' not in html
+    assert 'Write a Python function' not in html
+    assert 'What is Python and why is it useful?' not in html
     assert 'professional.js' in html
     assert 'marked' in html and 'dompurify' in html
 
@@ -34,7 +39,6 @@ def test_engine_status_uses_health_without_transport_override():
     assert "'/chat'" not in js
 
 
-def test_mode_routing_is_owned_by_backend_transport():
+def test_engine_does_not_own_language_mode_routing():
     js = ENGINE.read_text(encoding='utf-8')
-    assert 'mode' not in js
     assert 'preferred_mode' not in js
