@@ -33,11 +33,24 @@ def _upgrade_global_learning_identity(conn) -> None:
     """Upgrade the legacy shared-learning integer key on PostgreSQL.
 
     Older deployments created `id INTEGER PRIMARY KEY` and supplied MAX(id)+1
-    from application code. New deployments use an identity column directly.
-    This migration makes existing Render PostgreSQL databases safe without
-    destroying their data.
+    from application code. New deployments may already use a PostgreSQL
+    identity column. Identity columns manage their own default sequence and
+    reject `ALTER COLUMN ... SET DEFAULT`, so they must be left untouched.
     """
     if conn.dialect.name != "postgresql" or not _table_exists(conn, "teluai_global_learning"):
+        return
+
+    # A database created from the current SQLAlchemy model already has an
+    # identity column. Do not attempt to attach a second/default sequence to
+    # it; PostgreSQL correctly rejects that operation.
+    identity = conn.execute(text("""
+        SELECT is_identity
+        FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'teluai_global_learning'
+          AND column_name = 'id'
+    """)).scalar()
+    if identity == "YES":
         return
 
     conn.execute(text("CREATE SEQUENCE IF NOT EXISTS teluai_global_learning_id_seq"))
