@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from sqlalchemy import select, text
 
-from app.database import SessionLocal, UserMemory, engine, now
+from app.database import SessionLocal, User, UserMemory, engine, now
 
 TELUGU = r"[\u0C00-\u0C7F]"
 WORD = rf"{TELUGU}+(?:{TELUGU}+)*"
@@ -101,9 +101,23 @@ def extract_suggestion(text: str) -> LearningSuggestion | None:
     return (extract_suggestions(text) or [None])[0]
 
 
-def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str = "user") -> bool:
-    """Persist an explicit suggestion in its correct trust scope."""
-    if _is_global_role(role):
+def _role_for_user(user_id: int) -> str:
+    """Resolve the authenticated user's role when the caller does not supply it."""
+    with SessionLocal() as db:
+        user = db.get(User, int(user_id))
+        return str(getattr(user, "role", "user") or "user") if user else "user"
+
+
+def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str | None = None) -> bool:
+    """Persist an explicit suggestion in its correct trust scope.
+
+    The chat boundary may omit ``role``; in that case resolve it from the
+    authenticated database record instead of silently treating every caller
+    as an ordinary user. Explicit roles remain supported for trusted service
+    callers and focused tests.
+    """
+    resolved_role = _role_for_user(user_id) if role is None else str(role)
+    if _is_global_role(resolved_role):
         _ensure_global_table()
         with engine.begin() as db:
             db.execute(text(f"""
@@ -120,7 +134,7 @@ def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str 
             """), {
                 "id": _next_global_id(db), "kind": suggestion.kind,
                 "learning_key": suggestion.key, "learning_value": suggestion.value,
-                "source": "owner_chat" if str(role).lower() == "owner" else "approved_admin_chat",
+                "source": "owner_chat" if str(resolved_role).lower() == "owner" else "approved_admin_chat",
                 "source_user_id": int(user_id), "evidence": suggestion.source[:50000],
             })
         return True
