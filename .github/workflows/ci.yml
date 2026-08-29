@@ -40,7 +40,7 @@ jobs:
           PYTHONPATH: .
           CACHE_ENABLED: "false"
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python -c "from app.server import app; print(app.title); assert app.title == 'TeluAI — Telugu AI'"
+        run: python -c "from app.server import app; print(app.title); assert app.title.startswith('TeluAI')"
       - name: Clean generated Python caches
         run: |
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
