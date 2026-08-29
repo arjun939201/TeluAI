@@ -1,4 +1,10 @@
-"""Application-level workspace policy and conversation access."""
+"""Canonical workspace policy and conversation access.
+
+Workspace authorization belongs to the application layer. The frontend may
+choose a workspace for presentation, but it is never the security boundary.
+The current database schema stores Lab identity in a legacy title prefix; this
+module keeps that compatibility detail in one place.
+"""
 from __future__ import annotations
 
 from sqlalchemy import select
@@ -19,33 +25,47 @@ def is_lab_conversation(row: Conversation | None) -> bool:
 
 
 def conversation_belongs_to_workspace(row: Conversation | None, workspace: str) -> bool:
-    return bool(row) and is_lab_conversation(row) == (normalize_workspace(workspace) == LAB_WORKSPACE)
+    if row is None:
+        return False
+    target_lab = normalize_workspace(workspace) == LAB_WORKSPACE
+    return is_lab_conversation(row) == target_lab
 
 
-def get_user_conversation(user_id: int, conversation_id: str) -> Conversation | None:
+def _workspace_clause(workspace: str):
+    """Build the DB predicate used by all workspace-scoped reads."""
+    if normalize_workspace(workspace) == LAB_WORKSPACE:
+        return Conversation.title.like(f"{LAB_PREFIX}%")
+    return ~Conversation.title.like(f"{LAB_PREFIX}%")
+
+
+def get_user_conversation(user_id: int, conversation_id: str, workspace: str = MAIN_WORKSPACE) -> Conversation | None:
     with SessionLocal() as db:
-        return db.scalar(select(Conversation).where((Conversation.id == conversation_id) & (Conversation.user_id == user_id)))
+        return db.scalar(
+            select(Conversation).where(
+                (Conversation.id == conversation_id)
+                & (Conversation.user_id == user_id)
+                & _workspace_clause(workspace)
+            )
+        )
 
 
 def can_access_conversation(user_id: int, conversation_id: str, workspace: str) -> bool:
-    return conversation_belongs_to_workspace(get_user_conversation(user_id, conversation_id), workspace)
+    return get_user_conversation(user_id, conversation_id, workspace) is not None
 
 
 def list_user_conversations(user_id: int, workspace: str) -> list[Conversation]:
-    target_lab = normalize_workspace(workspace) == LAB_WORKSPACE
     with SessionLocal() as db:
-        rows = db.scalars(select(Conversation).where(Conversation.user_id == user_id).order_by(Conversation.updated_at.desc())).all()
-    return [row for row in rows if is_lab_conversation(row) == target_lab]
+        return db.scalars(
+            select(Conversation)
+            .where((Conversation.user_id == user_id) & _workspace_clause(workspace))
+            .order_by(Conversation.updated_at.desc(), Conversation.id.desc())
+        ).all()
 
 
 def create_workspace_conversation(user_id: int, workspace: str, title: str, mode: str) -> str:
-    """Create a conversation with an explicit workspace identity.
-
-    The current schema predates a dedicated workspace column, so Lab identity
-    remains encoded in the legacy title prefix until the schema migration adds
-    the first-class field. All new callers should use this application API.
-    """
+    """Create a conversation with an explicit application workspace identity."""
     from app.database import create_conversation
+
     normalized = normalize_workspace(workspace)
     safe_title = " ".join(str(title or "").strip().split())[:70] or "New chat"
     if normalized == LAB_WORKSPACE and not safe_title.startswith(LAB_PREFIX):
