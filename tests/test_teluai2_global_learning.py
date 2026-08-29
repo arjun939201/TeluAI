@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
 from app import teluai2_learning
@@ -50,3 +50,12 @@ def test_omitted_role_resolves_to_private_scope_for_normal_user(monkeypatch):
     monkeypatch.setattr(teluai2_learning, "_role_for_user", lambda user_id: "user")
     remember_suggestion(9, LearningSuggestion("VOCABULARY", "ఇల్లు", "గృహం", "user chat"))
     assert not any(item["key"] == "ఇల్లు" for item in learned_global())
+
+
+def test_shared_learning_primary_key_is_database_generated(monkeypatch):
+    engine = _isolated_engine(monkeypatch)
+    remember_suggestion(10, LearningSuggestion("VOCABULARY", "మాట", "పలుకు", "owner teaching"), "owner")
+    remember_suggestion(10, LearningSuggestion("VOCABULARY", "నీరు", "జలం", "owner teaching"), "owner")
+    with engine.begin() as db:
+        ids = db.execute(text("SELECT id FROM teluai_global_learning ORDER BY id")).scalars().all()
+    assert ids == [1, 2]
