@@ -2,16 +2,21 @@ from __future__ import annotations
 
 import json
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.application.workspace_service import can_access_conversation, list_user_conversations, normalize_workspace
 from app.auth import COOKIE_NAME
+from app.chat_learning import parse_command
 from app.database import user_from_session
+
+
+LAB_WORKSPACE = "lab"
+WORKSPACE_HEADER = "x-teluai-workspace"
 
 
 def _workspace(scope) -> str:
     for key, value in scope.get("headers", []):
-        if key.lower() == b"x-teluai-workspace":
+        if key.lower() == WORKSPACE_HEADER.encode():
             return normalize_workspace(value.decode("utf-8", "ignore"))
     return "main"
 
@@ -34,12 +39,32 @@ def _session_user(scope):
         return None
 
 
-class WorkspaceGuardMiddleware:
-    """Enforce workspace boundaries at the HTTP/application boundary.
+def _sse(payload: dict) -> str:
+    return "data: " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n\n"
 
-    The client may request a workspace for presentation, but the middleware
-    converts that transport signal into canonical request context before the
-    chat application sees it. Conversation reads/writes are also scoped here.
+
+def _workspace_error(path: str):
+    message = "Melimi Lab commands are available only in the Melimi Telugu Lab."
+    if path == "/chat/stream" or path.startswith("/chat/"):
+        return StreamingResponse(
+            iter([
+                _sse({"type": "error", "code": "workspace_boundary", "message": message}),
+                _sse({"type": "done", "cancelled": False}),
+            ]),
+            media_type="text/event-stream",
+            status_code=200,
+            headers={"Cache-Control": "no-cache, no-transform"},
+        )
+    return JSONResponse({"detail": {"code": "workspace_boundary", "message": message}}, status_code=403)
+
+
+class WorkspaceGuardMiddleware:
+    """Canonical HTTP workspace boundary for TeluAI.
+
+    The frontend supplies workspace context, but this middleware is the
+    enforcement point. It scopes conversation reads, injects trusted workspace
+    context into chat requests, forces Lab mode, and rejects Lab-only commands
+    from the Main workspace before the chat runtime can persist them.
     """
 
     def __init__(self, app):
@@ -87,10 +112,6 @@ class WorkspaceGuardMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # Make the trusted transport workspace explicit in the application
-        # request. This prevents a caller from reaching the application layer
-        # with a stale/default workspace simply because the header was omitted
-        # from the JSON payload.
         chunks = []
         while True:
             event = await receive()
@@ -110,8 +131,18 @@ class WorkspaceGuardMiddleware:
             await JSONResponse({"detail": str(exc)}, status_code=400)(scope, receive, send)
             return
 
+        message = str(payload.get("message", "")).strip()
+        if workspace != LAB_WORKSPACE and message.startswith("/"):
+            try:
+                if parse_command(message):
+                    response = _workspace_error(path)
+                    await response(scope, receive, send)
+                    return
+            except ValueError:
+                pass
+
         payload["workspace"] = workspace
-        if workspace == "lab":
+        if workspace == LAB_WORKSPACE:
             payload["mode"] = "melimi"
         raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         sent = False
