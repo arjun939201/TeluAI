@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="te">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b0d12"><meta name="description" content="TeluAI — తెలుగు AI సంభాషణ మరియు వ్యక్తిగత మేలిమి తెలుగు జ్ఞాపకం"><title>TeluAI — తెలుగు AI</title><link rel="stylesheet" href="/static/teluai2.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b0d12"><meta name="description" content="TeluAI — సహజమైన తెలుగు AI సంభాషణ మరియు వ్యక్తిగత భాషా జ్ఞాపకం"><title>TeluAI — తెలుగు AI</title><link rel="stylesheet" href="/static/teluai2.css">
 </head>
 <body>
 <div class="app">
@@ -9,15 +9,15 @@
 <div class="brand"><div class="logo">తె</div><div><strong>TeluAI</strong><span>తెలుగు AI</span></div></div>
 <button id="newChat" class="new" type="button">＋ కొత్త సంభాషణ</button>
 <div class="history-title">ఇటీవలి సంభాషణలు</div><div id="history" class="history"></div>
-<div class="account"><div id="avatar" class="avatar">తె</div><div><strong id="account">TeluAI</strong><small>వ్యక్తిగత భాషా జ్ఞాపకం</small></div></div>
+<div class="account"><div id="avatar" class="avatar">తె</div><div><strong id="account">TeluAI</strong><small>వ్యక్తిగత తెలుగు భాషా జ్ఞాపకం</small></div></div>
 <button id="logout" class="new" type="button">నిష్క్రమించు</button>
 </aside>
 <main class="main">
 <header class="top"><button id="mobileMenu" class="mobile" type="button">☰</button><div><strong>TeluAI</strong> <span id="status" class="status"><i></i> సిద్ధంగా ఉంది</span></div><button id="theme" class="mobile" type="button" aria-label="థీమ్">◐</button></header>
-<section id="content" class="content"><div id="chat" class="chat"><div id="welcome" class="welcome"><div class="logo" style="margin:auto">తె</div><h1>తెలుగులో మాట్లాడండి</h1><p>సాధారణంగా అడగండి. TeluAI తెలుగులో సహజంగా సమాధానం ఇస్తుంది. మీరు మేలిమి తెలుగు పదం లేదా వ్యాకరణ సూచనను స్పష్టంగా ఇస్తే, దాన్ని మీ ఖాతాలో భద్రపరచి కొత్త సంభాషణల్లో అవసరమైనప్పుడు ఉపయోగిస్తుంది.</p></div><div id="messages" class="messages"></div></div></section>
-<div class="composer-wrap"><form id="composer" class="composer"><textarea id="input" rows="1" maxlength="12000" placeholder="తెలుగులో సందేశం రాయండి…" aria-label="సందేశం"></textarea><button id="send" class="send" type="submit" aria-label="పంపండి">↑</button></form><div class="hint">Enter — పంపండి · Shift+Enter — కొత్త పంక్తి · మేలిమి సూచన ఉదాహరణ: <b>సంతోషం = అలరిక</b></div></div>
+<section id="content" class="content"><div id="chat" class="chat"><div id="welcome" class="welcome"><div class="logo" style="margin:auto">తె</div><h1>తెలుగులో మాట్లాడండి</h1><p>సహజంగా మాట్లాడండి. TeluAI సాధారణ సంభాషణను తెలుగులో కొనసాగిస్తుంది. మీరు మేలిమి తెలుగు పదం లేదా వ్యాకరణ వినియోగంపై స్పష్టమైన సూచన ఇస్తే, దాన్ని మీ వ్యక్తిగత భాషా జ్ఞాపకంలో భద్రపరచి తరువాతి సంభాషణల్లో సంబంధిత సందర్భంలో ఉపయోగిస్తుంది.</p></div><div id="messages" class="messages"></div></div></section>
+<div class="composer-wrap"><form id="composer" class="composer"><textarea id="input" rows="1" maxlength="12000" placeholder="తెలుగులో సందేశం రాయండి…" aria-label="సందేశం"></textarea><button id="send" class="send" type="submit" aria-label="పంపండి">↑</button></form><div class="hint">Enter — పంపండి · Shift+Enter — కొత్త పంక్తి</div></div>
 </main></div>
-<div id="auth" class="modal hidden"><div class="card"><h2>TeluAIకి స్వాగతం</h2><p>మీ సంభాషణలు, మేలిమి సూచనలు, మరియు భాషా జ్ఞాపకం మీ ఖాతాకు అనుసంధానించబడతాయి.</p><div id="authError" style="color:#e98b8b;min-height:20px"></div>
+<div id="auth" class="modal hidden"><div class="card"><h2>TeluAIకి స్వాగతం</h2><p>మీ సంభాషణలు మరియు వ్యక్తిగత తెలుగు భాషా జ్ఞాపకం మీ ఖాతాకు అనుసంధానించబడతాయి.</p><div id="authError" style="color:#e98b8b;min-height:20px"></div>
 <form id="guestForm"><label>పేరు<input id="guestUsername" minlength="3" maxlength="80" required autocomplete="username"></label><label>పాస్‌వర్డ్<input id="guestPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></label><button class="primary">అతిథిగా కొనసాగండి</button></form>
 <form id="loginForm" class="hidden"><label>పేరు లేదా ఇమెయిల్<input id="loginIdentifier" required autocomplete="username"></label><label>పాస్‌వర్డ్<input id="loginPassword" type="password" required autocomplete="current-password"></label><button class="primary">ప్రవేశించండి</button></form>
 <form id="registerForm" class="hidden"><label>పేరు<input id="registerUsername" minlength="3" maxlength="80" required></label><label>ఇమెయిల్<input id="registerEmail" type="email" required></label><label>పాస్‌వర్డ్<input id="registerPassword" type="password" minlength="8" required></label><button class="primary">ఖాతా సృష్టించండి</button></form>
