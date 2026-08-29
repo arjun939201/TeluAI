@@ -25,6 +25,39 @@ def _column_exists(conn, table: str, column: str) -> bool:
     return any(item["name"] == column for item in inspect(conn).get_columns(table))
 
 
+def _table_exists(conn, table: str) -> bool:
+    return inspect(conn).has_table(table)
+
+
+def _upgrade_global_learning_identity(conn) -> None:
+    """Upgrade the legacy shared-learning integer key on PostgreSQL.
+
+    Older deployments created `id INTEGER PRIMARY KEY` and supplied MAX(id)+1
+    from application code. New deployments use an identity column directly.
+    This migration makes existing Render PostgreSQL databases safe without
+    destroying their data.
+    """
+    if conn.dialect.name != "postgresql" or not _table_exists(conn, "teluai_global_learning"):
+        return
+
+    conn.execute(text("CREATE SEQUENCE IF NOT EXISTS teluai_global_learning_id_seq"))
+    conn.execute(text("""
+        SELECT setval(
+            'teluai_global_learning_id_seq',
+            COALESCE((SELECT MAX(id) FROM teluai_global_learning), 0) + 1,
+            false
+        )
+    """))
+    conn.execute(text(
+        "ALTER TABLE teluai_global_learning "
+        "ALTER COLUMN id SET DEFAULT nextval('teluai_global_learning_id_seq')"
+    ))
+    conn.execute(text(
+        "ALTER SEQUENCE teluai_global_learning_id_seq "
+        "OWNED BY teluai_global_learning.id"
+    ))
+
+
 def _apply_registered_migrations(engine):
     with engine.begin() as conn:
         conn.execute(
@@ -49,6 +82,10 @@ def _apply_registered_migrations(engine):
                 text("INSERT INTO schema_migrations(version) VALUES (:version)"),
                 {"version": version},
             )
+        _upgrade_global_learning_identity(conn)
+        conn.execute(
+            text("INSERT INTO schema_migrations(version) VALUES (3) ON CONFLICT(version) DO NOTHING")
+        )
 
 
 def run_migrations():
