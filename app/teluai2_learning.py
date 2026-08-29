@@ -214,17 +214,44 @@ def learned_for_user(user_id: int, limit: int = 40) -> list[dict[str, str]]:
     return result
 
 
+def _normalize_telugu_term(term: str) -> str:
+    """Normalize common Telugu inflectional endings for retrieval only.
+
+    This does not rewrite stored knowledge. It allows a query such as
+    'నెనరులు' to retrieve an explicitly learned base form such as 'నెనరు'.
+    """
+    value = str(term or "").strip().casefold()
+    if len(value) > 3 and value.endswith("లు"):
+        value = value[:-2]
+    return value
+
+
+def _relevance_forms(term: str) -> set[str]:
+    value = str(term or "").strip().casefold()
+    normalized = _normalize_telugu_term(value)
+    forms = {value}
+    if normalized:
+        forms.add(normalized)
+    return forms
+
+
 def _relevance_terms(message: str) -> set[str]:
     """Extract Unicode-aware terms for lightweight local retrieval."""
     raw = re.findall(r"[\u0C00-\u0C7F]{1,}|[A-Za-z]{3,}", str(message or ""), flags=re.UNICODE)
-    return {term.casefold() for term in raw}
+    terms: set[str] = set()
+    for term in raw:
+        terms.update(_relevance_forms(term))
+    return terms
 
 
 def _is_relevant(item: dict[str, str], terms: set[str]) -> bool:
     if not terms:
         return False
     haystack = " ".join((item.get("key", ""), item.get("value", ""))).casefold()
-    return any(term in haystack for term in terms)
+    haystack_forms = set()
+    for token in re.findall(r"[\u0C00-\u0C7F]{1,}|[A-Za-z]{3,}", haystack, flags=re.UNICODE):
+        haystack_forms.update(_relevance_forms(token))
+    return bool(terms.intersection(haystack_forms))
 
 
 def prompt_context(user_id: int, role: str = "user", message: str = "") -> str:
