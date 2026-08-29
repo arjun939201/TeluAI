@@ -29,7 +29,14 @@ def _message_is_command(payload: dict) -> bool:
 
 
 class WorkspaceGuardMiddleware:
-    """Keep Melimi Lab commands inside the Lab, including regeneration paths."""
+    """Keep Melimi Lab command transports inside the Lab.
+
+    The regular JSON ``/chat`` endpoint remains the main-chat command path so
+    explicit knowledge commands such as ``/word`` and ``/content`` can enter
+    the normal learning/approval pipeline. The streaming command transport is
+    the Lab-only surface and therefore remains guarded here, as do chat
+    sub-routes such as regeneration.
+    """
 
     def __init__(self, app):
         self.app = app
@@ -40,7 +47,7 @@ class WorkspaceGuardMiddleware:
             return
 
         path = scope.get("path", "")
-        if not (path == "/chat" or path == "/chat/stream" or path.startswith("/chat/")):
+        if not (path == "/chat/stream" or path.startswith("/chat/")):
             await self.app(scope, receive, send)
             return
 
