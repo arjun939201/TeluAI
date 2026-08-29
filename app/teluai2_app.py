@@ -36,7 +36,7 @@ from app.database import (
 from app.groq_client import call_groq_detailed
 from app.migrations import run_migrations
 from app.response import clean_response
-from app.teluai2_learning import extract_suggestions, learned_for_user, prompt_context, remember_suggestion
+from app.teluai2_learning import extract_suggestions, prompt_context, remember_suggestion
 from sqlalchemy import select
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -86,15 +86,7 @@ TELUGU_CHAT_SYSTEM = """నువ్వు TeluAI — సహజమైన తె�
 
 
 def _set_cookie(response: Response, token: str) -> None:
-    response.set_cookie(
-        COOKIE_NAME,
-        token,
-        httponly=True,
-        samesite="lax",
-        secure=settings.cookie_secure,
-        max_age=settings.session_days * 86400,
-        path="/",
-    )
+    response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400, path="/")
 
 
 def _get_history(user_id: int, conversation_id: str | None, supplied: list[dict]) -> tuple[str, list[dict]]:
@@ -113,11 +105,7 @@ def _get_history(user_id: int, conversation_id: str | None, supplied: list[dict]
 
 def _build_prompt(message: str, history: list[dict], user_id: int, response_length: str) -> str:
     memory = prompt_context(user_id, message=message)
-    length = {
-        "short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.",
-        "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు.",
-    }.get(response_length, "సహజమైన సాధారణ పరిమాణంలో సమాధానం ఇవ్వు.")
-
+    length = {"short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.", "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు."}.get(response_length, "సహజమైన సాధారణ పరిమాణంలో సమాధానం ఇవ్వు.")
     history_text = "\n".join(
         f"{x['role']}: {str(x['content'])[:5000]}"
         for x in history[-12:]
@@ -175,11 +163,7 @@ def guest(payload: dict, response: Response):
 @app.post("/auth/register")
 def register(payload: dict, response: Response):
     try:
-        user = create_user(
-            str(payload.get("username", "")).strip(),
-            str(payload.get("email", "")).strip().lower(),
-            str(payload.get("password", "")),
-        )
+        user = create_user(str(payload.get("username", "")).strip(), str(payload.get("email", "")).strip().lower(), str(payload.get("password", "")))
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     _set_cookie(response, create_session(user.id, settings.session_days))
@@ -245,10 +229,10 @@ def memory(user=Depends(current_user)):
 @app.put("/me/credentials")
 def credentials(payload: CredentialsRequest, user=Depends(current_user)):
     try:
-        update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
+        updated = update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    return {"ok": True}
+    return {"ok": True, "id": updated.id, "username": updated.username, "role": updated.role}
 
 
 @app.post("/chat")
@@ -257,33 +241,25 @@ async def chat(payload: ChatRequest, user=Depends(current_user)):
     settings_data = get_user_settings(user.id)
     response_length = settings_data.get("response_length", "normal")
     memory_enabled = bool(settings_data.get("memory_enabled", True))
-
     prompt = _build_prompt(payload.message, history, user.id, response_length) if memory_enabled else "\n\n".join([
         TELUGU_CHAT_SYSTEM,
-        {"short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.", "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు."}.get(
-            response_length, "సహజమైన సాధారణ పరిమాణంలో సమాధానం ఇవ్వు."
-        ),
+        {"short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.", "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు."}.get(response_length, "సహజమైన సాధారణ పరిమాణంలో సమాధానం ఇవ్వు."),
     ])
-
     try:
         result = await call_groq_detailed(prompt, history, payload.message)
     except Exception as exc:
         raise HTTPException(502, "AI service is temporarily unavailable.") from exc
-
     answer = clean_response(str(result.get("answer", "")))
     if not answer:
         raise HTTPException(502, "AI service returned an empty response.")
-
     save_message(user.id, conversation_id, "user", payload.message)
     save_message(user.id, conversation_id, "assistant", answer)
-    save_usage(user.id, result)
-
+    save_usage(user.id, result.get("model"), result.get("input_tokens"), result.get("output_tokens"))
     suggestions = extract_suggestions(payload.message)
     saved = 0
     for suggestion in suggestions:
         if remember_suggestion(user.id, suggestion, role=getattr(user, "role", "user")):
             saved += 1
-
     return {
         "conversation_id": conversation_id,
         "message": answer,
