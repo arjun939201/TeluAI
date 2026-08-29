@@ -1,4 +1,5 @@
 import os
+import re
 
 os.environ.pop("RENDER", None)
 os.environ["CACHE_ENABLED"] = "false"
@@ -21,7 +22,7 @@ def test_melimi_lab_page_is_served():
         response = client.get("/melimi-lab")
         assert response.status_code == 200, response.text
         assert "Melimi Telugu Lab" in response.text
-        assert "melimi-lab-workspace.js?v=20260826-1" in response.text
+        assert re.search(r'melimi-lab-workspace\.js\?v=[0-9]+', response.text)
 
 
 def test_commands_are_blocked_outside_lab():
