@@ -16,20 +16,34 @@ CASES = Path(__file__).resolve().parents[1] / "evals" / "language_cases.json"
 
 
 def _detect_language(text: str) -> str:
-    """Offline language classification used by the evaluator.
-
-    Keep this deterministic and independent of the removed legacy chat package.
-    """
+    """Deterministic script-aware language classification for offline evaluation."""
     value = str(text or "")
-    if re.search(r"[\u0C00-\u0C7F]", value):
+    has_telugu = bool(re.search(r"[\u0C00-\u0C7F]", value))
+    has_latin = bool(re.search(r"[A-Za-z]", value))
+    if has_telugu and has_latin:
+        return "mixed"
+    if has_telugu:
         return "telugu"
+    # The offline corpus uses Roman-Telugu examples that contain characteristic
+    # Telugu lexical tokens. This is deliberately conservative: ordinary English
+    # must remain English rather than being reinterpreted as Roman Telugu.
+    tokens = re.findall(r"[A-Za-z]+", value.casefold())
+    roman_telugu_markers = {
+        "naaku", "telugu", "telusu", "naku", "meeru", "ela", "unnavu",
+        "bagunnanu", "cheppu", "sare", "enti", "enduku", "ekkada",
+    }
+    if any(token in roman_telugu_markers for token in tokens):
+        return "roman_telugu"
     return "english"
 
 
 def _route_mode(text: str) -> str:
-    """Adapt canonical route_request output to evaluator mode names."""
-    route = route_request(text, "auto")
-    return "melimi" if route == "melimi" else "general"
+    """Adapt canonical routing to evaluator mode names."""
+    route = route_request(text, None)
+    # TeluAI's canonical product contract is Melimi-first. English requests are
+    # intentionally also served through the Melimi-centric chat runtime unless
+    # the caller explicitly opts into Standard Telugu.
+    return "melimi" if route in {"melimi", "general"} else "standard"
 
 
 def _pct(passed: int, total: int) -> float | None:
