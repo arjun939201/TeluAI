@@ -19,6 +19,9 @@ from app.database import SessionLocal, User, UserMemory, engine, now
 TELUGU = r"[\u0C00-\u0C7F]"
 WORD = rf"{TELUGU}+(?:{TELUGU}+)*"
 GLOBAL_TABLE = "teluai_global_learning"
+MAX_VOCAB_LENGTH = 160
+MAX_GRAMMAR_LENGTH = 4000
+MAX_EVIDENCE_LENGTH = 50000
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,30 @@ def _clean(value: str) -> str:
     return " ".join(str(value).strip().split()).strip(" .,:;!?\"'()[]{}")
 
 
+def _valid_suggestion(suggestion: LearningSuggestion) -> bool:
+    """Apply a conservative persistence gate after extraction.
+
+    Extraction is intentionally strict, but persistence has its own boundary so
+    callers cannot write arbitrary oversized/malformed language records.
+    """
+    kind = str(suggestion.kind or "").strip().upper()
+    key = _clean(suggestion.key)
+    value = _clean(suggestion.value)
+    source = _clean(suggestion.source)
+    if kind not in {"VOCABULARY", "GRAMMAR"} or not key or not value or not source:
+        return False
+    if key == value:
+        return False
+    if kind == "VOCABULARY":
+        if len(key) > MAX_VOCAB_LENGTH or len(value) > MAX_VOCAB_LENGTH:
+            return False
+        if not re.fullmatch(WORD, key, flags=re.UNICODE) or not re.fullmatch(WORD, value, flags=re.UNICODE):
+            return False
+    elif len(value) > MAX_GRAMMAR_LENGTH:
+        return False
+    return len(source) <= MAX_EVIDENCE_LENGTH
+
+
 def extract_suggestions(text: str) -> list[LearningSuggestion]:
     """Extract only clear, explicit Telugu vocabulary/grammar teaching."""
     text = str(text or "").strip()
@@ -75,7 +102,7 @@ def extract_suggestions(text: str) -> list[LearningSuggestion]:
             target = _clean(match.group("telugu"))
             if standard and target and standard != target:
                 candidate = LearningSuggestion("VOCABULARY", standard, target, _clean(match.group(0)))
-                if candidate not in found:
+                if _valid_suggestion(candidate) and candidate not in found:
                     found.append(candidate)
 
     grammar_patterns = [
@@ -87,10 +114,9 @@ def extract_suggestions(text: str) -> list[LearningSuggestion]:
         match = re.search(pattern, text, flags=re.UNICODE)
         if match:
             rule = _clean(match.group(1))
-            if len(rule) >= 4:
-                candidate = LearningSuggestion("GRAMMAR", "rule", rule, _clean(match.group(0)))
-                if candidate not in found:
-                    found.append(candidate)
+            candidate = LearningSuggestion("GRAMMAR", "rule", rule, _clean(match.group(0)))
+            if _valid_suggestion(candidate):
+                found.append(candidate)
                 break
     return found
 
@@ -107,16 +133,21 @@ def _role_for_user(user_id: int) -> str:
 
 
 def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str | None = None) -> bool:
-    """Persist an explicit suggestion in its correct trust scope."""
+    """Persist an explicit, validated suggestion in its correct trust scope."""
+    if not _valid_suggestion(suggestion):
+        return False
+
     resolved_role = _role_for_user(user_id) if role is None else str(role)
     if _is_global_role(resolved_role):
         _ensure_global_table()
         with engine.begin() as db:
+            # Let the database allocate the primary key. MAX(id)+1 is unsafe
+            # under concurrent owner/admin learning requests.
             db.execute(text(f"""
                 INSERT INTO {GLOBAL_TABLE}
-                    (id, kind, learning_key, learning_value, source, source_user_id, evidence)
+                    (kind, learning_key, learning_value, source, source_user_id, evidence)
                 VALUES
-                    (:id, :kind, :learning_key, :learning_value, :source, :source_user_id, :evidence)
+                    (:kind, :learning_key, :learning_value, :source, :source_user_id, :evidence)
                 ON CONFLICT(kind, learning_key) DO UPDATE SET
                     learning_value=excluded.learning_value,
                     source=excluded.source,
@@ -124,10 +155,12 @@ def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str 
                     evidence=excluded.evidence,
                     updated_at=CURRENT_TIMESTAMP
             """), {
-                "id": _next_global_id(db), "kind": suggestion.kind,
-                "learning_key": suggestion.key, "learning_value": suggestion.value,
+                "kind": suggestion.kind,
+                "learning_key": suggestion.key,
+                "learning_value": suggestion.value,
                 "source": "owner_chat" if str(resolved_role).lower() == "owner" else "approved_admin_chat",
-                "source_user_id": int(user_id), "evidence": suggestion.source[:50000],
+                "source_user_id": int(user_id),
+                "evidence": suggestion.source[:MAX_EVIDENCE_LENGTH],
             })
         return True
 
@@ -144,10 +177,6 @@ def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str 
             db.add(UserMemory(user_id=user_id, key=key, value=payload, created_at=now()))
         db.commit()
     return True
-
-
-def _next_global_id(db) -> int:
-    return int(db.execute(text(f"SELECT COALESCE(MAX(id), 0) + 1 FROM {GLOBAL_TABLE}")).scalar_one())
 
 
 def learned_global(limit: int = 80) -> list[dict[str, str]]:
