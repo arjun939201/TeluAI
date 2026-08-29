@@ -215,8 +215,8 @@ def learned_for_user(user_id: int, limit: int = 40) -> list[dict[str, str]]:
 
 
 def _relevance_terms(message: str) -> set[str]:
-    """Extract conservative Unicode-aware terms for lightweight local retrieval."""
-    raw = re.findall(r"[\u0C00-\u0C7F]{2,}|[A-Za-z]{3,}", str(message or ""), flags=re.UNICODE)
+    """Extract Unicode-aware terms for lightweight local retrieval."""
+    raw = re.findall(r"[\u0C00-\u0C7F]{1,}|[A-Za-z]{3,}", str(message or ""), flags=re.UNICODE)
     return {term.casefold() for term in raw}
 
 
