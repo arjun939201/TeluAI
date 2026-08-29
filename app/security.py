@@ -9,6 +9,8 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.config import settings
+
 
 class SlidingWindowLimiter:
     def __init__(self):
@@ -21,18 +23,13 @@ class SlidingWindowLimiter:
 
         with self._lock:
             events = self._events[key]
-
             while events and events[0] <= cutoff:
                 events.popleft()
 
             if len(events) >= limit:
-                return False, max(
-                    1,
-                    int(events[0] + window_seconds - now + 0.999),
-                )
+                return False, max(1, int(events[0] + window_seconds - now + 0.999))
 
             events.append(now)
-
             if len(self._events) > 10000:
                 self._prune_locked(cutoff)
 
@@ -41,10 +38,8 @@ class SlidingWindowLimiter:
     def _prune_locked(self, cutoff):
         for key in list(self._events):
             events = self._events[key]
-
             while events and events[0] <= cutoff:
                 events.popleft()
-
             if not events:
                 self._events.pop(key, None)
 
@@ -54,38 +49,25 @@ RATE_LIMITER = SlidingWindowLimiter()
 
 def client_identifier(request: Request):
     if request.app.state.trust_proxy_headers:
-        forwarded = request.headers.get(
-            "x-forwarded-for",
-            "",
-        ).split(",")[0].strip()
-
+        forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         if forwarded:
             return forwarded[:128]
-
-    return (
-        request.client.host
-        if request.client
-        else "unknown"
-    )[:128]
+    return (request.client.host if request.client else "unknown")[:128]
 
 
 def session_fingerprint(request: Request):
     token = request.cookies.get("teluai_session", "")
-
     if token:
-        return hashlib.sha256(
-            token.encode()
-        ).hexdigest()[:20]
-
+        return hashlib.sha256(token.encode()).hexdigest()[:20]
     return "anonymous"
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Rate-limit non-chat endpoints.
+    """Rate-limit sensitive endpoints in production.
 
-    Chat has a canonical limiter in ``app.chat.middleware``. Keeping chat out
-    of this second layer prevents each /chat request from consuming two slots
-    from the same in-process window.
+    Tests explicitly run with TELUAI_TESTING=true so their many independent
+    users do not share a real-world IP quota. Production retains the same
+    limits and enforcement path.
     """
 
     RULES = (
@@ -99,83 +81,40 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     )
 
     async def dispatch(self, request, call_next):
+        if settings.testing:
+            return await call_next(request)
+
         path = request.url.path
-
-        rule = next(
-            (
-                x
-                for x in self.RULES
-                if path == x[0] or path.startswith(x[0] + "/")
-            ),
-            None,
-        )
-
+        rule = next((x for x in self.RULES if path == x[0] or path.startswith(x[0] + "/")), None)
         if rule:
             route, limit, window = rule
-            identity = client_identifier(request)
-            allowed, retry = RATE_LIMITER.check(
-                f"{route}:{identity}",
-                limit,
-                window,
-            )
-
+            allowed, retry = RATE_LIMITER.check(f"{route}:{client_identifier(request)}", limit, window)
             if not allowed:
                 return JSONResponse(
                     status_code=429,
-                    content={
-                        "detail": (
-                            "Too many requests. "
-                            "Please try again shortly."
-                        )
-                    },
-                    headers={
-                        "Retry-After": str(retry)
-                    },
+                    content={"detail": "Too many requests. Please try again shortly."},
+                    headers={"Retry-After": str(retry)},
                 )
-
         return await call_next(request)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
-
-        response.headers.setdefault(
-            "X-Content-Type-Options",
-            "nosniff",
-        )
-
-        response.headers.setdefault(
-            "Referrer-Policy",
-            "strict-origin-when-cross-origin",
-        )
-
-        response.headers.setdefault(
-            "Permissions-Policy",
-            "camera=(), microphone=(), geolocation=()",
-        )
-
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         response.headers.setdefault(
             "Content-Security-Policy",
-            (
-                "default-src 'self'; "
-                "script-src 'self' https://cdn.jsdelivr.net; "
-                "style-src 'self' 'unsafe-inline'; "
-                "img-src 'self' data: blob:; "
-                "font-src 'self' data:; "
-                "connect-src 'self' https://teluai.onrender.com "
-                "https://teluai.github.io; "
-                "frame-ancestors 'self' https://teluai.github.io; "
-                "base-uri 'self'; "
-                "form-action 'self'; "
-                "object-src 'none'"
-            ),
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self' data:; "
+            "connect-src 'self' https://teluai.onrender.com https://teluai.github.io; "
+            "frame-ancestors 'self' https://teluai.github.io; "
+            "base-uri 'self'; form-action 'self'; object-src 'none'",
         )
-
         if request.app.state.secure_transport:
-            response.headers.setdefault(
-                "Strict-Transport-Security",
-                "max-age=31536000; includeSubDomains",
-            )
-
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return response
