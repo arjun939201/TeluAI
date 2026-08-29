@@ -36,7 +36,7 @@ from app.database import (
 from app.groq_client import call_groq_detailed
 from app.migrations import run_migrations
 from app.response import clean_response
-from app.teluai2_learning import extract_suggestions, prompt_context, remember_suggestion
+from app.teluai2_learning import extract_suggestions, learned_for_user, prompt_context, remember_suggestion
 from sqlalchemy import select
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -264,6 +264,7 @@ async def chat(payload: ChatRequest, user=Depends(current_user)):
         "conversation_id": conversation_id,
         "message": answer,
         "suggestions_saved": saved,
+        "learned": learned_for_user(user.id) if saved else [],
         "usage": {
             "input_tokens": result.get("input_tokens"),
             "output_tokens": result.get("output_tokens"),
