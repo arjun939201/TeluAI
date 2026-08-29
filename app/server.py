@@ -19,14 +19,11 @@ if not getattr(app.state, "language_space_installed", False):
     app.state.language_space_installed = True
 install_registration_routes(app)
 
-# The workspace boundary is explicit instead of being installed by importing
-# the application package. This keeps import order deterministic.
-app.add_middleware(WorkspaceGuardMiddleware)
-
-# The original frontend depends on streaming chat, regeneration and message
-# editing. Keep that compatibility layer explicit rather than hiding it inside
-# database migrations.
+# Middleware is registered in reverse nesting order. ChatOverride must be
+# registered first so WorkspaceGuard becomes the outer boundary and can reject
+# Lab-only commands before any chat command handling occurs.
 app.add_middleware(ChatOverrideMiddleware)
+app.add_middleware(WorkspaceGuardMiddleware)
 
 # Activate the separate Melimi Telugu Lab workspace.
 from app import lab_server  # noqa: E402,F401

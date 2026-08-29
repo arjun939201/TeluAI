@@ -11,7 +11,7 @@ from app.database import Conversation, Message, SessionLocal, create_conversatio
 from app.server import app
 
 LAB_PREFIX = "[Melimi Lab] "
-ASSET_VERSION = "20260818-2"
+ASSET_VERSION = "20260826-1"
 
 
 def _headers(scope):
@@ -46,12 +46,7 @@ def _lab_conversation(user_id: int, conversation_id: str | None, message: str) -
 
 
 class LabWorkspaceMiddleware:
-    """ASGI middleware that isolates the Melimi Lab workspace.
-
-    Starlette instantiates middleware classes with the wrapped ASGI application.
-    Keep that application on the instance instead of calling the global FastAPI
-    object, which would both fail construction and risk recursive dispatch.
-    """
+    """ASGI middleware that isolates the Melimi Lab workspace."""
 
     def __init__(self, app):
         self.app = app
@@ -94,6 +89,8 @@ class LabWorkspaceMiddleware:
         chunks = []
         while True:
             event = await receive()
+            if event.get("type") == "http.disconnect":
+                break
             if event.get("type") != "http.request":
                 continue
             chunks.append(event.get("body", b""))
@@ -142,7 +139,7 @@ class LabWorkspaceMiddleware:
             if not sent:
                 sent = True
                 return {"type": "http.request", "body": rewritten, "more_body": False}
-            return {"type": "http.request", "body": b"", "more_body": False}
+            return {"type": "http.disconnect"}
 
         await self.app(scope, replay, send)
 
