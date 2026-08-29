@@ -24,5 +24,6 @@ def test_short_followup_uses_context():
 
 def test_melimi_prompt_forbids_dictionary_style_echoing():
     prompt = build_prompt("melimi", conversation="previous assistant: నీకు ఏం కావాలి?")
-    assert "Do not echo the user's sentence" in prompt
-    assert "not a dictionary explainer" in prompt
+    assert "PRIMARY RULE — CONVERSATION BEFORE ANALYSIS" in prompt
+    assert "Never answer by explaining the user's own sentence" in prompt
+    assert "Do not turn ordinary conversation into language analysis" in prompt
