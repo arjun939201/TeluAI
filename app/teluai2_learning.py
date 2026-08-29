@@ -215,11 +215,7 @@ def learned_for_user(user_id: int, limit: int = 40) -> list[dict[str, str]]:
 
 
 def _normalize_telugu_term(term: str) -> str:
-    """Normalize common Telugu inflectional endings for retrieval only.
-
-    This does not rewrite stored knowledge. It allows a query such as
-    'నెనరులు' to retrieve an explicitly learned base form such as 'నెనరు'.
-    """
+    """Normalize common Telugu inflectional endings for retrieval only."""
     value = str(term or "").strip().casefold()
     if len(value) > 3 and value.endswith("లు"):
         value = value[:-2]
@@ -254,6 +250,20 @@ def _is_relevant(item: dict[str, str], terms: set[str]) -> bool:
     return bool(terms.intersection(haystack_forms))
 
 
+def _append_learning_guidance(lines: list[str], item: dict[str, str], private: bool = False) -> None:
+    """Render learned vocabulary in the stable syntax expected by prompt tests and model guidance."""
+    if item.get("kind") == "VOCABULARY":
+        lines.append(f"- పద వినియోగ సూచన: {item.get('key', '')} → {item.get('value', '')}")
+        lines.append(
+            "  ఇది వినియోగదారు స్పష్టంగా నేర్పిన పద సంబంధం. ప్రస్తుత సందేశంలో ఈ పదం లేదా దాని సాధారణ రూపాంతరం కనిపిస్తే, సందర్భానుసారం నేర్చుకున్న సమానార్థ/వాడుక రూపాన్ని గుర్తించి సహజంగా ఉపయోగించు."
+        )
+        lines.append(
+            "  ఈ సంబంధాన్ని మార్చవద్దు, కల్పిత పదం సృష్టించవద్దు, సంబంధం లేని ప్రశ్నకు దీన్ని బలవంతంగా వర్తింపజేయవద్దు."
+        )
+    elif item.get("kind") == "GRAMMAR":
+        lines.append(f"- వ్యాకరణ సూచన: {item.get('value', '')}")
+
+
 def prompt_context(user_id: int, role: str = "user", message: str = "") -> str:
     """Build compact, relevance-first guidance from learned language data."""
     terms = _relevance_terms(message)
@@ -274,20 +284,22 @@ def prompt_context(user_id: int, role: str = "user", message: str = "") -> str:
     if relevant_global:
         lines.append("సందర్భానికి సంబంధించిన భాగస్వామ్య తెలుగు భాషా జ్ఞాపకం (యజమాని/ఆమోదిత నిర్వాహకుల స్పష్టమైన సూచనల నుంచి):")
         for item in reversed(relevant_global):
-            if item.get("kind") == "VOCABULARY":
-                lines.append(f"- నేర్చుకున్న పద సంబంధం: {item.get('key', '')} ↔ {item.get('value', '')}")
-                lines.append("  ఈ సంబంధం సందేశంలోని రెండు రూపాల్లో ఏదైనా కనిపించినప్పుడు సందర్భానుసారం అర్థాన్ని గుర్తించడానికి ఉపయోగించు. సంబంధం లేని అర్థాన్ని ఊహించవద్దు.")
-            elif item.get("kind") == "GRAMMAR":
-                lines.append(f"- నేర్చుకున్న వ్యాకరణ సూచన: {item.get('value', '')}")
-        lines.append("ఈ జ్ఞానాన్ని సంబంధిత సందర్భంలో మాత్రమే ఉపయోగించు. వినియోగదారు అడిగిన విషయానికే నేరుగా సమాధానం ఇవ్వు; అడగని జోకులు లేదా అసంబంధిత కంటెంట్ సృష్టించవద్దు.")
+            _append_learning_guidance(lines, item)
+        lines.append(
+            "ఈ జ్ఞానాన్ని సంబంధిత సందర్భంలో మాత్రమే ఉపయోగించు. వినియోగదారు అడిగిన విషయానికే నేరుగా సమాధానం ఇవ్వు; అడగని జోకులు లేదా అసంబంధిత కంటెంట్ సృష్టించవద్దు."
+        )
 
     if relevant_private:
         lines.append("ఈ వినియోగదారుడి సందర్భానికి సంబంధించిన వ్యక్తిగత తెలుగు భాషా జ్ఞాపకాలు:")
         for item in reversed(relevant_private):
-            if item.get("kind") == "VOCABULARY":
-                lines.append(f"- నేర్చుకున్న పద సంబంధం: {item.get('key', '')} ↔ {item.get('value', '')}")
-                lines.append("  ఈ పద సంబంధాన్ని సంబంధిత సందర్భంలో సహజంగా వర్తింపజేయి; అసంబంధిత సమాధానాన్ని ఇవ్వవద్దు.")
-            elif item.get("kind") == "GRAMMAR":
-                lines.append(f"- నేర్చుకున్న వ్యాకరణ సూచన: {item.get('value', '')}")
-        lines.append("ఇవి ఈ వినియోగదారుడి వ్యక్తిగత సూచనలు. ఇతర వినియోగదారులకు వర్తింపజేయవద్దు.")
+            _append_learning_guidance(lines, item, private=True)
+        lines.append("ఇవి ఈ వినియోగదారుడి వ్యక్తిగత సూచనలు. 다른 వినియోగదారులకు వర్తింపజేయవద్దు.")
+
+    if terms:
+        lines.append(
+            "ప్రస్తుత సందేశంలో నేర్చుకున్న పదానికి విభక్తి, బహువచనం లేదా ఇతర సాధారణ రూపాంతరం కనిపించినా, సంబంధాన్ని 원래 నేర్చుకున్న పదంతో 연결하여 해석해."
+        )
+        lines.append(
+            "ప్రస్తుత సందేశం అడిగిన అర్థానికే సమాధానం ఇవ్వు; నేర్చుకున్న పద సంబంధం కారణంగా జోకులు, కల్పిత ఉదాహరణలు లేదా అసంబంధిత కంటెంట్ ఇవ్వవద్దు."
+        )
     return "\n".join(lines)
