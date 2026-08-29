@@ -22,9 +22,11 @@ def test_frontend_does_not_replace_native_streaming_transport():
     assert "/health" in engine
 
 
-def test_main_workspace_script_only_filters_lab_history():
+def test_main_workspace_script_defers_history_isolation_to_api():
     script = (ROOT / "static/js/main-workspace.js").read_text(encoding="utf-8")
 
-    assert "[Melimi Lab]" in script
+    assert "Workspace separation is enforced by the API" in script
+    assert "window.fetch" not in script
+    assert "[Melimi Lab]" not in script
     assert "querySelector('.nav')" not in script
     assert "createElement('a')" not in script
