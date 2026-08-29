@@ -1,5 +1,4 @@
 import os
-import re
 
 os.environ.pop("RENDER", None)
 os.environ["CACHE_ENABLED"] = "false"
@@ -17,12 +16,19 @@ def _guest(client, username):
     assert response.status_code == 200, response.text
 
 
-def test_melimi_lab_page_is_served():
+def test_melimi_lab_page_is_served_by_canonical_route():
     with TestClient(app) as client:
         response = client.get("/melimi-lab")
         assert response.status_code == 200, response.text
         assert "Melimi Telugu Lab" in response.text
-        assert re.search(r'melimi-lab-workspace\.js\?v=[0-9]+', response.text)
+        assert 'id="composer"' in response.text
+        assert 'id="chat"' in response.text
+        assert 'data-page="melimi-lab"' in response.text
+        # The document owns its real assets; the server must not inject a
+        # competing/nonexistent workspace bundle.
+        assert '/static/js/melimi-lab.js' in response.text
+        assert '/static/js/workspace-context.js' in response.text
+        assert 'melimi-lab-workspace.js?v=' not in response.text
 
 
 def test_commands_are_blocked_outside_lab():
