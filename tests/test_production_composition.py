@@ -22,23 +22,23 @@ def test_frontend_does_not_replace_native_streaming_transport():
     assert "/health" in engine
 
 
-def test_main_workspace_is_single_telugu_chat_surface():
-    html = (ROOT / "static/index.html").read_text(encoding="utf-8")
+def test_main_workspace_script_defers_history_isolation_to_api():
     script = (ROOT / "static/js/main-workspace.js").read_text(encoding="utf-8")
 
-    assert 'id="composer"' in html
-    assert 'id="chat"' in html
-    assert 'id="input"' in html
-    assert 'id="send"' in html
-    assert 'href="/melimi-lab"' not in html
-    assert 'Melimi Telugu Lab' not in html
-    assert 'Write a Python function' not in html
-    assert 'What is Python and why is it useful?' not in html
-    assert "Workspace separation is enforced by the API" not in script
+    assert "Workspace separation is enforced by the API" in script
+    assert "window.fetch" not in script
     assert "[Melimi Lab]" not in script
+    assert "querySelector('.nav')" not in script
+    assert "createElement('a')" not in script
 
 
-def test_no_lab_route_is_exposed_by_the_application():
-    server = (ROOT / "app/main.py").read_text(encoding="utf-8")
-    assert '@app.get("/melimi-lab"' not in server
-    assert 'Melimi Telugu Lab' not in server
+def test_melimi_lab_is_a_real_canonical_route():
+    server = (ROOT / "app/server.py").read_text(encoding="utf-8")
+    lab = (ROOT / "static/melimi-lab.html").read_text(encoding="utf-8")
+
+    assert '@app.get("/melimi-lab"' in server
+    assert 'id="composer"' in lab
+    assert 'id="chat"' in lab
+    assert 'melimi-lab.js' in lab
+    assert 'workspace-context.js' in lab
+    assert "melimi-lab-workspace.js" not in server

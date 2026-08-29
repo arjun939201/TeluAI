@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - extreme-product-engineering-upgrade
+      - teluai-2-rebuild
   pull_request:
 
 permissions:
@@ -33,12 +34,13 @@ jobs:
       - name: Check frontend JavaScript syntax
         run: |
           for file in static/js/*.js; do node --check "$file"; done
+          node --check static/teluai2.js
       - name: Verify production ASGI composition
         env:
           PYTHONPATH: .
           CACHE_ENABLED: "false"
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python -c "from app.server import app; print(app.title)"
+        run: python -c "from app.server import app; print(app.title); assert app.title.startswith('TeluAI')"
       - name: Clean generated Python caches
         run: |
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
@@ -54,7 +56,6 @@ jobs:
           PYTHONPATH: .:scripts
           CACHE_ENABLED: "false"
           PYTHONDONTWRITEBYTECODE: "1"
-          # Test mode is explicit and never inferred from deployment state.
           TELUAI_TESTING: "true"
         run: pytest -vv --timeout=60 --timeout-method=thread --maxfail=1 --import-mode=importlib
       - name: Run offline language evaluation
