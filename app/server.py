@@ -1,5 +1,5 @@
 """Canonical production ASGI entrypoint for TeluAI."""
 
-from app.teluai2_app import app
+from app.main import app
 
 __all__ = ["app"]
