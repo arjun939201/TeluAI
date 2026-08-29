@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from sqlalchemy import delete, select
 
+from app.application.workspace_service import conversation_belongs_to_workspace
 from app.database import Conversation, Message, SessionLocal, create_conversation, save_message
 
 
-def ensure_conversation(user_id: int, conversation_id: str | None, message: str, mode: str) -> str:
+def ensure_conversation(user_id: int, conversation_id: str | None, message: str, mode: str, workspace: str = "main") -> str:
     if conversation_id:
         with SessionLocal() as db:
             row = db.scalar(select(Conversation).where((Conversation.id == conversation_id) & (Conversation.user_id == user_id)))
-            if not row:
-                raise ValueError("Conversation not found.")
+            if not row or not conversation_belongs_to_workspace(row, workspace):
+                raise ValueError("Conversation not found in this workspace.")
         return conversation_id
     return create_conversation(user_id, make_title(message), mode)
 
