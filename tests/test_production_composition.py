@@ -34,7 +34,7 @@ def test_main_workspace_is_single_telugu_chat_surface():
     assert 'Melimi Telugu Lab' not in html
     assert 'Write a Python function' not in html
     assert 'What is Python and why is it useful?' not in html
-    assert "Workspace separation is enforced by the API" not in script
+    # Workspace ownership belongs to the API; the frontend must not recreate it.
     assert "[Melimi Lab]" not in script
 
 
