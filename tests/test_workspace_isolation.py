@@ -15,7 +15,9 @@ def test_conversation_list_is_server_side_workspace_scoped():
     with TestClient(app) as client:
         _guest(client, "workspace_scope_guest")
 
-        main = client.post("/chat", json={"message": "main conversation", "mode": "standard"})
+        # Use a deterministic native Melimi request: this test verifies
+        # persistence/workspace boundaries, not external provider availability.
+        main = client.post("/chat", json={"message": "సినిమా", "mode": "melimi"})
         assert main.status_code == 200, main.text
         main_id = main.json()["conversation_id"]
 
