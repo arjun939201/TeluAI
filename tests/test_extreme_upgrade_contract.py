@@ -9,8 +9,9 @@ def test_specific_telugu_lookup_pattern_wins_over_generic_what_pattern():
 
 def test_unknown_lookup_is_not_claimed_as_authoritative():
     prompt = build_prompt("melimi")
-    assert "not a dictionary explainer" in prompt
-    assert "Never claim an unsupported word" in prompt
+    assert "PRIMARY RULE — CONVERSATION BEFORE ANALYSIS" in prompt
+    assert "సాధారణ సంభాషణను భాషా పాఠం, నిఘంటువు, వ్యాకరణ విశ్లేషణ లేదా పరిశోధనా నివేదికగా మార్చవద్దు" in prompt
+    assert "తెలియని పదాన్ని ఊహించి కల్పించవద్దు" in prompt
 
 
 def test_mixed_roman_telugu_is_normalized():
