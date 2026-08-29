@@ -54,9 +54,11 @@ jobs:
           PYTHONPATH: .:scripts
           CACHE_ENABLED: "false"
           PYTHONDONTWRITEBYTECODE: "1"
+          TELUAI_TESTING: "true"
         run: pytest -vv --timeout=60 --timeout-method=thread --maxfail=1 --import-mode=importlib
       - name: Run offline language evaluation
         env:
           PYTHONPATH: .:scripts
           PYTHONDONTWRITEBYTECODE: "1"
+          TELUAI_TESTING: "true"
         run: python -m app.eval
