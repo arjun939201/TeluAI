@@ -112,7 +112,7 @@ def _get_history(user_id: int, conversation_id: str | None, supplied: list[dict]
 
 
 def _build_prompt(message: str, history: list[dict], user_id: int, response_length: str) -> str:
-    memory = prompt_context(user_id)
+    memory = prompt_context(user_id, message=message)
     length = {
         "short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.",
         "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు.",
@@ -232,77 +232,53 @@ def settings_get(user=Depends(current_user)):
 
 @app.put("/me/settings")
 def settings_put(payload: SettingsRequest, user=Depends(current_user)):
-    return update_user_settings(user.id, "telugu", payload.response_length, payload.memory_enabled)
+    response_length = payload.response_length if payload.response_length in {"short", "normal", "long"} else "normal"
+    return update_user_settings(user.id, response_length, payload.memory_enabled)
 
 
-@app.get("/me/learned")
-def learned(user=Depends(current_user)):
-    return {"items": learned_for_user(user.id)}
+@app.get("/me/memory")
+def memory(user=Depends(current_user)):
+    return {"memory": recall_user_memory(user.id)}
 
 
-@app.put("/me/credentials")
+@app.post("/auth/credentials")
 def credentials(payload: CredentialsRequest, user=Depends(current_user)):
     try:
-        updated = update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
+        update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    return {"ok": True, "username": updated.username, "role": updated.role}
+    return {"ok": True}
 
 
 @app.post("/chat")
-async def chat(request: ChatRequest, user=Depends(current_user)):
-    message = request.message.strip()
-    if not message:
-        raise HTTPException(400, "సందేశం ఖాళీగా ఉండకూడదు.")
+def chat(payload: ChatRequest, user=Depends(current_user)):
+    conversation_id, history = _get_history(user.id, payload.conversation_id, payload.history)
+    settings_data = get_user_settings(user.id)
+    response_length = settings_data.get("response_length", "normal")
+    memory_enabled = bool(settings_data.get("memory_enabled", True))
 
-    conversation_id, history = _get_history(user.id, request.conversation_id, request.history)
-    suggestions = extract_suggestions(message)
-    for suggestion in suggestions:
-        remember_suggestion(user.id, suggestion)
-
-    user_settings = get_user_settings(user.id)
-    prompt = _build_prompt(message, history, user.id, user_settings.get("response_length", "normal"))
+    if memory_enabled:
+        prompt = _build_prompt(payload.message, history, user.id, response_length)
+    else:
+        prompt = _build_prompt(payload.message, history, user.id, response_length)
 
     try:
-        result = await call_groq_detailed(prompt, history[-12:], message)
-    except RuntimeError as exc:
-        save_usage(user.id, settings.groq_model, None, None, "error")
-        raise HTTPException(502, str(exc)) from exc
+        result = call_groq_detailed(prompt)
     except Exception as exc:
-        save_usage(user.id, settings.groq_model, None, None, "error")
-        raise HTTPException(502, "AI సేవ ప్రస్తుతం అందుబాటులో లేదు. మళ్లీ ప్రయత్నించండి.") from exc
+        raise HTTPException(502, "AI service is temporarily unavailable.") from exc
 
-    reply = clean_response(result.get("answer", ""))
-    if not reply:
-        raise HTTPException(502, "AI ఖాళీ సమాధానం ఇచ్చింది.")
+    answer = clean_response(result.get("text", ""))
+    save_message(user.id, conversation_id, "user", payload.message)
+    save_message(user.id, conversation_id, "assistant", answer)
+    save_usage(user.id, result.get("usage", {}))
 
-    if suggestions:
-        # Keep learning acknowledgement short and conversational.
-        if len(suggestions) == 1 and suggestions[0].kind == "VOCABULARY":
-            reply = f"గుర్తుంచుకున్నాను. ఇక నుంచి అవసరమైన సందర్భంలో ‘{suggestions[0].key}’కు ‘{suggestions[0].value}’ను ఉపయోగిస్తాను.\n\n{reply}"
-        else:
-            reply = "గుర్తుంచుకున్నాను. మీ తెలుగు భాషా సూచనను ఇకపై సంబంధిత సంభాషణల్లో ఉపయోగిస్తాను.\n\n" + reply
-
-    save_usage(user.id, result.get("model"), result.get("input_tokens"), result.get("output_tokens"), "ok")
-    save_message(user.id, conversation_id, "user", message)
-    message_id = save_message(
-        user.id,
-        conversation_id,
-        "assistant",
-        reply,
-        model=result.get("model"),
-        input_tokens=result.get("input_tokens"),
-        output_tokens=result.get("output_tokens"),
-        latency_ms=result.get("latency_ms"),
-    )
+    suggestions = extract_suggestions(payload.message)
+    for suggestion in suggestions:
+        remember_suggestion(user.id, suggestion, role=getattr(user, "role", "user"))
 
     return {
-        "reply": reply,
         "conversation_id": conversation_id,
-        "message_id": message_id,
-        "local": False,
-        "learned": [
-            {"kind": x.kind, "key": x.key, "value": x.value}
-            for x in suggestions
-        ] or None,
+        "message": answer,
+        "suggestions_saved": len(suggestions),
+        "usage": result.get("usage", {}),
     }
