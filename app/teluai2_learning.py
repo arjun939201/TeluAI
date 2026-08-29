@@ -255,7 +255,7 @@ def _is_relevant(item: dict[str, str], terms: set[str]) -> bool:
 
 
 def prompt_context(user_id: int, role: str = "user", message: str = "") -> str:
-    """Build compact, relevance-first model context from learned language data."""
+    """Build compact, relevance-first guidance from learned language data."""
     terms = _relevance_terms(message)
     global_items = learned_global(limit=80)
     private_items = learned_for_user(user_id, limit=40)
@@ -275,20 +275,19 @@ def prompt_context(user_id: int, role: str = "user", message: str = "") -> str:
         lines.append("సందర్భానికి సంబంధించిన భాగస్వామ్య తెలుగు భాషా జ్ఞాపకం (యజమాని/ఆమోదిత నిర్వాహకుల స్పష్టమైన సూచనల నుంచి):")
         for item in reversed(relevant_global):
             if item.get("kind") == "VOCABULARY":
-                lines.append(f"- పద వినియోగ సూచన: {item.get('key', '')} → {item.get('value', '')}")
+                lines.append(f"- నేర్చుకున్న పద సంబంధం: {item.get('key', '')} ↔ {item.get('value', '')}")
+                lines.append("  ఈ సంబంధం సందేశంలోని రెండు రూపాల్లో ఏదైనా కనిపించినప్పుడు సందర్భానుసారం అర్థాన్ని గుర్తించడానికి ఉపయోగించు. సంబంధం లేని అర్థాన్ని ఊహించవద్దు.")
             elif item.get("kind") == "GRAMMAR":
-                lines.append(f"- వ్యాకరణ సూచన: {item.get('value', '')}")
-        lines.append("సందర్భానికి సరిపోతే మాత్రమే ఉపయోగించు; తెలియని విషయాన్ని దీనితో కలిపి ఊహించవద్దు.")
+                lines.append(f"- నేర్చుకున్న వ్యాకరణ సూచన: {item.get('value', '')}")
+        lines.append("ఈ జ్ఞానాన్ని సంబంధిత సందర్భంలో మాత్రమే ఉపయోగించు. వినియోగదారు అడిగిన విషయానికే నేరుగా సమాధానం ఇవ్వు; అడగని జోకులు లేదా అసంబంధిత కంటెంట్ సృష్టించవద్దు.")
 
     if relevant_private:
         lines.append("ఈ వినియోగదారుడి సందర్భానికి సంబంధించిన వ్యక్తిగత తెలుగు భాషా జ్ఞాపకాలు:")
         for item in reversed(relevant_private):
             if item.get("kind") == "VOCABULARY":
-                lines.append(f"- పద వినియోగ సూచన: {item.get('key', '')} → {item.get('value', '')}")
+                lines.append(f"- నేర్చుకున్న పద సంబంధం: {item.get('key', '')} ↔ {item.get('value', '')}")
+                lines.append("  ఈ పద సంబంధాన్ని సంబంధిత సందర్భంలో సహజంగా వర్తింపజేయి; అసంబంధిత సమాధానాన్ని ఇవ్వవద్దు.")
             elif item.get("kind") == "GRAMMAR":
-                lines.append(f"- వ్యాకరణ సూచన: {item.get('value', '')}")
+                lines.append(f"- నేర్చుకున్న వ్యాకరణ సూచన: {item.get('value', '')}")
         lines.append("ఇవి ఈ వినియోగదారుడి వ్యక్తిగత సూచనలు. ఇతర వినియోగదారులకు వర్తింపజేయవద్దు.")
-
-    if terms:
-        lines.append("గమనిక: పై పద సూచనల్లో ఏదైనా పదానికి రూపాంతరం/విభక్తి/బహువచన రూపం ప్రస్తుత సందేశంలో కనిపిస్తే, దాన్ని అదే నేర్చుకున్న పదానికి సంబంధించిన రూపంగా గుర్తించు. సూచనలోని → సంబంధం రెండు వైపుల భావ సంబంధాన్ని తెలియజేస్తుంది. ప్రస్తుత సందేశాన్ని సంబంధం లేని అభ్యర్థనగా ఊహించి జోకులు, కల్పిత పదాలు లేదా ఇతర అసంబద్ధ సమాధానాలు ఇవ్వవద్దు; సందేశం అడిగిన అర్థానికే నేరుగా సహజమైన తెలుగు సమాధానం ఇవ్వు.")
     return "\n".join(lines)
