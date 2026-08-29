@@ -13,7 +13,6 @@ def test_chat_learns_user_suggestion_and_reuses_it(monkeypatch):
         return {"answer": "సరే, కొనసాగిద్దాం.", "model": "test", "input_tokens": 1, "output_tokens": 2, "latency_ms": 1}
 
     monkeypatch.setattr("app.teluai2_app.call_groq_detailed", fake_groq)
-    monkeypatch.setattr("app.teluai2_app.local_answer", lambda message, mode: None)
 
     username = "teluai2_" + uuid4().hex[:12]
     with TestClient(app) as client:
@@ -22,7 +21,8 @@ def test_chat_learns_user_suggestion_and_reuses_it(monkeypatch):
 
         taught = client.post("/chat", json={"message": "సంతోషం = అలరిక"})
         assert taught.status_code == 200, taught.text
-        assert taught.json()["learned"]["value"] == "అలరిక"
+        learned = taught.json()["learned"]
+        assert any(item["key"] == "సంతోషం" and item["value"] == "అలరిక" for item in learned)
 
         fresh = client.post("/chat", json={"message": "సంతోషం మేలిమిలో ఏమంటారు?"})
         assert fresh.status_code == 200, fresh.text
