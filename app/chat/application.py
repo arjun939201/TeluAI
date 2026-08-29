@@ -28,10 +28,10 @@ async def prepare_chat_turn(data: dict[str, Any], user: Any) -> PreparedChatTurn
     if requested_mode not in {"auto", "standard", "melimi"}:
         requested_mode = "auto"
 
-    conversation_id = data.get("conversation_id")
     workspace = normalize_workspace(data.get("workspace"))
+    conversation_id = data.get("conversation_id")
     if conversation_id:
-        conversation_id = ensure_conversation(user.id, conversation_id, message, requested_mode)
+        conversation_id = ensure_conversation(user.id, conversation_id, message, requested_mode, workspace)
     else:
         conversation_id = create_workspace_conversation(user.id, workspace, message, requested_mode)
 
