@@ -6,7 +6,6 @@ future conversations. They never become global language authority automatically.
 """
 from __future__ import annotations
 
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -33,7 +32,6 @@ from app.database import (
     update_user_settings,
     authenticate,
     audit_log,
-    run_migrations if False else None,
 )
 from app.groq_client import call_groq_detailed
 from app.local_answer import answer as local_answer
@@ -86,15 +84,7 @@ app = FastAPI(title="TeluAI — Telugu AI", lifespan=lifespan)
 
 
 def _set_cookie(response: Response, token: str) -> None:
-    response.set_cookie(
-        COOKIE_NAME,
-        token,
-        httponly=True,
-        samesite="lax",
-        secure=settings.cookie_secure,
-        max_age=settings.session_days * 86400,
-        path="/",
-    )
+    response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", secure=settings.cookie_secure, max_age=settings.session_days * 86400, path="/")
 
 
 def _history(user_id: int, conversation_id: str | None, supplied: list[dict]) -> tuple[str, list[dict]]:
@@ -120,7 +110,7 @@ def _build_telugu_prompt(message: str, history: list[dict], user_id: int) -> tup
         f"- tokens: {hints.get('tokens', [])}",
         f"- sentence force: {hints.get('sentence_force', '')}",
         f"- question type: {hints.get('question_type', '')}",
-        f"- language signal: Telugu-first",
+        "- language signal: Telugu-first",
         f"- Roman/mixed input signals: {input_info}",
     ])
     engine = build_language_engine_context(
@@ -296,7 +286,7 @@ async def chat(request: ChatRequest, user=Depends(current_user)):
         if learned_notice.kind == "VOCABULARY":
             reply = f"గుర్తుంచుకున్నాను. ఈ సంభాషణ నుంచి మీ సూచనను మీ మేలిమి భాషా జ్ఞాపకంలో భద్రపరిచాను: {learned_notice.key} → {learned_notice.value}\n\n" + reply
         else:
-            reply = f"గుర్తుంచుకున్నాను. మీరు ఇచ్చిన మేలిమి వ్యాకరణ సూచనను మీ భాషా జ్ఞాపకంలో భద్రపరిచాను.\n\n" + reply
+            reply = "గుర్తుంచుకున్నాను. మీరు ఇచ్చిన మేలిమి వ్యాకరణ సూచనను మీ భాషా జ్ఞాపకంలో భద్రపరిచాను.\n\n" + reply
 
     save_usage(user.id, result.get("model"), result.get("input_tokens"), result.get("output_tokens"), "ok")
     save_message(user.id, conversation_id, "user", message)
