@@ -8,12 +8,10 @@ button{cursor:pointer}
 .brand{display:flex;align-items:center;gap:11px;padding:8px 4px 16px;flex:0 0 auto}
 .logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#f4f5f7;color:#0b0d12;font-weight:800;flex:0 0 auto}
 .brand strong{display:block;font-size:17px}.brand span{font-size:12px;color:#89909d}
-.new{width:100%;padding:11px 13px;border:1px solid #2b303a;border-radius:10px;background:#171b23;color:#fff;text-align:left;flex:0 0 auto}
-.new:hover{background:#1c212b;border-color:#3a414d}.new:active{transform:translateY(1px)}
+.new{width:100%;padding:11px 13px;border:1px solid #2b303a;border-radius:10px;background:#171b23;color:#fff;text-align:left;flex:0 0 auto}.new:hover{background:#1c212b;border-color:#3a414d}.new:active{transform:translateY(1px)}
 .history-title{font-size:12px;color:#858c99;padding:6px 4px 2px;flex:0 0 auto}
 .history{min-height:0;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:3px;padding-right:2px;scrollbar-width:thin}
-.history button{width:100%;min-width:0;border:0;background:transparent;color:#cfd3db;text-align:left;padding:10px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
-.history button:hover,.history button.active{background:#191e27;color:#fff}
+.history button{width:100%;min-width:0;border:0;background:transparent;color:#cfd3db;text-align:left;padding:10px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}.history button:hover,.history button.active{background:#191e27;color:#fff}
 .account{margin-top:0;border-top:1px solid #20242d;padding-top:12px;display:flex;align-items:center;gap:10px;min-width:0;flex:0 0 auto}.account>div:last-child{min-width:0}.account strong,.account small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}.account small{color:#7f8795;margin-top:2px}
 .avatar{width:34px;height:34px;border-radius:50%;background:#222832;display:grid;place-items:center;flex:0 0 auto}
 .main{min-width:0;min-height:0;display:flex;flex-direction:column;position:relative;background:#0b0d12}
@@ -27,8 +25,8 @@ html.light,html.light body{background:#f6f7f9;color:#151922}html.light .main{bac
 @media(max-width:760px){
  .app{grid-template-columns:1fr}
  .side{display:none}
- .menu-open .side{display:flex;position:fixed;z-index:30;left:0;top:0;bottom:0;width:min(320px,86vw);height:100dvh;padding:14px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:12px 0 40px #0008}
- .menu-open:after{content:"";position:fixed;z-index:29;inset:0;background:#0008}
+ body.menu-open .side,.app.menu-open .side{display:flex;position:fixed;z-index:40;left:0;top:0;bottom:0;width:min(320px,86vw);height:100dvh;padding:14px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:12px 0 40px #0008;overflow:hidden}
+ body.menu-open:after{content:"";position:fixed;z-index:39;inset:0;background:#0008}
  .menu-open .top,.menu-open .composer-wrap{z-index:1}
  .composer-wrap{left:0;padding:10px 12px calc(14px + env(safe-area-inset-bottom))}
  .top{padding:0 14px}.mobile{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;font-size:20px}.mobile:hover{background:#171b23}
