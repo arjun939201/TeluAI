@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.account_service import create_guest_user, update_credentials
@@ -67,6 +68,7 @@ async def lifespan(application: FastAPI):
 
 
 app = FastAPI(title="TeluAI — తెలుగు AI", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 TELUGU_CHAT_SYSTEM = """నువ్వు TeluAI — సహజమైన తెలుగు సంభాషణ కోసం రూపొందించిన AI సహాయకుడు.
