@@ -7,17 +7,24 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=12000)
+    # Workspace is supplied by the trusted transport boundary. It is kept in
+    # the application request so persistence and chat processing share the
+    # same authorization context.
+    workspace: Literal["main", "lab"] = "main"
     # Melimi is the product's native chat language. Standard Telugu remains
     # available only when explicitly requested by the caller.
     mode: Literal["auto", "standard", "melimi"] = "melimi"
     history: List[ChatTurn] = Field(default_factory=list)
     conversation_id: Optional[str] = None
 
+    @field_validator("workspace", mode="before")
+    @classmethod
+    def normalize_workspace(cls, value):
+        return "lab" if str(value or "").strip().casefold() == "lab" else "main"
+
     @field_validator("mode", mode="before")
     @classmethod
     def native_mode(cls, value):
-        # Existing clients may still send `auto`; for the MT-centric product,
-        # auto means native Melimi unless Standard Telugu is explicitly chosen.
         return "melimi" if value in (None, "", "auto") else value
 
 class ChatResponse(BaseModel):
@@ -98,4 +105,3 @@ class VerifyResetCodeRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str = Field(min_length=20, max_length=200)
-    password: str = Field(min_length=8, max_length=128)
