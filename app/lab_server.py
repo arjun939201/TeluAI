@@ -4,14 +4,14 @@ import json
 from pathlib import Path
 
 from fastapi.responses import HTMLResponse, JSONResponse
-from sqlalchemy import select
 
+from app.application.workspace_service import can_access_conversation
 from app.auth import COOKIE_NAME
-from app.database import Conversation, Message, SessionLocal, create_conversation, user_from_session
+from app.database import Message, create_conversation, user_from_session, SessionLocal
 from app.server import app
 
 LAB_PREFIX = "[Melimi Lab] "
-ASSET_VERSION = "20260826-1"
+ASSET_VERSION = "20260829-1"
 
 
 def _headers(scope):
@@ -26,27 +26,23 @@ def _cookie_token(cookie_header: str) -> str:
     return ""
 
 
-def _is_lab_conversation(user_id: int, conversation_id: str) -> bool:
-    with SessionLocal() as db:
-        row = db.scalar(
-            select(Conversation).where(
-                (Conversation.id == conversation_id) & (Conversation.user_id == user_id)
-            )
-        )
-        return bool(row and row.title.startswith(LAB_PREFIX))
-
-
 def _lab_conversation(user_id: int, conversation_id: str | None, message: str) -> str:
     if conversation_id:
-        if not _is_lab_conversation(user_id, conversation_id):
+        if not can_access_conversation(user_id, conversation_id, "lab"):
             raise ValueError("Conversation belongs to another workspace.")
         return conversation_id
     title = " ".join(message.strip().split())[:70] or "New lab session"
     return create_conversation(user_id, LAB_PREFIX + title, "melimi")
 
 
+def _message_in_lab(user_id: int, message_id: int) -> bool:
+    with SessionLocal() as db:
+        row = db.get(Message, message_id)
+    return bool(row and row.user_id == user_id and can_access_conversation(user_id, row.conversation_id, "lab"))
+
+
 class LabWorkspaceMiddleware:
-    """ASGI middleware that isolates the Melimi Lab workspace."""
+    """HTTP presentation layer for the isolated Melimi Lab workspace."""
 
     def __init__(self, app):
         self.app = app
@@ -101,7 +97,6 @@ class LabWorkspaceMiddleware:
         if user is None:
             async def replay_auth():
                 return {"type": "http.request", "body": raw, "more_body": False}
-
             await self.app(scope, replay_auth, send)
             return
 
@@ -109,38 +104,31 @@ class LabWorkspaceMiddleware:
             body = json.loads(raw or b"{}")
             if path.startswith("/chat/") and path.endswith("/regenerate"):
                 conversation_id = path[len("/chat/") : -len("/regenerate")].strip("/")
-                if not _is_lab_conversation(user.id, conversation_id):
+                if not can_access_conversation(user.id, conversation_id, "lab"):
                     raise ValueError("Conversation belongs to another workspace.")
                 body["conversation_id"] = conversation_id
                 body["mode"] = "melimi"
             elif path.startswith("/messages/"):
                 message_id = int(path.rsplit("/", 1)[1])
-                with SessionLocal() as db:
-                    row = db.get(Message, message_id)
-                if not row or row.user_id != user.id or not _is_lab_conversation(user.id, row.conversation_id):
+                if not _message_in_lab(user.id, message_id):
                     raise ValueError("Message belongs to another workspace.")
             else:
                 body["conversation_id"] = _lab_conversation(
-                    user.id,
-                    body.get("conversation_id"),
-                    str(body.get("message", "")),
+                    user.id, body.get("conversation_id"), str(body.get("message", ""))
                 )
                 body["mode"] = "melimi"
             rewritten = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()
         except Exception as exc:
-            response = JSONResponse({"detail": str(exc)}, status_code=400)
-            await response(scope, receive, send)
+            await JSONResponse({"detail": str(exc)}, status_code=400)(scope, receive, send)
             return
 
         sent = False
-
         async def replay():
             nonlocal sent
             if not sent:
                 sent = True
                 return {"type": "http.request", "body": rewritten, "more_body": False}
             return {"type": "http.disconnect"}
-
         await self.app(scope, replay, send)
 
 
