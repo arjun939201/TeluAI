@@ -13,7 +13,7 @@ def test_deployment_entrypoints_use_canonical_server():
     assert "app.lab_server:app" not in render
 
 
-def test_frontend_does_not_replace_native_streaming_transport():
+def test_frontend_does_not_replace_native_chat_transport():
     engine = (ROOT / "static/js/teluai-engine.js").read_text(encoding="utf-8")
 
     assert "window.fetch" not in engine
@@ -22,23 +22,16 @@ def test_frontend_does_not_replace_native_streaming_transport():
     assert "/health" in engine
 
 
-def test_main_workspace_script_defers_history_isolation_to_api():
-    script = (ROOT / "static/js/main-workspace.js").read_text(encoding="utf-8")
-
-    assert "Workspace separation is enforced by the API" in script
-    assert "window.fetch" not in script
-    assert "[Melimi Lab]" not in script
-    assert "querySelector('.nav')" not in script
-    assert "createElement('a')" not in script
+def test_single_chat_frontend_has_no_workspace_compatibility_surface():
+    index = (ROOT / "static/index.html").read_text(encoding="utf-8")
+    assert "/melimi-lab" not in index
+    assert "Melimi Telugu Lab" not in index
+    assert "workspace" not in index.lower()
+    assert not (ROOT / "static/js/main-workspace.js").exists()
 
 
-def test_melimi_lab_is_a_real_canonical_route():
+def test_production_server_is_the_single_fastapi_boundary():
     server = (ROOT / "app/server.py").read_text(encoding="utf-8")
-    lab = (ROOT / "static/melimi-lab.html").read_text(encoding="utf-8")
-
-    assert '@app.get("/melimi-lab"' in server
-    assert 'id="composer"' in lab
-    assert 'id="chat"' in lab
-    assert 'melimi-lab.js' in lab
-    assert 'workspace-context.js' in lab
-    assert "melimi-lab-workspace.js" not in server
+    assert "from app.teluai2_app import app" in server
+    assert "WorkspaceGuardMiddleware" not in server
+    assert "workspace_guard" not in server
