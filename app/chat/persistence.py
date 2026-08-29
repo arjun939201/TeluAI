@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from sqlalchemy import delete, select
 
-from app.application.workspace_service import can_access_conversation
 from app.database import Conversation, Message, SessionLocal, create_conversation, save_message
 
 
