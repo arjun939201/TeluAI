@@ -3,7 +3,8 @@ services:
     name: teluai
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.lab_server:app --host 0.0.0.0 --port $PORT
+    # Use the same canonical ASGI composition as Docker/local production runs.
+    startCommand: uvicorn app.server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health/ready
     envVars:
       - key: GROQ_API_KEY
@@ -38,8 +39,6 @@ services:
         value: "1200"
       - key: TELUAI_OWNER_EMAIL
         sync: false
-      # Keep this empty unless legacy automatic owner promotion is explicitly required.
-      # Normal owner setup uses /auth/bootstrap-owner after the owner account is registered.
       - key: OWNER_EMAILS
         value: ""
       - key: CACHE_ENABLED
