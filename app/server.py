@@ -1,8 +1,7 @@
 """Production ASGI composition boundary for TeluAI.
 
-Database migrations are schema-only. Runtime routes, chat behavior, workspace
-boundaries and the Melimi Lab are composed explicitly here so importing or
-migrating the database cannot mutate FastAPI application behavior.
+The ASGI boundary composes the application. Domain and application policy stay
+out of transport middleware so every interface can reuse the same rules.
 """
 from app.main import app
 from app.chat.middleware import ChatOverrideMiddleware
@@ -12,18 +11,17 @@ from app.melimi.registration_routes import install_routes as install_registratio
 from app.workspace_guard import WorkspaceGuardMiddleware
 
 
-# Runtime application composition belongs at the ASGI boundary.
 install_chat_learning()
 if not getattr(app.state, "language_space_installed", False):
     install_language_space(app)
     app.state.language_space_installed = True
 install_registration_routes(app)
 
-# Middleware is registered in reverse nesting order. ChatOverride must be
-# registered first so WorkspaceGuard becomes the outer boundary and can reject
-# Lab-only commands before any chat command handling occurs.
+# Starlette applies middleware in reverse registration order. The workspace
+# guard must sit outside chat overrides so transport boundaries are enforced
+# before any downstream chat handling.
 app.add_middleware(ChatOverrideMiddleware)
 app.add_middleware(WorkspaceGuardMiddleware)
 
-# Activate the separate Melimi Telugu Lab workspace.
+# Import for side-effect registration of the Lab HTTP presentation layer.
 from app import lab_server  # noqa: E402,F401
