@@ -49,8 +49,6 @@ def _ensure_global_table() -> None:
 
 
 def _is_global_role(role: str) -> bool:
-    # `admin` is the approved administrator role in the authenticated account
-    # model; inactive accounts cannot reach the authenticated chat boundary.
     return str(role or "").strip().lower() in {"owner", "admin"}
 
 
@@ -81,7 +79,7 @@ def extract_suggestions(text: str) -> list[LearningSuggestion]:
                     found.append(candidate)
 
     grammar_patterns = [
-        r"(?:మేలిమి|మెలిమి)(?:\s*తెలుగు)?\s*(?:వ్యాకరణ|నియమం)\s*[:：-]\s*(.+)",
+        r"(?:మేలిమి|మెలిమి)(?:\s*తెలుగు)?\s*(?:వ్యాకరణ(?:ం|ము)?|నియమం)\s*[:：-]\s*(.+)",
         r"(?:వ్యాకరణంగా|వ్యాకరణంలో)\s*(.+?)\s*(?:అని|అలా)?\s*(?:వాడాలి|చెప్పాలి|ఉంటుంది)[.]?$",
         r"(?:ఇక్కడ|ఈ సందర్భంలో)\s*(.+?)\s*(?:వాడాలి|చెప్పాలి)\s*(?:అని|\.|$)",
     ]
@@ -109,13 +107,7 @@ def _role_for_user(user_id: int) -> str:
 
 
 def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str | None = None) -> bool:
-    """Persist an explicit suggestion in its correct trust scope.
-
-    The chat boundary may omit ``role``; in that case resolve it from the
-    authenticated database record instead of silently treating every caller
-    as an ordinary user. Explicit roles remain supported for trusted service
-    callers and focused tests.
-    """
+    """Persist an explicit suggestion in its correct trust scope."""
     resolved_role = _role_for_user(user_id) if role is None else str(role)
     if _is_global_role(resolved_role):
         _ensure_global_table()
