@@ -47,6 +47,8 @@ class WorkspaceGuardMiddleware:
         chunks = []
         while True:
             event = await receive()
+            if event.get("type") == "http.disconnect":
+                break
             if event.get("type") != "http.request":
                 continue
             chunks.append(event.get("body", b""))
@@ -61,13 +63,13 @@ class WorkspaceGuardMiddleware:
         workspace = _workspace(scope)
         if workspace == "main" and _message_is_command(payload):
             body = (
-                'data: ' + json.dumps({
+                "data: " + json.dumps({
                     "type": "error",
                     "message": "Melimi Lab commands are available only in the Melimi Telugu Lab.",
                     "code": "workspace_boundary",
                 }, ensure_ascii=False)
                 + "\n\n"
-                + 'data: ' + json.dumps({"type": "done"})
+                + "data: " + json.dumps({"type": "done"})
                 + "\n\n"
             ).encode("utf-8")
             await send({
@@ -86,9 +88,9 @@ class WorkspaceGuardMiddleware:
 
         async def replay():
             nonlocal sent
-            if sent:
-                return {"type": "http.request", "body": b"", "more_body": False}
-            sent = True
-            return {"type": "http.request", "body": raw, "more_body": False}
+            if not sent:
+                sent = True
+                return {"type": "http.request", "body": raw, "more_body": False}
+            return {"type": "http.disconnect"}
 
         await self.app(scope, replay, send)
