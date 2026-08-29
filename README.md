@@ -1,35 +1,39 @@
 # TeluAI
 
-**Telugu-first AI conversation and Melimi Telugu language intelligence platform.**
+**సహజమైన తెలుగు సంభాషణ కోసం రూపొందించిన AI.**
 
-TeluAI combines FastAPI, PostgreSQL-backed language knowledge, contextual Telugu understanding, deterministic Melimi morphology, a curated Language Space, authentication, learning/review workflows, conversation history, user-controlled memory, admin operations, and Groq generation.
+TeluAI యొక్క ప్రస్తుత ఉద్దేశ్యం ఒకటే: వినియోగదారుతో సాధారణంగా తెలుగులో మాట్లాడటం. వినియోగదారు మేలిమి తెలుగు పదం, పద వినియోగం లేదా వ్యాకరణంపై స్పష్టమైన సూచన ఇస్తే, ఆ సూచనను ఆ వినియోగదారుడి వ్యక్తిగత భాషా జ్ఞాపకంగా భద్రపరుస్తుంది. కొత్త సంభాషణల్లో సంబంధిత సందర్భం వచ్చినప్పుడు ఆ జ్ఞాపకాన్ని తిరిగి ఉపయోగిస్తుంది.
 
-## Architecture
+## ప్రస్తుత ఉత్పత్తి
 
 ```text
-Browser
-  ↓
-FastAPI / canonical ASGI composition (app.server:app)
-  ├─ authentication / authorization
-  ├─ workspace boundaries
-  ├─ canonical chat transport (JSON + SSE)
-  ├─ conversation application
-  ├─ Melimi language engine
-  ├─ learning / Language Space
-  └─ LLM provider boundary
-          ↓
-      Groq adapter
-          ↓
- PostgreSQL language + account data
+వినియోగదారు
+   ↓
+TeluAI తెలుగు సంభాషణ
+   ├─ సహజమైన తెలుగు సమాధానాలు
+   ├─ సంభాషణ చరిత్ర
+   ├─ వినియోగదారు-వ్యక్తిగత భాషా జ్ఞాపకం
+   └─ స్పష్టమైన మేలిమి పద/వ్యాకరణ సూచనల నేర్చుకోవడం
+             ↓
+        Groq AI
+             ↓
+        PostgreSQL / SQLite
 ```
 
-The main application is intentionally not a generic chatbot. Language authority is versioned and provenance-aware; unknown Melimi vocabulary is not silently invented.
+### ముఖ్య నియమాలు
 
-## Runtime entrypoint
+- సాధారణ సంభాషణలో సమాధానం తెలుగులోనే ఉంటుంది.
+- ఇంగ్లీష్, రోమన్ తెలుగు లేదా మిశ్రమంగా అడిగినా భావాన్ని అర్థం చేసుకుని తెలుగులో స్పందిస్తుంది.
+- సాధారణ మాటలను భాషా పాఠంగా లేదా నిఘంటువు వివరణగా మార్చదు.
+- వినియోగదారు స్పష్టంగా ఇచ్చిన భాషా సూచనలను మాత్రమే నేర్చుకుంటుంది.
+- ఒక వినియోగదారుడి నేర్చుకున్న సూచనలు మరొక వినియోగదారుడికి కలవవు.
+- నేర్చుకున్న వ్యక్తిగత సూచనలు కొత్త సంభాషణల్లో కూడా అందుబాటులో ఉంటాయి.
+- AI స్వయంగా ఊహించిన పదాన్ని అధికారిక భాషా జ్ఞానంగా సేవ్ చేయదు.
+- మేలిమి తెలుగు పరిశోధన/ల్యాబ్ ఇంటర్‌ఫేస్ ప్రస్తుతం ఉత్పత్తిలో భాగం కాదు; అది తరువాతి దశకు వదిలివేయబడింది.
 
-`app.server:app` is the canonical production ASGI composition. It explicitly assembles the runtime boundaries that the base FastAPI module defines.
+## Runtime
 
-Use it for local production-style runs:
+`app.server:app` మాత్రమే ప్రస్తుత canonical production entrypoint.
 
 ```bash
 python -m venv .venv
@@ -38,108 +42,49 @@ pip install -r requirements.txt
 uvicorn app.server:app --reload
 ```
 
-Docker and Render use the same `app.server:app` entrypoint.
+Render/Docker కూడా ఇదే entrypoint ఉపయోగిస్తాయి.
 
 ## Configuration
 
-Copy `.env.example` and configure the required values.
-
-Important variables include:
+`.env.example` ఆధారంగా అవసరమైన విలువలను అమర్చండి.
 
 ```text
-GROQ_API_KEY                  # GROQ_TOKEN remains supported for compatibility
+GROQ_API_KEY
 GROQ_MODEL
 GROQ_FALLBACK_MODEL
 DATABASE_URL
-OWNER_EMAILS
-TELUAI_OWNER_EMAIL
 SESSION_DAYS
 COOKIE_SECURE
 CORS_ORIGINS
-TRUST_PROXY_HEADERS
-SMTP_HOST / SMTP_PORT / SMTP_USERNAME / SMTP_PASSWORD / SMTP_FROM
-GITHUB_TOKEN / GITHUB_REPO / GITHUB_BRANCH / GITHUB_LANGUAGE_FILE
 ```
 
-Never expose provider or GitHub tokens to the browser.
+Provider keys లేదా ఇతర secrets ను browserలో ఎప్పుడూ పంపకూడదు.
 
-## Product behavior
+## Database learning model
 
-- Conversation context is bounded and state-aware.
-- Standard Telugu is an explicit mode; the native conversation path uses Melimi language intelligence.
-- Language contributions from regular users enter review before becoming authoritative.
-- Published language records are `MASTER` and create a new knowledge version.
-- User memory is explicit and user-controlled.
-- Chat streaming uses the backend's native SSE transport.
-- Provider failures expose useful, non-secret error information.
-
-## Security baseline
-
-TeluAI includes HttpOnly/SameSite session cookies, server-side role authorization, authentication/upload/chat rate limits, security headers, restricted CORS when configured, bounded uploads and ZIP extraction, audit logging, and production API docs disabled by default.
-
-## Testing
-
-CI performs:
-
-1. dependency installation and `pip check`
-2. Python compilation
-3. frontend JavaScript syntax checking
-4. repository hygiene checks
-5. the complete pytest suite
-6. offline language evaluation
-
-Run locally:
-
-```bash
-pytest -q --import-mode=importlib
-```
-
-## Deployment
-
-Recommended Render deployment:
+భాషా సూచనల కోసం `user_memory` ఆధారంగా వ్యక్తిగత జ్ఞాపకం ఉపయోగించబడుతుంది:
 
 ```text
-Render Web Service
-        │
-        ├── DATABASE_URL → Render PostgreSQL
-        ├── GROQ_API_KEY
-        └── optional SMTP / GitHub configuration
+స్పష్టమైన వినియోగదారు సూచన
+        ↓
+తెలుగు పదం / వ్యాకరణ సూచన గుర్తింపు
+        ↓
+ఆ వినియోగదారుడి వ్యక్తిగత జ్ఞాపకంలో భద్రపరచడం
+        ↓
+కొత్త సంభాషణలో సంబంధిత సందర్భానికి తిరిగి ఇవ్వడం
 ```
 
-Start command:
+సాధారణ సంభాషణ, ఊహ, లేదా TeluAI స్వంత సమాధానం స్వయంగా నేర్చుకునే డేటాగా మారదు.
 
-```text
-uvicorn app.server:app --host 0.0.0.0 --port $PORT
-```
-
-Health endpoints:
+## Health
 
 ```text
 GET /health
 GET /health/ready
 ```
 
-`/health/ready` verifies database connectivity and is suitable for readiness checks.
+`/health/ready` database connectivityని తనిఖీ చేస్తుంది.
 
-## Language authority
+## Scope
 
-The runtime authority flow is:
-
-```text
-PENDING / PROPOSED
-        ↓ review
-MASTER
-        ↓ versioned runtime retrieval
-Melimi engine
-```
-
-The historical full Melimi corpus is not fabricated into this repository. Restore authoritative corpus material through the Language Space/content workflow when available.
-
-## Engineering principles
-
-- Elementary excellence.
-- One canonical runtime path per responsibility.
-- Root causes before new components.
-- No fake loading, results, integrations, or AI functionality.
-- Preserve working vertical slices while refactoring.
-- No microservices, Kubernetes, Redis, or vector database without measured need.
+ప్రస్తుత దశను ఉద్దేశపూర్వకంగా చిన్నదిగా ఉంచాం: **తెలుగు AI chat + వ్యక్తిగత మేలిమి భాషా learning memory**. అదనపు భాషా పరిశోధన సాధనాలు తరువాత ప్రత్యేక దశలో చేర్చవచ్చు.
