@@ -35,12 +35,11 @@ def _session_user(scope):
 
 
 class WorkspaceGuardMiddleware:
-    """Enforce workspace boundaries at the API boundary.
+    """Enforce workspace boundaries at the HTTP/application boundary.
 
-    This middleware owns transport concerns only. Workspace policy and data
-    access live in the application service so the same rules can be reused by
-    HTTP routes, background jobs, and future interfaces without duplicating
-    authorization logic.
+    The client may request a workspace for presentation, but the middleware
+    converts that transport signal into canonical request context before the
+    chat application sees it. Conversation reads/writes are also scoped here.
     """
 
     def __init__(self, app):
@@ -54,9 +53,9 @@ class WorkspaceGuardMiddleware:
         method = scope.get("method", "").upper()
         path = scope.get("path", "")
         workspace = _workspace(scope)
+        user = _session_user(scope)
 
         if method == "GET" and path == "/conversations":
-            user = _session_user(scope)
             if user is None:
                 await self.app(scope, receive, send)
                 return
@@ -77,7 +76,6 @@ class WorkspaceGuardMiddleware:
 
         if method in {"GET", "DELETE"} and path.startswith("/conversations/"):
             conversation_id = path[len("/conversations/"):].strip("/")
-            user = _session_user(scope)
             if user is not None and conversation_id and not can_access_conversation(user.id, conversation_id, workspace):
                 await JSONResponse(
                     {"detail": "Conversation belongs to another workspace."},
@@ -85,21 +83,19 @@ class WorkspaceGuardMiddleware:
                 )(scope, receive, send)
                 return
 
-        if method != "POST" or not path.startswith("/chat/"):
+        if method != "POST" or not path.startswith("/chat"):
             await self.app(scope, receive, send)
             return
 
-        # Only the Lab transport needs payload normalization. Main chat keeps
-        # the canonical command pipeline, including explicit /word teaching.
-        if workspace != "lab":
-            await self.app(scope, receive, send)
-            return
-
+        # Make the trusted transport workspace explicit in the application
+        # request. This prevents a caller from reaching the application layer
+        # with a stale/default workspace simply because the header was omitted
+        # from the JSON payload.
         chunks = []
         while True:
             event = await receive()
             if event.get("type") == "http.disconnect":
-                break
+                return
             if event.get("type") != "http.request":
                 continue
             chunks.append(event.get("body", b""))
@@ -108,11 +104,16 @@ class WorkspaceGuardMiddleware:
 
         try:
             payload = json.loads(b"".join(chunks).decode("utf-8") or "{}")
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            payload = {}
-        payload["mode"] = "melimi"
-        raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+            if not isinstance(payload, dict):
+                raise ValueError("Chat request must be a JSON object.")
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            await JSONResponse({"detail": str(exc)}, status_code=400)(scope, receive, send)
+            return
 
+        payload["workspace"] = workspace
+        if workspace == "lab":
+            payload["mode"] = "melimi"
+        raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         sent = False
 
         async def replay():
