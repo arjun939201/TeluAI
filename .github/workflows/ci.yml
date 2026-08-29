@@ -33,6 +33,12 @@ jobs:
       - name: Check frontend JavaScript syntax
         run: |
           for file in static/js/*.js; do node --check "$file"; done
+      - name: Verify production ASGI composition
+        env:
+          PYTHONPATH: .
+          CACHE_ENABLED: "false"
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -c "from app.server import app; print(app.title)"
       - name: Clean generated Python caches
         run: |
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
