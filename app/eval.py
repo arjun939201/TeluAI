@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
-from app.chat.router import detect_language, route_message
+from app.chat_learning_runtime import route_request
 from app.conversation.state import from_history
 from app.conversation.understanding import infer_intent
 from app.melimi.root_morphology import convert_surface
@@ -12,6 +13,23 @@ from app.retrieval.evidence import rank_evidence
 
 
 CASES = Path(__file__).resolve().parents[1] / "evals" / "language_cases.json"
+
+
+def _detect_language(text: str) -> str:
+    """Offline language classification used by the evaluator.
+
+    Keep this deterministic and independent of the removed legacy chat package.
+    """
+    value = str(text or "")
+    if re.search(r"[\u0C00-\u0C7F]", value):
+        return "telugu"
+    return "english"
+
+
+def _route_mode(text: str) -> str:
+    """Adapt canonical route_request output to evaluator mode names."""
+    route = route_request(text, "auto")
+    return "melimi" if route == "melimi" else "general"
 
 
 def _pct(passed: int, total: int) -> float | None:
@@ -76,14 +94,14 @@ def run() -> dict[str, Any]:
                 failures.append({"id": case_id, "metric": "intent", "expected": case["expected_intent"], "actual": actual})
         if "expected_language" in case:
             language_total += 1
-            actual = detect_language(text)
+            actual = _detect_language(text)
             if actual == case["expected_language"]:
                 language_pass += 1
             else:
                 failures.append({"id": case_id, "metric": "language", "expected": case["expected_language"], "actual": actual})
         if "expected_mode" in case:
             mode_total += 1
-            actual = route_message(text, "auto").mode
+            actual = _route_mode(text)
             if actual == case["expected_mode"]:
                 mode_pass += 1
             else:
