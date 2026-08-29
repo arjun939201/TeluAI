@@ -143,7 +143,6 @@ def remember_suggestion(user_id: int, suggestion: LearningSuggestion, role: str 
     if _is_global_role(resolved_role):
         _ensure_global_table()
         with engine.begin() as db:
-            # The database generates the primary key, avoiding MAX(id)+1 races.
             db.execute(text(f"""
                 INSERT INTO {GLOBAL_TABLE}
                     (kind, learning_key, learning_value, source, source_user_id, evidence)
@@ -215,26 +214,48 @@ def learned_for_user(user_id: int, limit: int = 40) -> list[dict[str, str]]:
     return result
 
 
-def prompt_context(user_id: int, role: str = "user") -> str:
-    """Build model context from global trusted chat learning + private memory."""
-    global_items = learned_global()
-    private_items = learned_for_user(user_id)
-    if not global_items and not private_items:
+def _relevance_terms(message: str) -> set[str]:
+    """Extract conservative Unicode-aware terms for lightweight local retrieval."""
+    raw = re.findall(r"[\u0C00-\u0C7F]{2,}|[A-Za-z]{3,}", str(message or ""), flags=re.UNICODE)
+    return {term.casefold() for term in raw}
+
+
+def _is_relevant(item: dict[str, str], terms: set[str]) -> bool:
+    if not terms:
+        return False
+    haystack = " ".join((item.get("key", ""), item.get("value", ""))).casefold()
+    return any(term in haystack for term in terms)
+
+
+def prompt_context(user_id: int, role: str = "user", message: str = "") -> str:
+    """Build compact, relevance-first model context from learned language data."""
+    terms = _relevance_terms(message)
+    global_items = learned_global(limit=80)
+    private_items = learned_for_user(user_id, limit=40)
+
+    if terms:
+        relevant_global = [item for item in global_items if _is_relevant(item, terms)][:12]
+        relevant_private = [item for item in private_items if _is_relevant(item, terms)][:8]
+    else:
+        relevant_global = global_items[:8]
+        relevant_private = private_items[:8]
+
+    if not relevant_global and not relevant_private:
         return ""
 
     lines: list[str] = []
-    if global_items:
-        lines.append("సిస్టమ్ యొక్క భాగస్వామ్య తెలుగు భాషా జ్ఞాపకం (యజమాని/ఆమోదిత నిర్వాహకుల స్పష్టమైన సూచనల నుంచి):")
-        for item in reversed(global_items):
+    if relevant_global:
+        lines.append("సందర్భానికి సంబంధించిన భాగస్వామ్య తెలుగు భాషా జ్ఞాపకం (యజమాని/ఆమోదిత నిర్వాహకుల స్పష్టమైన సూచనల నుంచి):")
+        for item in reversed(relevant_global):
             if item.get("kind") == "VOCABULARY":
                 lines.append(f"- పద వినియోగ సూచన: {item.get('key', '')} → {item.get('value', '')}")
             elif item.get("kind") == "GRAMMAR":
                 lines.append(f"- వ్యాకరణ సూచన: {item.get('value', '')}")
-        lines.append("ఈ భాగస్వామ్య జ్ఞాపకం అన్ని వినియోగదారులకు సందర్భానుసారం ఉపయోగించవచ్చు; తెలియని విషయాన్ని దీనితో కలిపి ఊహించవద్దు.")
+        lines.append("సందర్భానికి సరిపోతే మాత్రమే ఉపయోగించు; తెలియని విషయాన్ని దీనితో కలిపి ఊహించవద్దు.")
 
-    if private_items:
-        lines.append("ఈ వినియోగదారు గత సంభాషణల్లో స్పష్టంగా సూచించిన వ్యక్తిగత తెలుగు భాషా జ్ఞాపకాలు:")
-        for item in reversed(private_items):
+    if relevant_private:
+        lines.append("ఈ వినియోగదారుడి సందర్భానికి సంబంధించిన వ్యక్తిగత తెలుగు భాషా జ్ఞాపకాలు:")
+        for item in reversed(relevant_private):
             if item.get("kind") == "VOCABULARY":
                 lines.append(f"- పద వినియోగ సూచన: {item.get('key', '')} → {item.get('value', '')}")
             elif item.get("kind") == "GRAMMAR":
