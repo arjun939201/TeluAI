@@ -1,8 +1,8 @@
 """Prompts for the single Telugu-conversation product."""
 
-# Stable contract markers are retained for the existing conversation tests and
-# older integrations. These instructions remain internal and are never shown
-# to the user.
+# Stable internal contract markers are retained for existing conversation tests
+# and older integrations. They are instructions to the model, never user-facing
+# output.
 PRIMARY_CONVERSATION_RULE = """PRIMARY RULE — CONVERSATION BEFORE ANALYSIS
 Answer the user's current conversational need first. Do not turn ordinary conversation into language analysis, dictionary work, grammar lessons, or research unless the user explicitly asks for that.
 Never answer by explaining the user's own sentence when they are simply trying to converse.
