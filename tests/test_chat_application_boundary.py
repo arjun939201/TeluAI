@@ -16,7 +16,7 @@ def test_chat_preparation_uses_single_application_boundary(monkeypatch):
         decision.mode = mode
         return decision, "canonical prompt", {"intent": "conversation"}
 
-    monkeypatch.setattr("app.chat.application.create_workspace_conversation", lambda *args: "conversation-1")
+    monkeypatch.setattr("app.chat.application.ensure_conversation", lambda *args: "conversation-1")
     monkeypatch.setattr(
         "app.chat.application.context_for",
         lambda *args: ([{"role": "user", "content": "hi"}], ""),
