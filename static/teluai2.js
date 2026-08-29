@@ -8,8 +8,9 @@ async function send(){if(busy)return;const input=$('#input'),text=input.value.tr
 async function loadHistory(){try{const d=await api('/conversations');$('#history').innerHTML=(d.conversations||[]).slice(0,30).map(c=>`<button type="button" data-id="${esc(c.id)}">${esc(c.title||'కొత్త సంభాషణ')}</button>`).join('');document.querySelectorAll('#history button').forEach(b=>b.onclick=()=>{closeMobileMenu();loadConversation(b.dataset.id)})}catch{}}
 async function loadConversation(id){try{const d=await api('/conversations/'+encodeURIComponent(id));conversationId=id;messages=(d.messages||[]).map(x=>({id:x.id,role:x.role,content:x.content}));render();closeMobileMenu()}catch(e){alert(e.message)}}
 function newChat(){conversationId=null;messages=[];render();closeMobileMenu();$('#input').focus()}
-function closeMobileMenu(){document.body.classList.remove('menu-open')}
-function toggleMobileMenu(){document.body.classList.toggle('menu-open')}
+function setMobileMenu(open){const app=$('.app');document.body.classList.toggle('menu-open',open);app?.classList.toggle('menu-open',open);$('#mobileMenu').setAttribute('aria-expanded',String(open))}
+function closeMobileMenu(){setMobileMenu(false)}
+function toggleMobileMenu(){setMobileMenu(!document.body.classList.contains('menu-open'))}
 function applyTheme(light){document.documentElement.classList.toggle('light',light);$('#theme').setAttribute('aria-pressed',String(light))}
 async function auth(){try{const me=await api('/auth/me');$('#account').textContent=me.username;$('#auth').classList.add('hidden');loadHistory()}catch{$('#auth').classList.remove('hidden')}}
 function showAuth(kind){document.querySelectorAll('#auth form').forEach(x=>x.classList.add('hidden'));$('#'+kind+'Form').classList.remove('hidden');$('#authError').textContent=''}
@@ -17,5 +18,6 @@ for(const [id,endpoint,fields] of [['guest','/auth/guest',['username','password'
 $('#composer').onsubmit=e=>{e.preventDefault();send()};$('#input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};$('#input').oninput=e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,160)+'px'};$('#newChat').onclick=newChat;$('#logout').onclick=async()=>{await api('/auth/logout',{method:'POST'});location.reload()};$('#mobileMenu').onclick=toggleMobileMenu;$('#theme').onclick=()=>{const light=!document.documentElement.classList.contains('light');applyTheme(light);localStorage.setItem('teluai-theme',light?'light':'dark')};$('#guestSwitch').onclick=()=>showAuth('guest');$('#loginSwitch').onclick=()=>showAuth('login');$('#registerSwitch').onclick=()=>showAuth('register');
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu()});
 $('.main')?.addEventListener('click',e=>{if(document.body.classList.contains('menu-open')&&!e.target.closest('.side'))closeMobileMenu()});
-const savedTheme=localStorage.getItem('teluai-theme');applyTheme(savedTheme==='light');
+$('.side')?.addEventListener('click',e=>{if(e.target.closest('button'))return});
+const savedTheme=localStorage.getItem('teluai-theme');applyTheme(savedTheme==='light');setMobileMenu(false);
 showAuth('guest');auth();render();
