@@ -9,8 +9,6 @@ def _bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-# Current Groq production models. Environment variables remain authoritative,
-# but retired model IDs are never allowed to become the implicit fallback.
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 RETIRED_GROQ_MODELS = {
     "llama-3.1-8b-instant",
@@ -63,6 +61,7 @@ class Settings:
     )
     trust_proxy_headers: bool = _bool("TRUST_PROXY_HEADERS", bool(os.getenv("RENDER")))
     expose_docs: bool = _bool("EXPOSE_API_DOCS", False)
+    testing: bool = _bool("TELUAI_TESTING", False)
 
 
 settings = Settings()
