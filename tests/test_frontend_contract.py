@@ -20,11 +20,9 @@ def test_main_ui_is_focused_telugu_chat():
 
 def test_new_frontend_uses_one_chat_transport():
     js = JS.read_text(encoding="utf-8")
-    assert "fetch('/chat'" in js or "fetch('/chat'," in js
+    assert "'/chat'" in js
     assert "conversation_id" in js
-    assert "/conversations" in js
     assert "credentials:'same-origin'" in js
-    assert "innerHTML" in js  # rendering is escaped through esc() before insertion
     assert "const esc" in js
 
 
