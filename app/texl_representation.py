@@ -64,10 +64,18 @@ def _to_token_evidence(item: LanguageEvidence) -> TokenEvidence:
     return TokenEvidence(item.token, item.canonical, item.melimi, item.relation, morphology, role, item.confidence, item.authoritative)
 
 
+def _ordered_evidence(brain: BrainResult) -> tuple[TokenEvidence, ...]:
+    """Keep validated surface evidence ahead of its canonical fallback."""
+    converted = tuple(_to_token_evidence(item) for item in brain.evidence)
+    inflected = tuple(item for item in converted if item.relation == "validated_inflection")
+    canonical = tuple(item for item in converted if item.relation != "validated_inflection")
+    return inflected + canonical
+
+
 def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
     brain: BrainResult = analyze_language(message, vocabulary)
     intent = classify_translation_intent(message)
-    evidence = tuple(_to_token_evidence(item) for item in brain.evidence)
+    evidence = _ordered_evidence(brain)
 
     lexical = None
     if intent == "LEXICAL_EQUIVALENT":
