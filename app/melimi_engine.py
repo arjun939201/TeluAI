@@ -63,12 +63,8 @@ def _strip_known_inflection(token: str) -> tuple[str, str]:
     """Resolve evidence-backed Telugu surface inflections conservatively.
 
     Singular accusative of a canonical -ం noun surfaces as -ాన్ని.
-    For example: ధన్యవాదం → ధన్యవాదాన్ని.  The retrieval normalization
-    removes the complete surface ending ``ాన్ని`` and restores canonical ``ం``.
-    The surface form is never added to the vocabulary.
+    Example: ధన్యవాదం → ధన్యవాదాన్ని.
     """
-    # This must run before the generic ``ని`` rule.  Stripping only ``ని``
-    # leaves ``...ాన్న`` and therefore cannot resolve -ాన్ని correctly.
     if token.endswith("ాన్ని") and len(token) > len("ాన్ని") + 1:
         return token[:-len("ాన్ని")] + "ం", "ాన్ని"
 
@@ -84,7 +80,7 @@ def _items(vocabulary: list[dict[str, str]] | tuple[dict[str, str], ...]):
     return [x for x in vocabulary if str(x.get("kind", "VOCABULARY")) == "VOCABULARY"]
 
 
-def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str], ...] = VOCABULARY) -> MelimiAnalysis:
+def analyze(message: str, vocabulary: list[dict[str, str]] = VOCABULARY) -> MelimiAnalysis:
     """Perform evidence-first lexical, inflectional and family analysis."""
     text = str(message or "").strip()
     tokens = tokenize_telugu(text)
@@ -94,16 +90,24 @@ def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str
     boundaries: list[str] = []
     items = _items(vocabulary)
     keys = {str(x.get("key", "")).strip(): x for x in items if x.get("key")}
+    matched_keys: set[str] = set()
 
     for token in tokens:
         if token in keys:
             item = keys[token]
             matched.append({"key": token, "value": str(item.get("value", "")), "source": str(item.get("source", ""))})
+            matched_keys.add(token)
             continue
 
         stem, suffix = _strip_known_inflection(token)
         if suffix and stem in keys:
             item = keys[stem]
+            # Canonical lexical match and surface-form match are deliberately
+            # both exposed: callers can retrieve the authoritative mapping
+            # while retaining the grammatical evidence that triggered it.
+            if stem not in matched_keys:
+                matched.append({"key": stem, "value": str(item.get("value", "")), "source": str(item.get("source", ""))})
+                matched_keys.add(stem)
             inflected.append({
                 "surface": token,
                 "canonical": stem,
@@ -128,7 +132,6 @@ def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str
         boundaries.append("formation-family match is evidence, not unrestricted productivity")
 
     confidence = "high" if matched or inflected else "none"
-
     return MelimiAnalysis(
         message=text,
         tokens=tokens,
@@ -143,7 +146,6 @@ def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str
 
 
 def compact_report(result: MelimiAnalysis) -> str:
-    """Short TEX-L display: high-signal output only."""
     lines = [f"TEX-L | {result.confidence.upper()} | {'TRANSHIFT' if result.should_transhift else 'NO MATCH'}"]
     for item in result.matched:
         lines.append(f"{item['key']} → {item['value']}")
