@@ -1,24 +1,11 @@
 """TEX-L: owner-only Melimi research and approval service."""
 from __future__ import annotations
 
-import json
-from dataclasses import asdict, dataclass
 from sqlalchemy import text
-from app.database import engine, now
+from app.database import engine
 from app.teluai2_learning import LearningSuggestion, _valid_suggestion, remember_suggestion, learned_global, extract_suggestions
 
 TABLE = "teluai_texl_pending"
-
-@dataclass(frozen=True)
-class Pending:
-    id: int
-    kind: str
-    key: str
-    value: str
-    evidence: str
-    status: str
-    created_at: str
-    updated_at: str
 
 
 def ensure_table() -> None:
@@ -46,7 +33,7 @@ def pending(limit: int = 200) -> list[dict]:
 def all_learned() -> dict:
     ensure_table()
     with engine.begin() as db:
-        rows = db.execute(text(f"SELECT * FROM {TABLE} WHERE status <> 'rejected' ORDER BY id DESC LIMIT 500")).mappings().all()
+        rows = db.execute(text(f"SELECT * FROM {TABLE} ORDER BY id DESC LIMIT 500")).mappings().all()
     return {"approved": learned_global(limit=200), "pending": [_row(x) for x in rows if x["status"] == "pending"], "rejected": [_row(x) for x in rows if x["status"] == "rejected"]}
 
 
@@ -57,16 +44,22 @@ def propose(suggestion: LearningSuggestion) -> dict | None:
     with engine.begin() as db:
         existing = db.execute(text(f"SELECT id FROM {TABLE} WHERE kind=:kind AND learning_key=:key AND status='pending'"), {"kind": suggestion.kind, "key": suggestion.key}).first()
         if existing:
-            return pending(500)[0]
+            row = db.execute(text(f"SELECT * FROM {TABLE} WHERE id=:id"), {"id": existing[0]}).mappings().first()
+            return _row(row) if row else None
         row = db.execute(text(f"""INSERT INTO {TABLE}(kind,learning_key,learning_value,evidence,status) VALUES(:kind,:key,:value,:evidence,'pending') RETURNING id,kind,learning_key,learning_value,evidence,status,created_at,updated_at"""), {"kind": suggestion.kind, "key": suggestion.key, "value": suggestion.value, "evidence": suggestion.source}).mappings().first()
     return _row(row) if row else None
 
 
 def propose_from_text(text_value: str) -> list[dict]:
-    return [x for s in extract_suggestions(text_value) if (x := propose(s))]
+    result = []
+    for suggestion in extract_suggestions(text_value):
+        item = propose(suggestion)
+        if item:
+            result.append(item)
+    return result
 
 
-def approve(item_id: int, key: str | None = None, value: str | None = None) -> dict:
+def approve(item_id: int, owner_user_id: int, key: str | None = None, value: str | None = None) -> dict:
     ensure_table()
     with engine.begin() as db:
         row = db.execute(text(f"SELECT * FROM {TABLE} WHERE id=:id AND status='pending'"), {"id": int(item_id)}).mappings().first()
@@ -77,7 +70,7 @@ def approve(item_id: int, key: str | None = None, value: str | None = None) -> d
     suggestion = LearningSuggestion(str(row["kind"]), final_key, final_value, str(row["evidence"] or "owner-approved-by-TEX-L"))
     if not _valid_suggestion(suggestion):
         raise ValueError("Edited learning is invalid.")
-    if not remember_suggestion(0, suggestion, role="owner"):
+    if not remember_suggestion(owner_user_id, suggestion, role="owner"):
         raise ValueError("Could not approve learning.")
     with engine.begin() as db:
         db.execute(text(f"UPDATE {TABLE} SET learning_key=:key,learning_value=:value,status='approved',updated_at=CURRENT_TIMESTAMP WHERE id=:id"), {"id": int(item_id), "key": final_key, "value": final_value})
@@ -91,9 +84,9 @@ def reject(item_id: int) -> bool:
     return result.rowcount > 0
 
 
-def approve_all() -> int:
+def approve_all(owner_user_id: int) -> int:
     count = 0
     for item in list(pending(500)):
-        approve(item["id"])
+        approve(item["id"], owner_user_id)
         count += 1
     return count
