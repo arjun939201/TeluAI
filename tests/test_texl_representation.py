@@ -42,15 +42,17 @@ def test_representation_context_is_json_safe():
     assert result["translation_intent"] == "UNSPECIFIED"
 
 
-def test_lexical_equivalence_question_does_not_inherit_case_ending():
+def test_lexical_equivalence_question_returns_canonical_melimi_form():
     message = "ధన్యవాదాన్ని మేలిమి తెలుగులో ఏమంటారు?"
     assert classify_translation_intent(message) == "LEXICAL_EQUIVALENT"
     result = represent_language(message, VOCAB)
     assert result.translation_intent == "LEXICAL_EQUIVALENT"
+    assert result.lexical_equivalent == "నెనరు"
 
 
-def test_sentence_translation_keeps_grammatical_role():
+def test_sentence_translation_does_not_force_lexical_question_behavior():
     message = "ధన్యవాదాన్ని తెలియజేయు"
     assert classify_translation_intent(message) == "UNSPECIFIED"
     result = represent_language(message, VOCAB)
     assert result.translation_intent == "UNSPECIFIED"
+    assert result.lexical_equivalent is None
