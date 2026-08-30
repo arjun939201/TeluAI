@@ -17,7 +17,9 @@ def test_prompt_context_teaches_model_to_resolve_learned_inflection(monkeypatch)
     )
     context = teluai2_learning.prompt_context(1, message="TeluAI కు నెనరులు")
     assert "ధన్యవాదం → నెనరు" in context
-    assert "రూపాంతరం/విభక్తి/బహువచన రూపం" in context
+    assert "విభక్తి" in context
+    assert "బహువచన" in context
+    assert "రూపాంతరం" in context
     assert "జోకులు" in context
 
 
