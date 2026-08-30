@@ -33,6 +33,8 @@ MIGRATIONS = [
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(kind, learning_key)
         )""",
+        "ALTER TABLE teluai_global_learning ADD COLUMN status VARCHAR(30) NOT NULL DEFAULT 'active'",
+        "ALTER TABLE teluai_global_learning ADD COLUMN version INTEGER NOT NULL DEFAULT 1",
         "CREATE INDEX IF NOT EXISTS ix_teluai_global_learning_key ON teluai_global_learning (learning_key)",
         "CREATE INDEX IF NOT EXISTS ix_teluai_global_learning_status_kind ON teluai_global_learning (status, kind)",
         "CREATE INDEX IF NOT EXISTS ix_teluai_global_learning_source_user ON teluai_global_learning (source_user_id)",
@@ -49,13 +51,7 @@ def _table_exists(conn, table: str) -> bool:
 
 
 def _upgrade_global_learning_identity(conn) -> None:
-    """Upgrade the legacy shared-learning integer key on PostgreSQL.
-
-    Older deployments created `id INTEGER PRIMARY KEY` and supplied MAX(id)+1
-    from application code. New deployments may already use a PostgreSQL
-    identity column. Identity columns manage their own default sequence and
-    reject `ALTER COLUMN ... SET DEFAULT`, so they must be left untouched.
-    """
+    """Upgrade the legacy shared-learning integer key on PostgreSQL."""
     if conn.dialect.name != "postgresql" or not _table_exists(conn, "teluai_global_learning"):
         return
 
@@ -106,9 +102,10 @@ def _apply_registered_migrations(engine):
                 if version == 2 and statement.startswith("ALTER TABLE learning_candidates ADD COLUMN review_note"):
                     if _column_exists(conn, "learning_candidates", "review_note"):
                         continue
-                # Version 4 is deliberately PostgreSQL-first. SQLite test
-                # databases already create the compatibility table lazily in
-                # teluai2_learning for isolated unit tests.
+                if version == 4 and statement.startswith("ALTER TABLE teluai_global_learning ADD COLUMN"):
+                    column = statement.split("ADD COLUMN", 1)[1].strip().split()[0]
+                    if _column_exists(conn, "teluai_global_learning", column):
+                        continue
                 if version == 4 and conn.dialect.name != "postgresql":
                     if statement.startswith("CREATE TABLE"):
                         statement = statement.replace(
@@ -130,11 +127,7 @@ def _apply_registered_migrations(engine):
 
 
 def run_migrations():
-    """Create/update database schema only.
-
-    Runtime route registration, middleware composition and application wiring
-    belong to the ASGI composition boundary, not the migration layer.
-    """
+    """Create/update database schema only."""
     from app.database import Base, engine, UserSetting
 
     Base.metadata.create_all(engine)
