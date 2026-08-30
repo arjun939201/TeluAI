@@ -24,7 +24,8 @@ from app.language_policy import choose_output_variety
 from app.migrations import run_migrations
 from app.response import clean_response
 from app.teluai2_learning import extract_suggestions, learned_for_user, learned_global, prompt_context, remember_suggestion
-from app.texl_representation import representation_context
+from app.texl_representation import represent_language, representation_context
+from app.texl_generation import build_generation_contract, validate_generated_response
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 STATIC_DIR = BASE_DIR / "static"
@@ -83,7 +84,10 @@ def _get_history(user_id: int, conversation_id: str | None, supplied: list[dict]
 
 def _build_prompt(message: str, history: list[dict], user_id: int, response_length: str) -> str:
     memory = prompt_context(user_id, message=message)
-    language_context = representation_context(message, learned_global(limit=80))
+    vocabulary = learned_global(limit=80)
+    representation = represent_language(message, vocabulary)
+    language_context = representation_context(message, vocabulary)
+    generation_contract = build_generation_contract(representation)
     decision = choose_output_variety(message)
     length = {"short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.", "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు."}.get(response_length, "సహజమైన సాధారణ పరిమాణంలో సమాధానం ఇవ్వు.")
     output_instruction = {
@@ -95,6 +99,7 @@ def _build_prompt(message: str, history: list[dict], user_id: int, response_leng
     history_text = "\n".join(f"{x['role']}: {str(x['content'])[:5000]}" for x in history[-12:] if x.get("role") in {"user", "assistant"} and x.get("content"))
     parts = [TELUGU_CHAT_SYSTEM, output_instruction, length]
     parts.append("TEX-L భాషా విశ్లేషణ (అధికారిక ఆధారం ఉన్నప్పుడే దాన్ని అనుసరించు; తెలియనిది ఊహించవద్దు):\n" + str(language_context))
+    parts.append(generation_contract)
     if memory: parts.append(memory)
     if history_text: parts.append("గత సంభాషణ సందర్భం:\n" + history_text)
     parts.append("ప్రస్తుత వినియోగదారు సందేశం:\n" + message)
@@ -183,14 +188,20 @@ async def chat(payload: ChatRequest, user=Depends(current_user)):
     conversation_id, history = _get_history(user.id, payload.conversation_id, payload.history)
     settings_data = get_user_settings(user.id)
     response_length = settings_data.get("response_length", "normal")
+    vocabulary = learned_global(limit=80)
+    representation = represent_language(payload.message, vocabulary)
     prompt = _build_prompt(payload.message, history, user.id, response_length)
     try: result = await call_groq_detailed(prompt, history, payload.message)
     except Exception as exc: raise HTTPException(502, "AI service is temporarily unavailable.") from exc
     answer = clean_response(str(result.get("answer", "")), source_message=payload.message)
     if not answer: raise HTTPException(502, "AI service returned an empty response.")
+    validation = validate_generated_response(answer, representation)
+    if not validation["valid"] and validation["repairable"]:
+        answer = clean_response(answer, source_message=payload.message)
+        validation = validate_generated_response(answer, representation)
     save_message(user.id, conversation_id, "user", payload.message); save_message(user.id, conversation_id, "assistant", answer)
     save_usage(user.id, result.get("model"), result.get("input_tokens"), result.get("output_tokens"))
     suggestions = extract_suggestions(payload.message); saved = 0
     for suggestion in suggestions:
         if remember_suggestion(user.id, suggestion, role=getattr(user, "role", "user")): saved += 1
-    return {"conversation_id": conversation_id, "message": answer, "suggestions_saved": saved, "learned": learned_for_user(user.id) if saved else [], "usage": {"input_tokens": result.get("input_tokens"), "output_tokens": result.get("output_tokens"), "model": result.get("model"), "latency_ms": result.get("latency_ms")}}
+    return {"conversation_id": conversation_id, "message": answer, "suggestions_saved": saved, "learned": learned_for_user(user.id) if saved else [], "validation": validation, "usage": {"input_tokens": result.get("input_tokens"), "output_tokens": result.get("output_tokens"), "model": result.get("model"), "latency_ms": result.get("latency_ms")}}
