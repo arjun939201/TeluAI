@@ -61,16 +61,7 @@ def _morphology_and_role(morphology: str | None) -> tuple[str | None, str | None
 
 def _to_token_evidence(item: LanguageEvidence) -> TokenEvidence:
     morphology, role = _morphology_and_role(item.morphology)
-    return TokenEvidence(
-        surface=item.token,
-        canonical=item.canonical,
-        melimi=item.melimi,
-        relation=item.relation,
-        morphology=morphology,
-        grammatical_role=role,
-        confidence=item.confidence,
-        authoritative=item.authoritative,
-    )
+    return TokenEvidence(item.token, item.canonical, item.melimi, item.relation, morphology, role, item.confidence, item.authoritative)
 
 
 def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
@@ -86,19 +77,7 @@ def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
     if intent != "LEXICAL_EQUIVALENT":
         regeneration_role = next((item.grammatical_role for item in evidence if item.authoritative and item.grammatical_role), None)
 
-    return LanguageRepresentation(
-        message=message,
-        tokens=brain.analysis.tokens,
-        evidence=evidence,
-        decision=brain.decision,
-        translation_intent=intent,
-        lexical_equivalent=lexical,
-        regeneration_role=regeneration_role,
-        confidence=brain.analysis.confidence,
-        should_transhift=brain.analysis.should_transhift,
-        should_invent=False,
-        boundaries=brain.analysis.boundaries,
-    )
+    return LanguageRepresentation(message, brain.analysis.tokens, evidence, brain.decision, intent, lexical, regeneration_role, brain.analysis.confidence, brain.analysis.should_transhift, False, brain.analysis.boundaries)
 
 
 def representation_context(message: str, vocabulary=None) -> dict[str, Any]:
