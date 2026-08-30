@@ -28,19 +28,47 @@ class LanguageRepresentation:
     tokens: tuple[str, ...]
     evidence: tuple[TokenEvidence, ...]
     decision: str
+    translation_intent: str
     confidence: str
     should_transhift: bool
     should_invent: bool
     boundaries: tuple[str, ...]
 
 
-def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
-    """Convert the current TEX-L brain result into a stable IR.
+def classify_translation_intent(message: str) -> str:
+    """Classify lexical-equivalence questions separately from translation.
 
-    Canonical matches and validated inflections are authoritative evidence;
-    family candidates remain explicitly non-authoritative. Unknown material is
-    retained as surface input but is never converted into invented knowledge.
+    This is deliberately narrow. A question asking what a term is called in
+    Melimi Telugu should return its lexical/canonical equivalent, rather than
+    blindly reproducing the source surface case ending. A sentence that asks
+    for translation remains grammatical-translation intent.
     """
+    text = " ".join(message.strip().split())
+    lexical_markers = (
+        "ఏమంటారు",
+        "ఏమంటాం",
+        "ఏమంటావు",
+        "అంటారు",
+        "పదం ఏమిటి",
+        "పదమేమిటి",
+        "ఏ పదం",
+    )
+    translation_markers = (
+        "అనువదించు",
+        "అనువాదం",
+        "తర్జుమా",
+        "translate",
+        "translation",
+    )
+    if any(marker in text for marker in translation_markers):
+        return "GRAMMATICAL_TRANSLATION"
+    if any(marker in text for marker in lexical_markers):
+        return "LEXICAL_EQUIVALENT"
+    return "UNSPECIFIED"
+
+
+def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
+    """Convert the current TEX-L brain result into a stable intermediate representation."""
     brain: BrainResult = analyze_language(message, vocabulary)
     evidence = tuple(
         TokenEvidence(
@@ -58,6 +86,7 @@ def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
         tokens=brain.analysis.tokens,
         evidence=evidence,
         decision=brain.decision,
+        translation_intent=classify_translation_intent(message),
         confidence=brain.analysis.confidence,
         should_transhift=brain.analysis.should_transhift,
         should_invent=False,
@@ -66,6 +95,10 @@ def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
 
 
 def representation_context(message: str, vocabulary=None) -> dict[str, Any]:
-    """Return a compact JSON-safe representation for downstream AI context."""
+    """Return a compact JSON-compatible representation for downstream AI context."""
     result = represent_language(message, vocabulary)
-    return asdict(result)
+    context = asdict(result)
+    context["tokens"] = list(result.tokens)
+    context["evidence"] = [asdict(item) for item in result.evidence]
+    context["boundaries"] = list(result.boundaries)
+    return context
