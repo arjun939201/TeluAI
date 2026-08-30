@@ -1,4 +1,4 @@
-"""TEX-L: owner-only Melimi research and approval service."""
+"""TEX-L: trusted Melimi research and approval service."""
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -59,7 +59,10 @@ def propose_from_text(text_value: str) -> list[dict]:
     return result
 
 
-def approve(item_id: int, owner_user_id: int, key: str | None = None, value: str | None = None) -> dict:
+def approve(item_id: int, reviewer_user_id: int, role: str = "owner", key: str | None = None, value: str | None = None) -> dict:
+    trusted_role = str(role or "").lower()
+    if trusted_role not in {"owner", "admin"}:
+        raise ValueError("Trusted reviewer permission required.")
     ensure_table()
     with engine.begin() as db:
         row = db.execute(text(f"SELECT * FROM {TABLE} WHERE id=:id AND status='pending'"), {"id": int(item_id)}).mappings().first()
@@ -67,14 +70,15 @@ def approve(item_id: int, owner_user_id: int, key: str | None = None, value: str
         raise ValueError("Pending TEX-L item not found.")
     final_key = str(key if key is not None else row["learning_key"]).strip()
     final_value = str(value if value is not None else row["learning_value"]).strip()
-    suggestion = LearningSuggestion(str(row["kind"]), final_key, final_value, str(row["evidence"] or "owner-approved-by-TEX-L"))
+    evidence = str(row["evidence"] or "")
+    suggestion = LearningSuggestion(str(row["kind"]), final_key, final_value, evidence)
     if not _valid_suggestion(suggestion):
         raise ValueError("Edited learning is invalid.")
-    if not remember_suggestion(owner_user_id, suggestion, role="owner"):
+    if not remember_suggestion(reviewer_user_id, suggestion, role=trusted_role):
         raise ValueError("Could not approve learning.")
     with engine.begin() as db:
         db.execute(text(f"UPDATE {TABLE} SET learning_key=:key,learning_value=:value,status='approved',updated_at=CURRENT_TIMESTAMP WHERE id=:id"), {"id": int(item_id), "key": final_key, "value": final_value})
-    return {"id": int(item_id), "kind": suggestion.kind, "key": final_key, "value": final_value, "status": "approved"}
+    return {"id": int(item_id), "kind": suggestion.kind, "key": final_key, "value": final_value, "status": "approved", "reviewer_role": trusted_role, "reviewer_user_id": int(reviewer_user_id)}
 
 
 def reject(item_id: int) -> bool:
@@ -84,9 +88,9 @@ def reject(item_id: int) -> bool:
     return result.rowcount > 0
 
 
-def approve_all(owner_user_id: int) -> int:
+def approve_all(reviewer_user_id: int, role: str = "owner") -> int:
     count = 0
     for item in list(pending(500)):
-        approve(item["id"], owner_user_id)
+        approve(item["id"], reviewer_user_id, role=role)
         count += 1
     return count
