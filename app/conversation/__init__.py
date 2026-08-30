@@ -1,10 +1,25 @@
-"""Conversation intelligence exports and backwards-compatible names."""
+"""Conversation intelligence public API and backwards-compatible names."""
 
 from app.conversation.state import ConversationState, Turn, from_history
 from app.conversation.understanding import infer_intent, build_context
 
-# Older tests/integrations used TurnState. Keep the public alias while the
-# implementation uses the clearer ConversationState name.
 TurnState = ConversationState
 
-__all__ = ["ConversationState", "TurnState", "Turn", "from_history", "infer_intent", "build_context"]
+# Compatibility for the production chat integration and older callers.
+def build_state(history):
+    return from_history(history)
+
+
+def understanding_context(user_text, state):
+    linguistic = {
+        "normalized": user_text,
+        "sentence_force": "unknown",
+        "question_type": "unknown",
+    }
+    return build_context(user_text, state, linguistic)
+
+
+__all__ = [
+    "ConversationState", "TurnState", "Turn", "from_history",
+    "infer_intent", "build_context", "build_state", "understanding_context",
+]
