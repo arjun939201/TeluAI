@@ -30,14 +30,11 @@ PROPERTIES = {
     "confidence_tracking": True,
 }
 
-# Retrieval-only endings. These never create database entries.
 INFLECTION_SUFFIXES = (
     "లతో", "లను", "లకు", "లలో", "లకి", "లుగా", "లు",
     "నుండి", "నుంచి", "యొక్క", "తో", "ను", "ని", "కు", "కి", "లో", "గా", "ఏ",
 )
 
-# Known Melimi formative prefixes from the current corpus. A match is only a
-# candidate until supported by an attested lexical family.
 KNOWN_PREFIXES = (
     "వి", "లా", "ఎల", "సరి", "సై", "తమూ", "కై", "ఆయి", "పొలో",
     "అక", "ఔ", "మఱీ", "ఉడు", "తరు",
@@ -65,7 +62,13 @@ def tokenize_telugu(text: str) -> tuple[str, ...]:
 def _strip_known_inflection(token: str) -> tuple[str, str]:
     for suffix in INFLECTION_SUFFIXES:
         if len(token) > len(suffix) + 1 and token.endswith(suffix):
-            return token[:-len(suffix)], suffix
+            stem = token[:-len(suffix)]
+            # Telugu -am nouns undergo a morphophonemic change before the
+            # singular accusative -ni: canonical -ం surfaces as -ాన్ని.
+            # Normalize only the retrieval stem; never create vocabulary.
+            if suffix == "ని" and stem.endswith("ాం"):
+                stem = stem[:-2] + "ం"
+            return stem, suffix
     return token, ""
 
 
@@ -109,10 +112,7 @@ def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str
         boundaries.append("inflection→canonical; never promote surface form to vocabulary")
     if families:
         boundaries.append("formation-family match is evidence, not unrestricted productivity")
-    if matched or inflected:
-        confidence = "high"
-    else:
-        confidence = "none"
+    confidence = "high" if matched or inflected else "none"
 
     return MelimiAnalysis(
         message=text,
