@@ -29,6 +29,10 @@ def owner_only(user=Depends(current_user)):
 
 
 def admin_or_owner(user=Depends(require_admin)):
+    """Allow trusted admins/owners in both FastAPI and direct guard tests."""
+    role = str(getattr(user, "role", "user") or "user").lower()
+    if role not in {"admin", "owner"}:
+        raise HTTPException(403, "Administrator permission required.")
     return user
 
 @router.get("/texl")
