@@ -5,7 +5,7 @@ from app.conversation.understanding import infer_intent, build_context
 
 TurnState = ConversationState
 
-# Compatibility for the production chat integration and older callers.
+
 def build_state(history):
     return from_history(history)
 
