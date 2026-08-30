@@ -30,8 +30,6 @@ PROPERTIES = {
     "confidence_tracking": True,
 }
 
-# Ordered longest-first so multi-character grammatical endings are handled
-# before shorter endings that may be substrings of them.
 INFLECTION_SUFFIXES = (
     "లతో", "లను", "లకు", "లలో", "లకి", "లుగా", "లు",
     "నుండి", "నుంచి", "యొక్క", "తో", "ను", "ని", "కు", "కి", "లో", "గా", "ఏ",
@@ -62,26 +60,17 @@ def tokenize_telugu(text: str) -> tuple[str, ...]:
 
 
 def _strip_known_inflection(token: str) -> tuple[str, str]:
-    """Resolve common Telugu surface inflections without inventing words.
+    """Resolve evidence-backed Telugu surface inflections conservatively."""
+    # Singular accusative of an -ం final noun: -ం → -ాన్ని.
+    # Keep the surface ending as grammatical evidence; never treat it as a
+    # standalone lexical entry. Example: ధన్యవాదం → ధన్యవాదాన్ని.
+    if token.endswith("న్ని") and len(token) > len("న్ని") + 1:
+        return token[:-len("న్ని")] + "ం", "న్ని"
 
-    In particular, canonical nouns ending in -ం can surface with -ాన్ని
-    before the accusative -ని, e.g. ధన్యవాదం → ధన్యవాదాన్ని.
-    """
     for suffix in INFLECTION_SUFFIXES:
         if len(token) <= len(suffix) + 1 or not token.endswith(suffix):
             continue
-
-        stem = token[:-len(suffix)]
-
-        # Morphophonemic normalization for singular accusative -ని.
-        # Surface:   ...ాన్ని
-        # Canonical:  ...ం
-        # Keep this strictly a retrieval normalization; never add the
-        # normalized form to the vocabulary.
-        if suffix == "ని" and stem.endswith("ాన్న"):
-            stem = stem[:-3] + "ం"
-
-        return stem, suffix
+        return token[:-len(suffix)], suffix
 
     return token, ""
 
