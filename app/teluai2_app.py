@@ -183,11 +183,10 @@ async def chat(payload: ChatRequest, user=Depends(current_user)):
     conversation_id, history = _get_history(user.id, payload.conversation_id, payload.history)
     settings_data = get_user_settings(user.id)
     response_length = settings_data.get("response_length", "normal")
-    memory_enabled = bool(settings_data.get("memory_enabled", True))
-    prompt = _build_prompt(payload.message, history, user.id, response_length) if memory_enabled else _build_prompt(payload.message, history, user.id, response_length)
+    prompt = _build_prompt(payload.message, history, user.id, response_length)
     try: result = await call_groq_detailed(prompt, history, payload.message)
     except Exception as exc: raise HTTPException(502, "AI service is temporarily unavailable.") from exc
-    answer = clean_response(str(result.get("answer", "")))
+    answer = clean_response(str(result.get("answer", "")), source_message=payload.message)
     if not answer: raise HTTPException(502, "AI service returned an empty response.")
     save_message(user.id, conversation_id, "user", payload.message); save_message(user.id, conversation_id, "assistant", answer)
     save_usage(user.id, result.get("model"), result.get("input_tokens"), result.get("output_tokens"))
