@@ -60,12 +60,17 @@ def tokenize_telugu(text: str) -> tuple[str, ...]:
 
 
 def _strip_known_inflection(token: str) -> tuple[str, str]:
-    """Resolve evidence-backed Telugu surface inflections conservatively."""
-    # Singular accusative of an -ం final noun: -ం → -ాన్ని.
-    # Keep the surface ending as grammatical evidence; never treat it as a
-    # standalone lexical entry. Example: ధన్యవాదం → ధన్యవాదాన్ని.
-    if token.endswith("న్ని") and len(token) > len("న్ని") + 1:
-        return token[:-len("న్ని")] + "ం", "న్ని"
+    """Resolve evidence-backed Telugu surface inflections conservatively.
+
+    Singular accusative of a canonical -ం noun surfaces as -ాన్ని.
+    For example: ధన్యవాదం → ధన్యవాదాన్ని.  The retrieval normalization
+    removes the complete surface ending ``ాన్ని`` and restores canonical ``ం``.
+    The surface form is never added to the vocabulary.
+    """
+    # This must run before the generic ``ని`` rule.  Stripping only ``ని``
+    # leaves ``...ాన్న`` and therefore cannot resolve -ాన్ని correctly.
+    if token.endswith("ాన్ని") and len(token) > len("ాన్ని") + 1:
+        return token[:-len("ాన్ని")] + "ం", "ాన్ని"
 
     for suffix in INFLECTION_SUFFIXES:
         if len(token) <= len(suffix) + 1 or not token.endswith(suffix):
