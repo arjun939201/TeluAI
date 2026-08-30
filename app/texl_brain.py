@@ -18,6 +18,7 @@ class LanguageEvidence:
     relation: str
     confidence: str
     authoritative: bool
+    morphology: str | None = None
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,25 @@ class BrainResult:
     analysis: MelimiAnalysis
     evidence: tuple[LanguageEvidence, ...]
     decision: str
+
+
+def _morphology_for(item: dict) -> str | None:
+    suffix = str(item.get("suffix", ""))
+    if suffix in {"ాన్ని", "ను", "ని"}:
+        return "accusative"
+    if suffix in {"ానికి", "కు", "కి"}:
+        return "dative"
+    if suffix in {"తో", "లతో"}:
+        return "instrumental_comitative"
+    if suffix in {"లో", "లలో"}:
+        return "locative"
+    if suffix in {"నుండి", "నుంచి"}:
+        return "ablative"
+    if suffix in {"లు"}:
+        return "plural"
+    if suffix:
+        return "inflected"
+    return None
 
 
 def analyze_language(message: str, vocabulary=None) -> BrainResult:
@@ -38,7 +58,7 @@ def analyze_language(message: str, vocabulary=None) -> BrainResult:
     for item in result.matched:
         evidence.append(LanguageEvidence(item["key"], item["key"], item.get("value"), "canonical", "high", True))
     for item in result.inflected_matches:
-        evidence.append(LanguageEvidence(item["surface"], item["canonical"], item.get("target"), "validated_inflection", "high", True))
+        evidence.append(LanguageEvidence(item["surface"], item["canonical"], item.get("target"), "validated_inflection", "high", True, _morphology_for(item)))
     for item in result.family_candidates:
         evidence.append(LanguageEvidence(item["word"], item["word"], item.get("target"), "family_candidate", "candidate", False))
     if result.should_transhift:
