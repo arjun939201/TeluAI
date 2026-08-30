@@ -1,4 +1,4 @@
-from app.texl_representation import represent_language, representation_context
+from app.texl_representation import classify_translation_intent, represent_language, representation_context
 
 
 VOCAB = [
@@ -39,3 +39,18 @@ def test_representation_context_is_json_safe():
     result = representation_context("ధన్యవాదాన్ని", VOCAB)
     assert result["tokens"] == ["ధన్యవాదాన్ని"]
     assert result["evidence"][0]["canonical"] == "ధన్యవాదం"
+    assert result["translation_intent"] == "UNSPECIFIED"
+
+
+def test_lexical_equivalence_question_does_not_inherit_case_ending():
+    message = "ధన్యవాదాన్ని మేలిమి తెలుగులో ఏమంటారు?"
+    assert classify_translation_intent(message) == "LEXICAL_EQUIVALENT"
+    result = represent_language(message, VOCAB)
+    assert result.translation_intent == "LEXICAL_EQUIVALENT"
+
+
+def test_sentence_translation_keeps_grammatical_role():
+    message = "ధన్యవాదాన్ని తెలియజేయు"
+    assert classify_translation_intent(message) == "UNSPECIFIED"
+    result = represent_language(message, VOCAB)
+    assert result.translation_intent == "UNSPECIFIED"
