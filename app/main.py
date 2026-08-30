@@ -1,10 +1,8 @@
-"""Compatibility entrypoint.
-
-TeluAI now exposes one product surface: Telugu conversation with personal
-language learning. Keep this module as a stable import target for deployments
-or older tooling that still imports app.main.
-"""
+"""Compatibility entrypoint and TEX-L route registration."""
 
 from app.teluai2_app import app
+from app.texl_routes import router as texl_router
+
+app.include_router(texl_router)
 
 __all__ = ["app"]
