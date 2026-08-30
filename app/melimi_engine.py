@@ -30,6 +30,8 @@ PROPERTIES = {
     "confidence_tracking": True,
 }
 
+# Ordered longest-first so multi-character grammatical endings are handled
+# before shorter endings that may be substrings of them.
 INFLECTION_SUFFIXES = (
     "లతో", "లను", "లకు", "లలో", "లకి", "లుగా", "లు",
     "నుండి", "నుంచి", "యొక్క", "తో", "ను", "ని", "కు", "కి", "లో", "గా", "ఏ",
@@ -60,15 +62,27 @@ def tokenize_telugu(text: str) -> tuple[str, ...]:
 
 
 def _strip_known_inflection(token: str) -> tuple[str, str]:
+    """Resolve common Telugu surface inflections without inventing words.
+
+    In particular, canonical nouns ending in -ం can surface with -ాన్ని
+    before the accusative -ని, e.g. ధన్యవాదం → ధన్యవాదాన్ని.
+    """
     for suffix in INFLECTION_SUFFIXES:
-        if len(token) > len(suffix) + 1 and token.endswith(suffix):
-            stem = token[:-len(suffix)]
-            # Telugu -am nouns undergo a morphophonemic change before the
-            # singular accusative -ni: canonical -ం surfaces as -ాన్ని.
-            # Normalize only the retrieval stem; never create vocabulary.
-            if suffix == "ని" and stem.endswith("ాం"):
-                stem = stem[:-2] + "ం"
-            return stem, suffix
+        if len(token) <= len(suffix) + 1 or not token.endswith(suffix):
+            continue
+
+        stem = token[:-len(suffix)]
+
+        # Morphophonemic normalization for singular accusative -ని.
+        # Surface:   ...ాన్ని
+        # Canonical:  ...ం
+        # Keep this strictly a retrieval normalization; never add the
+        # normalized form to the vocabulary.
+        if suffix == "ని" and stem.endswith("ాన్న"):
+            stem = stem[:-3] + "ం"
+
+        return stem, suffix
+
     return token, ""
 
 
@@ -92,10 +106,16 @@ def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str
             item = keys[token]
             matched.append({"key": token, "value": str(item.get("value", "")), "source": str(item.get("source", ""))})
             continue
+
         stem, suffix = _strip_known_inflection(token)
         if suffix and stem in keys:
             item = keys[stem]
-            inflected.append({"surface": token, "canonical": stem, "target": str(item.get("value", "")), "suffix": suffix})
+            inflected.append({
+                "surface": token,
+                "canonical": stem,
+                "target": str(item.get("value", "")),
+                "suffix": suffix,
+            })
 
     seen_family: set[tuple[str, str]] = set()
     for item in matched:
@@ -112,6 +132,7 @@ def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str
         boundaries.append("inflection→canonical; never promote surface form to vocabulary")
     if families:
         boundaries.append("formation-family match is evidence, not unrestricted productivity")
+
     confidence = "high" if matched or inflected else "none"
 
     return MelimiAnalysis(
