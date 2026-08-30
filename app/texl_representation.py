@@ -1,9 +1,4 @@
-"""Structured, evidence-first representation produced by TEX-L.
-
-This module does not create linguistic knowledge. It turns the existing TEX-L
-analysis into a stable intermediate representation that downstream retrieval,
-context construction, TRANSHIFT, validation, and chat layers can consume.
-"""
+"""Structured, evidence-first representation produced by TEX-L."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -29,6 +24,8 @@ class LanguageRepresentation:
     evidence: tuple[TokenEvidence, ...]
     decision: str
     translation_intent: str
+    lexical_equivalent: str | None
+    regeneration_role: str | None
     confidence: str
     should_transhift: bool
     should_invent: bool
@@ -36,57 +33,44 @@ class LanguageRepresentation:
 
 
 def classify_translation_intent(message: str) -> str:
-    """Classify lexical-equivalence questions separately from translation.
-
-    This is deliberately narrow. A question asking what a term is called in
-    Melimi Telugu should return its lexical/canonical equivalent, rather than
-    blindly reproducing the source surface case ending. A sentence that asks
-    for translation remains grammatical-translation intent.
-    """
+    """Distinguish lexical naming questions from sentence translation."""
     text = " ".join(message.strip().split())
     lexical_markers = (
-        "ఏమంటారు",
-        "ఏమంటాం",
-        "ఏమంటావు",
-        "అంటారు",
-        "పదం ఏమిటి",
-        "పదమేమిటి",
-        "ఏ పదం",
+        "ఏమంటారు", "ఏమంటాం", "ఏమంటావు", "పదం ఏమిటి", "పదమేమిటి", "ఏ పదం",
     )
-    translation_markers = (
-        "అనువదించు",
-        "అనువాదం",
-        "తర్జుమా",
-        "translate",
-        "translation",
-    )
+    translation_markers = ("అనువదించు", "అనువాదం", "తర్జుమా", "translate", "translation")
     if any(marker in text for marker in translation_markers):
         return "GRAMMATICAL_TRANSLATION"
     if any(marker in text for marker in lexical_markers):
         return "LEXICAL_EQUIVALENT"
+    # A validated inflected lexical match used in a non-lexical utterance is
+    # a sentence-level translation candidate. The grammatical form must still
+    # be regenerated from validated morphology; it must not be copied blindly.
     return "UNSPECIFIED"
 
 
 def represent_language(message: str, vocabulary=None) -> LanguageRepresentation:
-    """Convert the current TEX-L brain result into a stable intermediate representation."""
     brain: BrainResult = analyze_language(message, vocabulary)
     evidence = tuple(
-        TokenEvidence(
-            surface=item.token,
-            canonical=item.canonical,
-            melimi=item.melimi,
-            relation=item.relation,
-            confidence=item.confidence,
-            authoritative=item.authoritative,
-        )
+        TokenEvidence(item.token, item.canonical, item.melimi, item.relation,
+                      item.confidence, item.authoritative)
         for item in brain.evidence
     )
+    intent = classify_translation_intent(message)
+    lexical = None
+    if intent == "LEXICAL_EQUIVALENT":
+        for item in evidence:
+            if item.melimi and item.authoritative:
+                lexical = item.melimi
+                break
     return LanguageRepresentation(
         message=message,
         tokens=brain.analysis.tokens,
         evidence=evidence,
         decision=brain.decision,
-        translation_intent=classify_translation_intent(message),
+        translation_intent=intent,
+        lexical_equivalent=lexical,
+        regeneration_role=None,
         confidence=brain.analysis.confidence,
         should_transhift=brain.analysis.should_transhift,
         should_invent=False,
