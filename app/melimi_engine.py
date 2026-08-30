@@ -1,9 +1,8 @@
 """High-precision Melimi language analysis layer.
 
-Retrieval remains conservative: source-backed vocabulary is authoritative;
-inflection is resolved to canonical entries; apparent formations are evidence,
-not automatic productive rules. Generation belongs to the LLM under the
-Melimi language contract.
+Evidence-first lexical analysis: authoritative vocabulary is canonical; surface
+inflections are resolved back to canonical entries; formations are evidence,
+not unrestricted productive rules.
 """
 from __future__ import annotations
 
@@ -30,9 +29,17 @@ PROPERTIES = {
     "confidence_tracking": True,
 }
 
+# Generic suffixes are deliberately conservative. Morphophonemic endings for
+# canonical -ం nouns are handled first so a generic -కి/-లో/-ని rule cannot
+# destroy the canonical stem.
 INFLECTION_SUFFIXES = (
     "లతో", "లను", "లకు", "లలో", "లకి", "లుగా", "లు",
     "నుండి", "నుంచి", "యొక్క", "తో", "ను", "ని", "కు", "కి", "లో", "గా", "ఏ",
+)
+
+AM_NOUN_SURFACES = (
+    ("ానికి", "ం", "దాతివేటు"),
+    ("ాన్ని", "ం", "ఆక్యుసేటివ్"),
 )
 
 KNOWN_PREFIXES = (
@@ -60,13 +67,15 @@ def tokenize_telugu(text: str) -> tuple[str, ...]:
 
 
 def _strip_known_inflection(token: str) -> tuple[str, str]:
-    """Resolve evidence-backed Telugu surface inflections conservatively.
+    """Resolve only evidence-backed Telugu surface inflections.
 
-    Singular accusative of a canonical -ం noun surfaces as -ాన్ని.
-    Example: ధన్యవాదం → ధన్యవాదాన్ని.
+    For canonical -ం nouns, selected case surfaces restore the canonical -ం
+    before generic suffix stripping. The surface form is never added to the
+    vocabulary.
     """
-    if token.endswith("ాన్ని") and len(token) > len("ాన్ని") + 1:
-        return token[:-len("ాన్ని")] + "ం", "ాన్ని"
+    for surface, canonical_ending, _label in AM_NOUN_SURFACES:
+        if token.endswith(surface) and len(token) > len(surface) + 1:
+            return token[:-len(surface)] + canonical_ending, surface
 
     for suffix in INFLECTION_SUFFIXES:
         if len(token) <= len(suffix) + 1 or not token.endswith(suffix):
@@ -80,7 +89,7 @@ def _items(vocabulary: list[dict[str, str]] | tuple[dict[str, str], ...]):
     return [x for x in vocabulary if str(x.get("kind", "VOCABULARY")) == "VOCABULARY"]
 
 
-def analyze(message: str, vocabulary: list[dict[str, str]] = VOCABULARY) -> MelimiAnalysis:
+def analyze(message: str, vocabulary: list[dict[str, str]] | tuple[dict[str, str], ...] = VOCABULARY) -> MelimiAnalysis:
     """Perform evidence-first lexical, inflectional and family analysis."""
     text = str(message or "").strip()
     tokens = tokenize_telugu(text)
@@ -102,9 +111,6 @@ def analyze(message: str, vocabulary: list[dict[str, str]] = VOCABULARY) -> Meli
         stem, suffix = _strip_known_inflection(token)
         if suffix and stem in keys:
             item = keys[stem]
-            # Canonical lexical match and surface-form match are deliberately
-            # both exposed: callers can retrieve the authoritative mapping
-            # while retaining the grammatical evidence that triggered it.
             if stem not in matched_keys:
                 matched.append({"key": stem, "value": str(item.get("value", "")), "source": str(item.get("source", ""))})
                 matched_keys.add(stem)
