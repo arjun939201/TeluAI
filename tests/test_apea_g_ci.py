@@ -1,8 +1,8 @@
 from scripts.apea_g_ci import FailureEvidence, FailureKind, classify_failure, classify_repeat
 
 
-def evidence(logs, *, sha="abc", job="test"):
-    return FailureEvidence(123, sha, job, ("pytest",), logs)
+def evidence(logs, *, sha="abc", job="test", conclusion=None):
+    return FailureEvidence(123, sha, job, ("pytest",), logs, conclusion)
 
 
 def test_classifies_provider_failure():
@@ -21,13 +21,19 @@ def test_classifies_infrastructure_failure():
     assert classify_failure(evidence("runner lost: job timed out")) is FailureKind.INFRASTRUCTURE
 
 
-def test_detects_repeated_same_sha_with_changed_evidence_as_flaky():
-    previous = evidence("pytest FAILED assertion A")
-    current = evidence("pytest FAILED assertion B")
+def test_detects_same_sha_with_conflicting_outcomes_as_flaky():
+    previous = evidence("pytest assertion A", conclusion="failure")
+    current = evidence("pytest assertion A", conclusion="success")
     assert classify_repeat(previous, current) is FailureKind.FLAKY
 
 
+def test_same_sha_repeated_failure_is_not_flaky():
+    previous = evidence("pytest assertion A", conclusion="failure")
+    current = evidence("pytest assertion A", conclusion="failure")
+    assert classify_repeat(previous, current) is None
+
+
 def test_does_not_call_different_sha_flaky():
-    previous = evidence("pytest FAILED assertion A", sha="old")
-    current = evidence("pytest FAILED assertion B", sha="new")
+    previous = evidence("pytest assertion A", sha="old", conclusion="failure")
+    current = evidence("pytest assertion A", sha="new", conclusion="success")
     assert classify_repeat(previous, current) is None
