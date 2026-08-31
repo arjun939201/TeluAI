@@ -82,22 +82,22 @@ def _topic_relation(text: str, state: ConversationState, intent: str) -> str:
         return "continuation"
     normalized = normalize_roman_telugu(text)
     current = normalized.casefold()
-    topic = state.topic.casefold()
+    topic = normalize_roman_telugu(state.topic).casefold()
     if current == topic:
         return "continuation"
-    # Strong explicit discourse markers indicate a possible shift.
     if re.search(r"(?:^|\s)(ఇప్పుడు|ఇక|మరొకటి|వేరే|another|different|new topic)(?:\s|$)", current):
         return "possible_topic_shift"
-    # Lightweight domain cues are only used to flag divergence, never to erase context.
+    # Domain comparison is deliberately coarse and only flags a possible shift.
     domains = {
         "weather": ("వాతావరణ", "weather", "వర్ష", "ఎండ", "చలి"),
-        "language": ("తెలుగు", "మేలిమి", "పదం", "పదాలు", "భాష", "అర్థం", "నెనరు", "language", "word"),
+        "language": ("తెలుగు", "మేలిమి", "పదం", "పదాలు", "భాష", "అర్థం", "నెనరు", "ధన్యవాద", "language", "word"),
         "code": ("కోడ్", "కోడ్ింగ్", "github", "python", "program", "code"),
         "food": ("తిన", "భోజనం", "ఆహారం", "food", "రెస్టారెంట్"),
     }
-    def domain(text_value: str) -> str:
+    def domain(value: str) -> str:
+        value = value.casefold()
         for name, cues in domains.items():
-            if any(cue.casefold() in text_value for cue in cues):
+            if any(cue.casefold() in value for cue in cues):
                 return name
         return ""
     current_domain = domain(current)
