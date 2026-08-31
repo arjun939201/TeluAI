@@ -56,4 +56,4 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           APEA_MODE: ${{ github.event.inputs.mode || 'continuous' }}
-        run: python scripts/apea_g_runner.py
+        run: python -m scripts.apea_g_runner
