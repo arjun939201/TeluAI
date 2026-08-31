@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List
+import re
 
 
 @dataclass
@@ -35,6 +36,18 @@ class ConversationState:
                 return turn.content
         return ""
 
+    @property
+    def last_substantive_user(self) -> str:
+        """Return the latest user turn that can establish a topic anchor."""
+        short = {"hi", "hello", "hey", "haa", "haaa", "sare", "ok", "okay", "avunu", "cheppu", "inka", "enti", "emiti", "emle", "emledu", "emledhu", "ఏంటి", "ఏమిటి", "ఏం", "ఏమి", "సరే", "అవును", "చెప్పు", "ఇంకా", "ఏంలేదు"}
+        for turn in reversed(self.recent):
+            if turn.role != "user":
+                continue
+            text = re.sub(r"\s+", " ", turn.content.strip())
+            if len(text) > 12 and text.casefold() not in short:
+                return text
+        return ""
+
     def context_text(self) -> str:
         return "\n".join([
             "CONVERSATION STATE:",
@@ -52,6 +65,8 @@ def from_history(history: List[Dict]) -> ConversationState:
             continue
         if item.get("role") in {"user", "assistant"} and isinstance(item.get("content"), str):
             state.add(item["role"], item["content"].strip())
+
+    state.topic = state.last_substantive_user
 
     assistant = state.last_assistant
     if assistant and (
