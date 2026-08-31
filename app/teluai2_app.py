@@ -63,7 +63,7 @@ TELUGU_CHAT_SYSTEM = """నువ్వు TeluAI — తెలుగు భా�
 - వినియోగదారు స్పష్టంగా వేరే భాష లేదా ప్రామాణిక తెలుగు కోరితే ఆ భాషలోనే సమాధానం ఇవ్వు.
 - యజమాని లేదా ఆమోదిత నిర్వాహకుల అధికారికంగా నేర్చుకున్న భాషా జ్ఞానం ప్రాధాన్యమైన ఆధారం. దాన్ని యాదృచ్ఛిక మోడల్ ఊహతో మార్చవద్దు.
 - ఆధారం లేని మేలిమి పదం, రూపం, వ్యాకరణ నియమం లేదా పదకుటుంబాన్ని కల్పించవద్దు.
-- తెలిసిన పదానికి విభక్తి/బహువచన/వ్యాకరణ రూపం అవసరమైతే, మూల పదం అర్థం మరియు వ్యాకరణ పాత్రను కాపాడుతూ సరైన రూపాన్ని ఎంచుకో.
+- 알려진 ಪದానికి విభక్తి/బహువచన/వ్యాకరణ రూపం అవసరమైతే, మూల పదం అర్థం మరియు వ్యాకరణ పాత్రను కాపాడుతూ సరైన రూపాన్ని ఎంచుకో.
 - ఒక పదానికి మేలిమి సమానపదం అడిగితే, ఆ పదాన్ని ప్రశ్నలో కనిపించిన విభక్తి రూపంలోనే మార్చి ఇవ్వవద్దు; ముందుగా దాని నిఘంటు/కానానికల్ సమానపదాన్ని ఇవ్వు.
 - ఒక పూర్తి వాక్యాన్ని అనువదించేటప్పుడు మాత్రం మూల వాక్యంలోని వ్యాకరణ పాత్రలను కాపాడి లక్ష్య పదానికి తగిన రూపాన్ని పునర్నిర్మించు.
 - సంభాషణలో ముందరి మాటలతో సంబంధమున్న చిన్న ప్రశ్నలు, సర్వనామాలు, సూచకపదాలు, లేదా కొనసాగింపులను వాటి సందర్భంతో అర్థం చేసుకో.
@@ -93,15 +93,11 @@ def _build_prompt(message: str, history: list[dict], user_id: int, response_leng
     language_context = representation_context(message, vocabulary)
     generation_contract = build_generation_contract(representation)
     state = build_state(history)
-    conversation_context = understanding_context(
-        message,
-        state,
-        {
-            "normalized": representation.message,
-            "sentence_force": representation.decision,
-            "question_type": representation.translation_intent,
-        },
-    )
+    conversation_context = understanding_context(message, state, {
+        "normalized": representation.message,
+        "sentence_force": representation.decision,
+        "question_type": representation.translation_intent,
+    })
     decision = choose_output_variety(message)
     length = {"short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.", "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు."}.get(response_length, "సహజమైన సాధారణ పరిమాణంలో సమాధానం ఇవ్వు.")
     output_instruction = {
@@ -118,9 +114,7 @@ def _build_prompt(message: str, history: list[dict], user_id: int, response_leng
     )
     response_guidance = build_response_context(plan, {"semantic_facts": [str(x) for x in state.semantic_facts]})
     history_text = "\n".join(f"{x['role']}: {str(x['content'])}" for x in history_context["turns"] if x.get("role") in {"user", "assistant"} and x.get("content"))
-    parts = [TELUGU_CHAT_SYSTEM, output_instruction, length]
-    parts.append(conversation_context)
-    parts.append(response_guidance)
+    parts = [TELUGU_CHAT_SYSTEM, output_instruction, length, conversation_context, response_guidance]
     parts.append("TEX-L భాషా విశ్లేషణ (అధికారిక ఆధారం ఉన్నప్పుడే దాన్ని అనుసరించు; తెలియనిది ఊహించవద్దు):\n" + str(language_context))
     parts.append(generation_contract)
     if memory: parts.append(memory)
@@ -165,50 +159,72 @@ def register(payload: dict, response: Response):
 
 @app.post("/auth/login")
 def login(payload: dict, response: Response):
-    try: user = authenticate(str(payload.get("username", "")).strip(), str(payload.get("password", "")))
+    identifier = str(payload.get("identifier", payload.get("username", ""))).strip()
+    try: user = authenticate(identifier, str(payload.get("password", "")))
     except ValueError as exc: raise HTTPException(401, str(exc)) from exc
     _set_cookie(response, create_session(user.id, settings.session_days)); audit_log(user.id, "auth.login", "user", str(user.id))
-    return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email, "role": user.role}
+    return {"authenticated": True, "id": user.id, "username": user.username, "role": user.role}
 
 @app.post("/auth/logout")
-def logout(response: Response, token: str | None = Cookie(default=None, alias=COOKIE_NAME)):
-    if token: delete_session(token)
+def logout(response: Response, session: str | None = Cookie(default=None, alias=COOKIE_NAME)):
+    if session: delete_session(session)
     response.delete_cookie(COOKIE_NAME, path="/")
-    return {"authenticated": False}
+    return {"ok": True}
 
 @app.get("/conversations")
-def conversations(user=Depends(current_user)):
-    return {"conversations": get_conversations(user.id)}
+def conversations(user=Depends(current_user)): return {"conversations": get_conversations(user.id)}
+
+@app.get("/conversations/{conversation_id}")
+def conversation(conversation_id: str, user=Depends(current_user)):
+    try: return {"conversation_id": conversation_id, "messages": get_history(user.id, conversation_id, limit=100)}
+    except ValueError as exc: raise HTTPException(404, str(exc)) from exc
 
 @app.delete("/conversations/{conversation_id}")
-def conversation_delete(conversation_id: str, user=Depends(current_user)):
-    try: delete_conversation(user.id, conversation_id)
-    except ValueError as exc: raise HTTPException(404, str(exc)) from exc
-    return {"deleted": True}
+def remove_conversation(conversation_id: str, user=Depends(current_user)):
+    if not delete_conversation(user.id, conversation_id): raise HTTPException(404, "Conversation not found.")
+    return {"ok": True}
 
-@app.get("/settings")
-def settings_get(user=Depends(current_user)):
-    return get_user_settings(user.id)
+@app.get("/me/settings")
+def settings_get(user=Depends(current_user)): return get_user_settings(user.id)
 
-@app.put("/settings")
+@app.put("/me/settings")
 def settings_put(payload: SettingsRequest, user=Depends(current_user)):
-    update_user_settings(user.id, payload.response_length, payload.memory_enabled)
-    return get_user_settings(user.id)
+    response_length = payload.response_length if payload.response_length in {"short", "normal", "long"} else "normal"
+    return update_user_settings(user.id, response_length, payload.memory_enabled)
+
+@app.get("/me/memory")
+def memory(user=Depends(current_user)): return {"memory": recall_user_memory(user.id)}
+
+@app.post("/auth/credentials")
+@app.put("/me/credentials")
+def credentials(payload: CredentialsRequest, user=Depends(current_user)):
+    try: updated = update_credentials(user.id, payload.current_password, payload.username, payload.new_password)
+    except ValueError as exc: raise HTTPException(400, str(exc)) from exc
+    return {"ok": True, "id": updated.id, "username": updated.username, "role": updated.role}
 
 @app.post("/chat")
-def chat(payload: ChatRequest, response: Response, user=Depends(current_user)):
+async def chat(payload: ChatRequest, user=Depends(current_user)):
     conversation_id, history = _get_history(user.id, payload.conversation_id, payload.history)
-    user_settings = get_user_settings(user.id)
-    prompt = _build_prompt(payload.message, history, user.id, user_settings.get("response_length", "normal"))
+    settings_data = get_user_settings(user.id)
+    response_length = settings_data.get("response_length", "normal")
+    vocabulary = learned_global(limit=80)
+    representation = represent_language(payload.message, vocabulary)
+    prompt = _build_prompt(payload.message, history, user.id, response_length)
     try:
-        result = call_groq_detailed(prompt)
+        result = await call_groq_detailed(prompt, history, payload.message)
     except Exception as exc:
-        raise HTTPException(502, "Language model request failed.") from exc
-    answer = clean_response(result.get("content", ""))
-    representation = represent_language(payload.message, learned_global(limit=80))
-    answer = validate_generated_response(answer, representation)
+        raise HTTPException(502, "AI service is temporarily unavailable.") from exc
+    answer = clean_response(str(result.get("answer", "")), source_message=payload.message)
+    if not answer: raise HTTPException(502, "AI service returned an empty response.")
+    validation = validate_generated_response(answer, representation)
+    if not validation["valid"] and validation["repairable"]:
+        answer = clean_response(answer, source_message=payload.message)
+        validation = validate_generated_response(answer, representation)
     save_message(user.id, conversation_id, "user", payload.message)
     save_message(user.id, conversation_id, "assistant", answer)
-    save_usage(user.id, conversation_id, result.get("usage", {}))
-    for suggestion in extract_suggestions(answer): remember_suggestion(user.id, suggestion)
-    return {"conversation_id": conversation_id, "answer": answer}
+    save_usage(user.id, result.get("model"), result.get("input_tokens"), result.get("output_tokens"))
+    suggestions = extract_suggestions(payload.message)
+    saved = 0
+    for suggestion in suggestions:
+        if remember_suggestion(user.id, suggestion, role=getattr(user, "role", "user")): saved += 1
+    return {"conversation_id": conversation_id, "message": answer, "suggestions_saved": saved, "learned": learned_for_user(user.id) if saved else [], "validation": validation, "usage": {"input_tokens": result.get("input_tokens"), "output_tokens": result.get("output_tokens"), "model": result.get("model"), "latency_ms": result.get("latency_ms")}}
