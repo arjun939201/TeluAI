@@ -24,7 +24,8 @@ def api(path,method="GET",body=None):
   raw=r.read().decode("utf-8",errors="replace"); return json.loads(raw) if raw else {}
 
 def logs(job_id):
- t=os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN"); q=urllib.request.Request(f"https://api.github.com/repos/{REPO}/actions/jobs/{job_id}/logs",headers={"Authorization":f"Bearer {t}","Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"})
+ t=os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+ q=urllib.request.Request(f"https://api.github.com/repos/{REPO}/actions/jobs/{job_id}/logs",headers={"Authorization":f"Bearer {t}","Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"})
  with urllib.request.urlopen(q,timeout=30) as r:
   s=r.read().decode("utf-8",errors="replace"); return s if len(s)<=MAX_LOG_CHARS else "[...log truncated...]\n"+s[-MAX_LOG_CHARS:]
 
@@ -41,6 +42,9 @@ def ci_context(p):
    out["failed_jobs"].append(e)
  except Exception as exc: out["evidence_error"]=str(exc)
  return out
+
+# Backward-compatible public names used by APEA-G regression tests and tooling.
+ci_failure_context=ci_context
 
 def load(path,default):
  if not path.exists(): return json.loads(json.dumps(default))
@@ -70,13 +74,14 @@ def provider(prompt):
  with urllib.request.urlopen(q,timeout=90) as r:return json.loads(r.read().decode())["choices"][0]["message"]["content"]
 
 def parse(t):
- v=t.strip();
+ v=t.strip()
  if v.startswith("```"): v=v.strip("`"); v=v[4:].lstrip() if v.startswith("json") else v
  a,b=v.find("{"),v.rfind("}")
  if a<0 or b<=a: raise ValueError("provider did not return JSON")
- x=json.loads(v[a:b+1]);
+ x=json.loads(v[a:b+1])
  if not isinstance(x,dict): raise ValueError("provider response was not an object")
  return x
+parse_json=parse
 
 def apply_patch(p):
  if not p or len(p)>MAX_OUTPUT: raise ValueError("missing or oversized patch")
@@ -99,7 +104,7 @@ def ensure_pr(branch):
 def merge_pr(branch):
  owner=REPO.split("/")[0]; prs=api(f"pulls?head={owner}:{branch}&state=open&per_page=10")
  if not prs:return
- pr=prs[0]; result=api(f"pulls/{pr['number']}/merge","PUT",{"merge_method":"squash"})
+ result=api(f"pulls/{prs[0]['number']}/merge","PUT",{"merge_method":"squash"})
  if not result.get("merged"): raise RuntimeError(f"PR merge rejected: {result}")
 
 def main():
@@ -108,14 +113,19 @@ def main():
  if conclusion not in {"success","failure"}: return 0
  state=load(STATE_PATH,{"schema_version":3,"capability":None,"plan":None,"current_step":0,"step_status":"idle","repair_attempts":0,"history":[]})
  snap={"status":sh("git","status","--short","--branch"),"recent_commits":sh("git","log","-8","--oneline"),"constitution":(ROOT/"AGENTS.md").read_text()[:10000],"architecture":(ROOT/"ARCHITECTURE.md").read_text()[:8000]}
- if conclusion=="success" and branch.startswith("apea-g/") and state.get("step_status")=="complete" and state.get("plan") and int(state.get("current_step",0))>=len(state["plan"]):
-  merge_pr(branch); return 0
+ if conclusion=="success" and branch.startswith("apea-g/") and state.get("step_status")=="complete" and state.get("plan") and int(state.get("current_step",0))>=len(state["plan"]): merge_pr(branch); return 0
  if conclusion=="success" and branch=="main":
   answer=parse(provider(json.dumps({"request":"Create the complete plan for the highest-priority unfinished roadmap capability and provide the first step patch.","roadmap_capability":next_capability(),"repository":snap,"ci":ci})))
   plan=answer.get("plan")
   if not isinstance(plan,list) or not plan or len(plan)>MAX_STEPS: raise ValueError("invalid bounded plan")
   state={"schema_version":3,"capability":answer.get("capability") or next_capability(),"plan":plan,"current_step":0,"step_status":"in_progress","repair_attempts":0,"history":[{"action":"plan-created","steps":len(plan)}]}
   branch=f"apea-g/plan-{ci.get('run_id') or os.getenv('GITHUB_RUN_ID','current')}"; sh("git","checkout","-B",branch); patch=answer.get("patch")
+ elif conclusion=="failure" and not state.get("plan") and branch=="main":
+  answer=parse(provider(json.dumps({"request":"A CI failure occurred before an engineering plan was persisted. Diagnose it from the supplied evidence, create a complete bounded plan for the relevant unfinished capability, and provide the first repair patch.","roadmap_capability":next_capability(),"repository":snap,"ci":ci})))
+  plan=answer.get("plan")
+  if not isinstance(plan,list) or not plan or len(plan)>MAX_STEPS: raise ValueError("invalid bounded recovery plan")
+  state={"schema_version":3,"capability":answer.get("capability") or next_capability(),"plan":plan,"current_step":0,"step_status":"in_progress","repair_attempts":1,"history":[{"action":"recovery-plan-created","steps":len(plan)}]}
+  branch=f"apea-g/recovery-{ci.get('run_id') or os.getenv('GITHUB_RUN_ID','current')}"; sh("git","checkout","-B",branch); patch=answer.get("patch")
  elif conclusion=="success":
   plan=state.get("plan") or []; idx=int(state.get("current_step",0))
   if idx>=len(plan): state["step_status"]="complete"; complete_capability(state.get("capability")); save_state(state); commit_push(branch,"chore: APEA-G finalize completed plan"); return 0
@@ -123,10 +133,10 @@ def main():
   if state["current_step"]>=len(plan): state["step_status"]="complete"; complete_capability(state.get("capability")); save_state(state); commit_push(branch,"chore: APEA-G finalize completed plan"); ensure_pr(branch); return 0
   patch=parse(provider(json.dumps({"request":"Execute exactly the next plan step; do not redesign the plan. Return its minimal unified diff.","plan":plan,"current_step":plan[state["current_step"]],"repository":snap,"ci":ci}))).get("patch")
  else:
-  if not state.get("plan"): raise RuntimeError("RED received without persisted plan; fail-closed")
+  if not state.get("plan"): raise RuntimeError("RED recovery failed to create a plan; fail-closed")
   if int(state.get("repair_attempts",0))>=MAX_REPAIRS: raise RuntimeError("repair budget exhausted; fail-closed")
   state["repair_attempts"]=int(state.get("repair_attempts",0))+1; idx=int(state.get("current_step",0)); plan=state["plan"]
-  patch=parse(provider(json.dumps({"request":"Repair the current plan step using actual CI evidence. Do not advance until GREEN. Return only a minimal repair patch.","plan":plan,"current_step":plan[idx] if idx<len(plan) else None,"repository":snap,"ci":ci,"repair_attempt":state["repair_attempts"]}))).get("patch")
+  patch=parse(provider(json.dumps({"request":"Repair the current plan step using actual CI evidence. Do not advance until GREEN. Return only a minimal unified diff.","plan":plan,"current_step":plan[idx] if idx<len(plan) else None,"repository":snap,"ci":ci,"repair_attempt":state["repair_attempts"]}))).get("patch")
  if not patch: raise RuntimeError("no executable patch returned; fail-closed")
  apply_patch(str(patch)); state["history"].append({"action":"patch-validated","step":state.get("current_step"),"repair_attempt":state.get("repair_attempts")}); save_state(state); validate(); commit_push(branch,"feat: APEA-G execute engineering plan step"); ensure_pr(branch); return 0
 
