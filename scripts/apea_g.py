@@ -1,11 +1,14 @@
 """Bounded, CI-gated autonomous engineering controller for TeluAI."""
 from __future__ import annotations
-import json, os, subprocess, sys, urllib.error, urllib.request
+import json, os, subprocess, sys, time, urllib.error, urllib.request
 from pathlib import Path
 from typing import Any
 ROOT=Path(__file__).resolve().parents[1]; REPO=os.getenv("GITHUB_REPOSITORY","arjun939201/TeluAI")
 GROQ_URL=os.getenv("GROQ_URL","https://api.groq.com/openai/v1/chat/completions"); GROQ_MODEL=os.getenv("GROQ_MODEL","openai/gpt-oss-120b")
 STATE_PATH=ROOT/".apea/state.json"; ROADMAP_PATH=ROOT/".apea/roadmap.json"; MAX_OUTPUT=12000; MAX_LOG_CHARS=12000; MAX_STEPS=12; MAX_REPAIRS=4
+
+class ProviderBlocked(RuntimeError):
+    """Provider is temporarily unavailable; preserve state and retry later."""
 
 def sh(*a:str,check=False):
  r=subprocess.run(a,cwd=ROOT,text=True,capture_output=True); out=(r.stdout+r.stderr).strip()
@@ -25,6 +28,7 @@ def api(path,method="GET",body=None):
 
 def logs(job_id):
  t=os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+ if not t: raise RuntimeError("GITHUB_TOKEN is required")
  q=urllib.request.Request(f"https://api.github.com/repos/{REPO}/actions/jobs/{job_id}/logs",headers={"Authorization":f"Bearer {t}","Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"})
  with urllib.request.urlopen(q,timeout=30) as r:
   s=r.read().decode("utf-8",errors="replace"); return s if len(s)<=MAX_LOG_CHARS else "[...log truncated...]\n"+s[-MAX_LOG_CHARS:]
@@ -70,7 +74,7 @@ def provider(prompt):
  for name in ("GROQ_API_KEY","GROQ_TOKEN"):
   key=os.getenv(name)
   if key and key not in keys: keys.append(key)
- if not keys: raise RuntimeError("GROQ_API_KEY/GROQ_TOKEN is not configured; fail-closed")
+ if not keys: raise ProviderBlocked("GROQ_API_KEY/GROQ_TOKEN is not configured")
  models=[]
  for model in (GROQ_MODEL,"llama-3.3-70b-versatile"):
   if model and model not in models: models.append(model)
@@ -84,9 +88,12 @@ def provider(prompt):
    except urllib.error.HTTPError as exc:
     detail=exc.read().decode("utf-8",errors="replace")[:1000]
     errors.append(f"model={model} status={exc.code} body={detail}")
-    continue
- if errors: raise RuntimeError("Groq provider attempts failed: " + " | ".join(errors))
- raise RuntimeError("Groq provider failed; fail-closed")
+    if exc.code in {401,403,408,409,429,500,502,503,504}: continue
+    break
+   except (urllib.error.URLError, TimeoutError) as exc:
+    errors.append(f"model={model} network={exc}"); continue
+ if errors: raise ProviderBlocked("Groq provider temporarily unavailable: " + " | ".join(errors))
+ raise ProviderBlocked("Groq provider unavailable")
 
 def parse(t):
  v=t.strip()
@@ -122,38 +129,50 @@ def merge_pr(branch):
  result=api(f"pulls/{prs[0]['number']}/merge","PUT",{"merge_method":"squash"})
  if not result.get("merged"): raise RuntimeError(f"PR merge rejected: {result}")
 
+def mark_provider_blocked(state,error):
+ state["schema_version"]=3; state["step_status"]="provider_blocked"; state["provider_blocked"]={"since":int(time.time()),"error":error,"retryable":True}; state.setdefault("history",[]).append({"action":"provider-blocked","error":error}); state["history"]=state["history"][-50:]; save_state(state)
+
 def main():
- p=event(); ci=ci_context(p); conclusion=ci.get("conclusion"); branch=(ci.get("head_branch") or "").strip()
- if branch and branch!="main" and not branch.startswith("apea-g/"): return 0
- if conclusion not in {"success","failure"}: return 0
+ p=event(); ci=ci_context(p); scheduled=p.get("schedule") is not None; conclusion=ci.get("conclusion"); branch=(ci.get("head_branch") or "main").strip()
+ if not scheduled and branch and branch!="main" and not branch.startswith("apea-g/"): return 0
+ if not scheduled and conclusion not in {"success","failure"}: return 0
  state=load(STATE_PATH,{"schema_version":3,"capability":None,"plan":None,"current_step":0,"step_status":"idle","repair_attempts":0,"history":[]})
+ state.setdefault("history",[]); state["schema_version"]=3
  snap={"status":sh("git","status","--short","--branch"),"recent_commits":sh("git","log","-8","--oneline"),"constitution":(ROOT/"AGENTS.md").read_text()[:10000],"architecture":(ROOT/"ARCHITECTURE.md").read_text()[:8000]}
+ if scheduled:
+  if state.get("step_status")=="provider_blocked" or state.get("plan"):
+   conclusion="success"; branch="main"
+  else:
+   return 0
  if conclusion=="success" and branch.startswith("apea-g/") and state.get("step_status")=="complete" and state.get("plan") and int(state.get("current_step",0))>=len(state["plan"]): merge_pr(branch); return 0
- if conclusion=="success" and branch=="main":
-  answer=parse(provider(json.dumps({"request":"Create the complete plan for the highest-priority unfinished roadmap capability and provide the first step patch.","roadmap_capability":next_capability(),"repository":snap,"ci":ci})))
-  plan=answer.get("plan")
-  if not isinstance(plan,list) or not plan or len(plan)>MAX_STEPS: raise ValueError("invalid bounded plan")
-  state={"schema_version":3,"capability":answer.get("capability") or next_capability(),"plan":plan,"current_step":0,"step_status":"in_progress","repair_attempts":0,"history":[{"action":"plan-created","steps":len(plan)}]}
-  branch=f"apea-g/plan-{ci.get('run_id') or os.getenv('GITHUB_RUN_ID','current')}"; sh("git","checkout","-B",branch); patch=answer.get("patch")
- elif conclusion=="failure" and not state.get("plan") and branch=="main":
-  answer=parse(provider(json.dumps({"request":"A CI failure occurred before an engineering plan was persisted. Diagnose it from the supplied evidence, create a complete bounded plan for the relevant unfinished capability, and provide the first repair patch.","roadmap_capability":next_capability(),"repository":snap,"ci":ci})))
-  plan=answer.get("plan")
-  if not isinstance(plan,list) or not plan or len(plan)>MAX_STEPS: raise ValueError("invalid bounded recovery plan")
-  state={"schema_version":3,"capability":answer.get("capability") or next_capability(),"plan":plan,"current_step":0,"step_status":"in_progress","repair_attempts":1,"history":[{"action":"recovery-plan-created","steps":len(plan)}]}
-  branch=f"apea-g/recovery-{ci.get('run_id') or os.getenv('GITHUB_RUN_ID','current')}"; sh("git","checkout","-B",branch); patch=answer.get("patch")
- elif conclusion=="success":
-  plan=state.get("plan") or []; idx=int(state.get("current_step",0))
-  if idx>=len(plan): state["step_status"]="complete"; complete_capability(state.get("capability")); save_state(state); commit_push(branch,"chore: APEA-G finalize completed plan"); return 0
-  state["history"].append({"action":"step-green","step":plan[idx].get("id")}); state["current_step"]=idx+1; state["repair_attempts"]=0
-  if state["current_step"]>=len(plan): state["step_status"]="complete"; complete_capability(state.get("capability")); save_state(state); commit_push(branch,"chore: APEA-G finalize completed plan"); ensure_pr(branch); return 0
-  patch=parse(provider(json.dumps({"request":"Execute exactly the next plan step; do not redesign the plan. Return its minimal unified diff.","plan":plan,"current_step":plan[state["current_step"]],"repository":snap,"ci":ci}))).get("patch")
- else:
-  if not state.get("plan"): raise RuntimeError("RED recovery failed to create a plan; fail-closed")
-  if int(state.get("repair_attempts",0))>=MAX_REPAIRS: raise RuntimeError("repair budget exhausted; fail-closed")
-  state["repair_attempts"]=int(state.get("repair_attempts",0))+1; idx=int(state.get("current_step",0)); plan=state["plan"]
-  patch=parse(provider(json.dumps({"request":"Repair the current plan step using actual CI evidence. Do not advance until GREEN. Return only a minimal unified diff.","plan":plan,"current_step":plan[idx] if idx<len(plan) else None,"repository":snap,"ci":ci,"repair_attempt":state["repair_attempts"]}))).get("patch")
- if not patch: raise RuntimeError("no executable patch returned; fail-closed")
- apply_patch(str(patch)); state["history"].append({"action":"patch-validated","step":state.get("current_step"),"repair_attempt":state.get("repair_attempts")}); save_state(state); validate(); commit_push(branch,"feat: APEA-G execute engineering plan step"); ensure_pr(branch); return 0
+ try:
+  if conclusion=="success" and branch=="main":
+   answer=parse(provider(json.dumps({"request":"Create the complete plan for the highest-priority unfinished roadmap capability and provide the first step patch.","roadmap_capability":next_capability(),"repository":snap,"ci":ci})))
+   plan=answer.get("plan")
+   if not isinstance(plan,list) or not plan or len(plan)>MAX_STEPS: raise ValueError("invalid bounded plan")
+   state={"schema_version":3,"capability":answer.get("capability") or next_capability(),"plan":plan,"current_step":0,"step_status":"in_progress","repair_attempts":0,"provider_blocked":None,"history":[{"action":"plan-created","steps":len(plan)}]}
+   branch=f"apea-g/plan-{ci.get('run_id') or os.getenv('GITHUB_RUN_ID','current')}"; sh("git","checkout","-B",branch); patch=answer.get("patch")
+  elif conclusion=="failure" and not state.get("plan") and branch=="main":
+   answer=parse(provider(json.dumps({"request":"A CI failure occurred before an engineering plan was persisted. Diagnose it from the supplied evidence, create a complete bounded plan for the relevant unfinished capability, and provide the first repair patch.","roadmap_capability":next_capability(),"repository":snap,"ci":ci})))
+   plan=answer.get("plan")
+   if not isinstance(plan,list) or not plan or len(plan)>MAX_STEPS: raise ValueError("invalid bounded recovery plan")
+   state={"schema_version":3,"capability":answer.get("capability") or next_capability(),"plan":plan,"current_step":0,"step_status":"in_progress","repair_attempts":1,"provider_blocked":None,"history":[{"action":"recovery-plan-created","steps":len(plan)}]}
+   branch=f"apea-g/recovery-{ci.get('run_id') or os.getenv('GITHUB_RUN_ID','current')}"; sh("git","checkout","-B",branch); patch=answer.get("patch")
+  elif conclusion=="success":
+   plan=state.get("plan") or []; idx=int(state.get("current_step",0))
+   if idx>=len(plan): state["step_status"]="complete"; complete_capability(state.get("capability")); save_state(state); commit_push(branch,"chore: APEA-G finalize completed plan"); return 0
+   state["history"].append({"action":"step-green","step":plan[idx].get("id")}); state["current_step"]=idx+1; state["repair_attempts"]=0; state["provider_blocked"]=None
+   if state["current_step"]>=len(plan): state["step_status"]="complete"; complete_capability(state.get("capability")); save_state(state); commit_push(branch,"chore: APEA-G finalize completed plan"); ensure_pr(branch); return 0
+   patch=parse(provider(json.dumps({"request":"Execute exactly the next plan step; do not redesign the plan. Return its minimal unified diff.","plan":plan,"current_step":plan[state["current_step"]],"repository":snap,"ci":ci}))).get("patch")
+  else:
+   if not state.get("plan"): raise RuntimeError("RED recovery failed to create a plan; fail-closed")
+   if int(state.get("repair_attempts",0))>=MAX_REPAIRS: raise RuntimeError("repair budget exhausted; fail-closed")
+   state["repair_attempts"]=int(state.get("repair_attempts",0))+1; idx=int(state.get("current_step",0)); plan=state["plan"]
+   patch=parse(provider(json.dumps({"request":"Repair the current plan step using actual CI evidence. Do not advance until GREEN. Return only a minimal unified diff.","plan":plan,"current_step":plan[idx] if idx<len(plan) else None,"repository":snap,"ci":ci,"repair_attempt":state["repair_attempts"]}))).get("patch")
+  if not patch: raise RuntimeError("no executable patch returned; fail-closed")
+  apply_patch(str(patch)); state["history"].append({"action":"patch-validated","step":state.get("current_step"),"repair_attempt":state.get("repair_attempts")}); save_state(state); validate(); commit_push(branch,"feat: APEA-G execute engineering plan step"); ensure_pr(branch); return 0
+ except ProviderBlocked as exc:
+  mark_provider_blocked(state,str(exc)); print(json.dumps({"agent":"APEA-G","status":"BLOCKED","reason":"provider_unavailable","retryable":True})); return 0
 
 if __name__=="__main__":
  try: raise SystemExit(main())
