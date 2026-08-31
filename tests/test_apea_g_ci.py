@@ -1,4 +1,4 @@
-from scripts.apea_g_ci import FailureEvidence, FailureKind, classify_failure, classify_repeat
+from scripts.apea_g_ci import FailureEvidence, FailureKind, classify_failure, classify_failure_action, classify_repeat
 
 
 def evidence(logs, *, sha="abc", job="test", conclusion=None):
@@ -37,3 +37,11 @@ def test_does_not_call_different_sha_flaky():
     previous = evidence("pytest assertion A", sha="old", conclusion="failure")
     current = evidence("pytest assertion A", sha="new", conclusion="success")
     assert classify_repeat(previous, current) is None
+
+
+def test_maps_failures_to_bounded_recovery_actions():
+    assert classify_failure_action(FailureKind.TEST) == "repair"
+    assert classify_failure_action(FailureKind.PROVIDER) == "wait_provider"
+    assert classify_failure_action(FailureKind.INFRASTRUCTURE) == "retry_ci"
+    assert classify_failure_action(FailureKind.FLAKY) == "retry_ci"
+    assert classify_failure_action(FailureKind.UNKNOWN) == "diagnose"
