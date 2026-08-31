@@ -20,8 +20,10 @@ class ConversationState:
     tone: str = "casual"
     recent: List[Turn] = field(default_factory=list)
     semantic_facts: Tuple[SemanticFact, ...] = field(default_factory=tuple)
+    memory_turns: int = 10
 
-    def add(self, role: str, content: str, limit: int = 10):
+    def add(self, role: str, content: str, limit: int | None = None):
+        limit = limit or self.memory_turns
         self.recent.append(Turn(role, content))
         self.recent = self.recent[-limit:]
 
@@ -68,13 +70,13 @@ class ConversationState:
 
 def from_history(history: List[Dict]) -> ConversationState:
     state = ConversationState()
-    for item in (history or [])[-10:]:
+    for item in (history or [])[-state.memory_turns:]:
         if not isinstance(item, dict):
             continue
         if item.get("role") in {"user", "assistant"} and isinstance(item.get("content"), str):
             state.add(item["role"], item["content"].strip())
 
-    # Reconstruct semantic memory from prior user turns through TEX-L's
+    # Reconstruct semantic memory from the retained window through TEX-L's
     # evidence-first representation. Invalid enrichment never breaks chat.
     from app.texl_representation import representation_context
     for turn in state.recent:
