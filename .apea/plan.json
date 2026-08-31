@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "plan_id": "apea-g-v2",
+  "goal": "Make APEA-G a bounded, evidence-driven, continuously executing engineering agent that plans once, advances on GREEN, repairs on RED, preserves state across interruptions, and safely completes the GitHub lifecycle.",
+  "max_steps": 10,
+  "steps": [
+    {"id": "provider-resilience", "goal": "Survive provider authentication, authorization, rate-limit, timeout, outage, and model failures without losing the active plan.", "acceptance": ["provider failures are classified", "retryable failures persist state", "bounded retry/backoff exists", "provider outage becomes resumable BLOCKED state"]},
+    {"id": "persistent-state", "goal": "Make plan and execution state durable, versioned, atomic, idempotent, and restart-safe.", "acceptance": ["state schema is versioned", "plan survives process/CI interruption", "duplicate events do not repeat a step", "history is bounded"]},
+    {"id": "planning-engine", "goal": "Generate and validate one complete bounded engineering plan with dependencies and acceptance criteria before execution.", "acceptance": ["plan is persisted before implementation", "maximum step count is enforced", "dependencies are validated", "current step is deterministic"]},
+    {"id": "ci-evidence", "goal": "Turn GitHub CI into structured evidence for diagnosis and advancement.", "acceptance": ["failed jobs and steps are collected", "logs are captured safely", "tested SHA is tracked", "stale runs are rejected"]},
+    {"id": "execution-engine", "goal": "Execute exactly one coherent plan step per cycle with repository-aware auditing and strict change boundaries.", "acceptance": ["existing implementation is inspected", "one step is selected", "unexpected scope is rejected", "local validation precedes push"]},
+    {"id": "repair-engine", "goal": "Automatically diagnose and repair RED from actual CI evidence with bounded attempts and failure memory.", "acceptance": ["RED triggers diagnosis", "actual evidence is supplied", "repairs are bounded", "failed approaches are retained"]},
+    {"id": "github-lifecycle", "goal": "Complete safe branch, PR, CI, merge, and post-merge continuation without user GREEN/RED interaction.", "acceptance": ["main is protected from direct agent writes", "PR is created automatically", "required gates are checked", "successful plans can merge and resume"]},
+    {"id": "security-gate", "goal": "Prevent secret exposure, safety-policy weakening, destructive commands, test weakening, and unsafe self-modification.", "acceptance": ["protected paths remain immutable", "security-sensitive diffs are gated", "tests cannot be weakened silently", "agent policy cannot self-disable"]},
+    {"id": "quality-gate", "goal": "Require meaningful quality, regression, architecture, security, and evaluation evidence before declaring a capability complete.", "acceptance": ["quality gates are explicit", "regressions are detected", "evaluation results are recorded", "GREEN CI alone is not treated as completion"]},
+    {"id": "continuous-controller", "goal": "Close the autonomous loop so successful completion immediately selects the next unfinished capability and provider/CI interruptions resume automatically.", "acceptance": ["GREEN advances automatically", "RED repairs automatically", "provider BLOCKED resumes automatically", "plan completion starts the next eligible cycle", "human input is reserved for explicit safety/ambiguity gates"]}
+  ]
+}
