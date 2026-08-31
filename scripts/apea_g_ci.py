@@ -23,6 +23,7 @@ class FailureEvidence:
     job_name: str | None
     failed_steps: tuple[str, ...]
     logs: str
+    conclusion: str | None = None
 
 
 def classify_failure(evidence: FailureEvidence) -> FailureKind:
@@ -43,13 +44,13 @@ def classify_failure(evidence: FailureEvidence) -> FailureKind:
 
 
 def classify_repeat(previous: FailureEvidence | None, current: FailureEvidence) -> FailureKind | None:
-    """Return FLAKY only when the same SHA/test evidence alternates outcome."""
+    """Return FLAKY only when the same SHA/test evidence has conflicting outcomes."""
     if not previous or previous.head_sha != current.head_sha:
         return None
     if previous.job_name != current.job_name:
         return None
     if previous.failed_steps != current.failed_steps:
         return None
-    if previous.logs and current.logs and previous.logs != current.logs:
-        return FailureKind.FLAKY
-    return None
+    if {previous.conclusion, current.conclusion} != {"success", "failure"}:
+        return None
+    return FailureKind.FLAKY
