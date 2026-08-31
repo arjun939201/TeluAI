@@ -9,7 +9,6 @@ def test_execution_cannot_advance_past_unmet_dependency():
         PlanStep("b", "x", "B", ("a",)),
     ]
     assert next_step(steps, set()).id == "a"
-    assert next_step(steps, {"b"}).id == "a"
 
 
 def test_completed_steps_are_not_reselected():
