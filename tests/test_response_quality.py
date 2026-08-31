@@ -3,7 +3,7 @@ from app.response import clean_response
 
 def test_clean_response_strips_assistant_prefix_and_excess_blank_lines():
     value = clean_response("  Assistant: hello\n\n\n\nworld  ")
-    assert value == "hello\n\nworld"
+    assert value == "టేంకణం\n\nworld"
 
 
 def test_clean_response_removes_internal_instruction_leakage_lines():
