@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run APEA-G
+      - name: Run APEA-G continuous controller
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || secrets.GROQ_TOKEN }}
           GROQ_TOKEN: ${{ secrets.GROQ_TOKEN || secrets.GROQ_API_KEY }}
@@ -56,4 +56,4 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           APEA_MODE: ${{ github.event.inputs.mode || 'continuous' }}
-        run: python scripts/apea_g.py
+        run: python scripts/apea_g_runner.py
