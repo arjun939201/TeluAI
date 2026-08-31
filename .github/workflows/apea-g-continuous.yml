@@ -1,0 +1,58 @@
+name: APEA-G Continuous Engineering
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_steps:
+        description: Maximum roadmap steps for this autonomous run
+        required: false
+        default: "12"
+        type: string
+      max_repairs:
+        description: Maximum CI repair attempts per step
+        required: false
+        default: "4"
+        type: string
+      merge:
+        description: Merge the autonomous PR when every planned step is green
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: apea-g-continuous
+  cancel-in-progress: false
+
+jobs:
+  continuous-engineer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 50
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Run continuous autonomous engineering loop
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || secrets.GROQ_TOKEN }}
+          GROQ_TOKEN: ${{ secrets.GROQ_TOKEN || secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ vars.APEA_G_MODEL || 'openai/gpt-oss-120b' }}
+          GROQ_URL: ${{ vars.GROQ_URL || 'https://api.groq.com/openai/v1/chat/completions' }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          APEA_MAX_STEPS: ${{ inputs.max_steps || '12' }}
+          APEA_MAX_REPAIRS: ${{ inputs.max_repairs || '4' }}
+          APEA_MERGE: ${{ inputs.merge || 'false' }}
+        run: python scripts/apea_g_loop.py
