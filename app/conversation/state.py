@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -22,12 +21,14 @@ class ConversationState:
         self.recent.append(Turn(role, content))
         self.recent = self.recent[-limit:]
 
+    @property
     def last_assistant(self) -> str:
         for turn in reversed(self.recent):
             if turn.role == "assistant":
                 return turn.content
         return ""
 
+    @property
     def last_user(self) -> str:
         for turn in reversed(self.recent):
             if turn.role == "user":
@@ -52,7 +53,7 @@ def from_history(history: List[Dict]) -> ConversationState:
         if item.get("role") in {"user", "assistant"} and isinstance(item.get("content"), str):
             state.add(item["role"], item["content"].strip())
 
-    assistant = state.last_assistant()
+    assistant = state.last_assistant
     if assistant and (
         "?" in assistant or "？" in assistant
         or any(x in assistant for x in ("ఏంటి", "ఏమి", "ఎలా", "ఎందుకు", "ఎక్కడ", "ఎప్పుడు"))
