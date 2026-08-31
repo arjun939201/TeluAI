@@ -24,14 +24,18 @@ concurrency:
 
 jobs:
   engineer:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.head_branch == 'main' &&
+       (github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'success') &&
+       !startsWith(github.event.workflow_run.head_commit.message, 'fix: APEA-G'))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout tested revision
+      - name: Checkout exact tested revision
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 20
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
