@@ -3,6 +3,7 @@ from __future__ import annotations
 import json, os, subprocess, sys, time, urllib.error, urllib.request
 from pathlib import Path
 from typing import Any
+from scripts.apea_g_ci import FailureEvidence, FailureKind, classify_failure, classify_failure_action
 ROOT=Path(__file__).resolve().parents[1]; REPO=os.getenv("GITHUB_REPOSITORY","arjun939201/TeluAI")
 GROQ_URL=os.getenv("GROQ_URL","https://api.groq.com/openai/v1/chat/completions"); GROQ_MODEL=os.getenv("GROQ_MODEL","openai/gpt-oss-120b")
 STATE_PATH=ROOT/".apea/state.json"; ROADMAP_PATH=ROOT/".apea/roadmap.json"; MAX_OUTPUT=12000; MAX_LOG_CHARS=12000; MAX_STEPS=12; MAX_REPAIRS=4
@@ -132,6 +133,13 @@ def merge_pr(branch):
 def mark_provider_blocked(state,error):
  state["schema_version"]=3; state["step_status"]="provider_blocked"; state["provider_blocked"]={"since":int(time.time()),"error":error,"retryable":True}; state.setdefault("history",[]).append({"action":"provider-blocked","error":error}); state["history"]=state["history"][-50:]; save_state(state)
 
+def failure_action(ci):
+ failures=ci.get("failed_jobs") or []
+ if not failures: return None, "no failure evidence"
+ evidence=FailureEvidence(ci.get("run_id"),ci.get("head_sha"),failures[0].get("name"),tuple(failures[0].get("steps") or ()),str(failures[0].get("logs") or ""),ci.get("conclusion"))
+ kind=classify_failure(evidence)
+ return kind, classify_failure_action(kind)
+
 def main():
  p=event(); ci=ci_context(p); scheduled=p.get("schedule") is not None; conclusion=ci.get("conclusion"); branch=(ci.get("head_branch") or "main").strip()
  if not scheduled and branch and branch!="main" and not branch.startswith("apea-g/"): return 0
@@ -140,7 +148,9 @@ def main():
  state.setdefault("history",[]); state["schema_version"]=3
  snap={"status":sh("git","status","--short","--branch"),"recent_commits":sh("git","log","-8","--oneline"),"constitution":(ROOT/"AGENTS.md").read_text()[:10000],"architecture":(ROOT/"ARCHITECTURE.md").read_text()[:8000]}
  if scheduled:
-  if state.get("step_status")=="provider_blocked" or state.get("plan"):
+  if state.get("step_status")=="provider_blocked":
+   conclusion="failure"
+  elif state.get("plan"):
    conclusion="success"; branch="main"
   else:
    return 0
@@ -166,9 +176,15 @@ def main():
    patch=parse(provider(json.dumps({"request":"Execute exactly the next plan step; do not redesign the plan. Return its minimal unified diff.","plan":plan,"current_step":plan[state["current_step"]],"repository":snap,"ci":ci}))).get("patch")
   else:
    if not state.get("plan"): raise RuntimeError("RED recovery failed to create a plan; fail-closed")
+   kind, action=failure_action(ci)
+   state["history"].append({"action":"failure-classified","kind":kind.value if kind else None,"recovery":action})
+   if action=="wait_provider":
+    raise ProviderBlocked("CI evidence classified the failure as provider-related")
+   if action=="retry_ci":
+    save_state(state); print(json.dumps({"agent":"APEA-G","status":"WAITING","reason":kind.value if kind else "retryable_ci_failure"})); return 0
    if int(state.get("repair_attempts",0))>=MAX_REPAIRS: raise RuntimeError("repair budget exhausted; fail-closed")
    state["repair_attempts"]=int(state.get("repair_attempts",0))+1; idx=int(state.get("current_step",0)); plan=state["plan"]
-   patch=parse(provider(json.dumps({"request":"Repair the current plan step using actual CI evidence. Do not advance until GREEN. Return only a minimal unified diff.","plan":plan,"current_step":plan[idx] if idx<len(plan) else None,"repository":snap,"ci":ci,"repair_attempt":state["repair_attempts"]}))).get("patch")
+   patch=parse(provider(json.dumps({"request":"Repair the current plan step using actual CI evidence. Do not advance until GREEN. Return only a minimal unified diff.","failure_kind":kind.value if kind else "unknown","recovery_action":action,"plan":plan,"current_step":plan[idx] if idx<len(plan) else None,"repository":snap,"ci":ci,"repair_attempt":state["repair_attempts"]}))).get("patch")
   if not patch: raise RuntimeError("no executable patch returned; fail-closed")
   apply_patch(str(patch)); state["history"].append({"action":"patch-validated","step":state.get("current_step"),"repair_attempt":state.get("repair_attempts")}); save_state(state); validate(); commit_push(branch,"feat: APEA-G execute engineering plan step"); ensure_pr(branch); return 0
  except ProviderBlocked as exc:
