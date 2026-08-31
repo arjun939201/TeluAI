@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   engineer:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -44,9 +44,10 @@ jobs:
           GROQ_TOKEN: ${{ secrets.GROQ_TOKEN || secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ vars.APEA_G_MODEL || 'openai/gpt-oss-120b' }}
           GROQ_URL: ${{ vars.GROQ_URL || 'https://api.groq.com/openai/v1/chat/completions' }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-          APEA_MODE: ${{ github.event.inputs.mode || 'diagnose' }}
+          APEA_MODE: ${{ github.event.inputs.mode || (github.event.workflow_run.conclusion == 'failure' && 'diagnose' || 'audit') }}
           APEA_AUTOFIX: ${{ vars.APEA_G_AUTOFIX || 'false' }}
           APEA_BRANCH: apea-g/ci-repair-${{ github.run_id }}
         run: python scripts/apea_g.py
