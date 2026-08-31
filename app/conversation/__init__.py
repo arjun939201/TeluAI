@@ -2,6 +2,7 @@
 
 from app.conversation.state import ConversationState, Turn, from_history
 from app.conversation.understanding import infer_intent, build_context
+from app.conversation.planner import plan_response
 
 TurnState = ConversationState
 
@@ -31,4 +32,5 @@ __all__ = [
     "build_context",
     "build_state",
     "understanding_context",
+    "plan_response",
 ]
