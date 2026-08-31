@@ -21,10 +21,11 @@ def test_apply_patch_rejects_secret_paths():
         apply_patch(patch)
 
 
-def test_apply_patch_rejects_agent_control_path():
-    patch = "--- /dev/null\n+++ b/.github/workflows/apea-g.yml\n@@ -0,0 +1 @@\n+disabled: true\n"
-    with pytest.raises(ValueError):
-        apply_patch(patch)
+def test_apply_patch_rejects_agent_control_paths():
+    for path in (".github/workflows/apea-g.yml", "scripts/apea_g.py"):
+        patch = f"--- /dev/null\n+++ b/{path}\n@@ -0,0 +1 @@\n+disabled: true\n"
+        with pytest.raises(ValueError):
+            apply_patch(patch)
 
 
 def test_ci_failure_context_preserves_run_metadata_without_api_call():
