@@ -40,16 +40,13 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
     key = _key(text)
     normalized = normalize_roman_telugu(text)
     normalized_key = _key(normalized)
-
     if normalized_key in {"ఏంటి", "ఏమిటి", "ఏం", "ఏమి"} or key in {"enti", "emiti", "em"}:
         if state.open_question:
             return {"intent": "clarification_request", "confidence": "high", "meaning": "Internal interpretation: clarify the assistant's previous question or message."}
         return {"intent": "what_question", "confidence": "medium", "meaning": "Internal interpretation: ask what something is or means."}
-
     intent = SHORT_INTENTS.get(key) or SHORT_INTENTS.get(normalized_key)
     if intent:
         return {"intent": intent, "confidence": "medium", "meaning": "Internal interpretation: handle this conversational move using the current context."}
-
     low = normalized_key
     if low.startswith("ఏం") or low.startswith("ఏమి") or "ఎందుకు" in low:
         intent = "why_question" if "ఎందుకు" in low else "what_question"
@@ -84,10 +81,28 @@ def _topic_relation(text: str, state: ConversationState, intent: str) -> str:
     if intent in {"continue_current_topic", "acknowledgement", "agreement", "clarification_request", "nothing_or_negative"} or len(text.strip()) <= 12:
         return "continuation"
     normalized = normalize_roman_telugu(text)
-    if normalized.casefold() == state.topic.casefold():
+    current = normalized.casefold()
+    topic = state.topic.casefold()
+    if current == topic:
         return "continuation"
-    # A possible shift is deliberately only a signal; semantic continuity remains authoritative.
-    if re.search(r"(?:^|\s)(ఇప్పుడు|ఇక|మరొకటి|వేరే|another|different|new topic)(?:\s|$)", normalized.casefold()):
+    # Strong explicit discourse markers indicate a possible shift.
+    if re.search(r"(?:^|\s)(ఇప్పుడు|ఇక|మరొకటి|వేరే|another|different|new topic)(?:\s|$)", current):
+        return "possible_topic_shift"
+    # Lightweight domain cues are only used to flag divergence, never to erase context.
+    domains = {
+        "weather": ("వాతావరణ", "weather", "వర్ష", "ఎండ", "చలి"),
+        "language": ("తెలుగు", "మేలిమి", "పదం", "పదాలు", "భాష", "అర్థం", "నెనరు", "language", "word"),
+        "code": ("కోడ్", "కోడ్ింగ్", "github", "python", "program", "code"),
+        "food": ("తిన", "భోజనం", "ఆహారం", "food", "రెస్టారెంట్"),
+    }
+    def domain(text_value: str) -> str:
+        for name, cues in domains.items():
+            if any(cue.casefold() in text_value for cue in cues):
+                return name
+        return ""
+    current_domain = domain(current)
+    topic_domain = domain(topic)
+    if current_domain and topic_domain and current_domain != topic_domain:
         return "possible_topic_shift"
     return "continuation"
 
@@ -117,7 +132,7 @@ def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
         "INTERNAL CONVERSATION RULES:",
         "- Interpret short replies from the previous turn, not as isolated dictionary entries.",
         "- Preserve the established topic unless there is meaningful evidence of a topic shift.",
-        "- A possible topic shift is not proof of a new topic.",
+        "- A possible topic shift is only a signal, not proof of a new topic.",
         "- Resolve obvious Telugu demonstratives/pronouns against the immediately relevant previous turn when a reliable target exists.",
         "- Preserve referenced meaning; do not merely copy previous wording.",
         "- If no reliable referent exists, do not invent one.",
