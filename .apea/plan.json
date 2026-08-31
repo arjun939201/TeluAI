@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "plan_id": "apea-g-v2",
   "goal": "Make APEA-G a bounded, evidence-driven, continuously executing engineering agent that plans once, advances on GREEN, repairs on RED, preserves state across interruptions, and safely completes the GitHub lifecycle.",
   "max_steps": 10,
@@ -14,5 +14,21 @@
     {"id": "security-gate", "goal": "Prevent secret exposure, safety-policy weakening, destructive commands, test weakening, and unsafe self-modification.", "acceptance": ["protected paths remain immutable", "security-sensitive diffs are gated", "tests cannot be weakened silently", "agent policy cannot self-disable"]},
     {"id": "quality-gate", "goal": "Require meaningful quality, regression, architecture, security, and evaluation evidence before declaring a capability complete.", "acceptance": ["quality gates are explicit", "regressions are detected", "evaluation results are recorded", "GREEN CI alone is not treated as completion"]},
     {"id": "continuous-controller", "goal": "Close the autonomous loop so successful completion immediately selects the next unfinished capability and provider/CI interruptions resume automatically.", "acceptance": ["GREEN advances automatically", "RED repairs automatically", "provider BLOCKED resumes automatically", "plan completion starts the next eligible cycle", "human input is reserved for explicit safety/ambiguity gates"]}
-  ]
+  ],
+  "successor_plan": {
+    "plan_id": "apea-g-loop-v1",
+    "goal": "After the current APEA-G foundation plan completes, continuously execute the TeluAI roadmap from the first unfinished capability through the final eligible capability without requiring user GREEN/GO input.",
+    "max_steps": 12,
+    "steps": [
+      {"id": "loop-bootstrap", "goal": "Persist a durable loop cursor and select the first unfinished roadmap capability.", "acceptance": ["cursor survives CI runs", "completed capabilities are never reselected", "active capability is deterministic"]},
+      {"id": "loop-plan", "goal": "Create one bounded implementation plan for the selected capability before changing code.", "acceptance": ["plan is persisted", "plan has acceptance criteria", "plan has no more than 12 steps"]},
+      {"id": "loop-execute", "goal": "Implement exactly the current plan step and commit it to the agent branch.", "acceptance": ["one coherent step per cycle", "scope is validated", "commit is created"]},
+      {"id": "loop-verify", "goal": "Use the resulting GitHub CI run as the authoritative verification gate.", "acceptance": ["tested SHA is matched", "stale CI is ignored", "GREEN and RED are explicit states"]},
+      {"id": "loop-repair", "goal": "On RED, diagnose from actual evidence and repair the same step until GREEN or a safety boundary is reached.", "acceptance": ["same step is retained", "repair attempts are bounded", "provider/infrastructure failures are retried appropriately"]},
+      {"id": "loop-advance", "goal": "On GREEN, persist completion and automatically select the next unfinished step or capability.", "acceptance": ["GREEN advances without user input", "state is idempotent", "no completed step is repeated"]},
+      {"id": "loop-pr-merge", "goal": "After a capability plan completes, complete the branch, PR, required CI gates, and merge lifecycle safely.", "acceptance": ["PR is created automatically", "required checks are respected", "merge result is verified"]},
+      {"id": "loop-resume", "goal": "After merge, resume the next unfinished roadmap capability automatically.", "acceptance": ["main CI completion triggers continuation", "provider BLOCKED resumes later", "loop does not require manual GREEN/GO"]},
+      {"id": "loop-final", "goal": "Terminate only when every eligible roadmap capability has completed or an explicit safety boundary requires human intervention.", "acceptance": ["completion is persisted", "terminal reason is explicit", "no false completion is reported"]}
+    ]
+  }
 }
