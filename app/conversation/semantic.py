@@ -62,6 +62,32 @@ def retrieve_facts(facts: Iterable[SemanticFact], surface: str | None = None, ca
     return tuple(matches)
 
 
+def bind_reference(facts: Iterable[SemanticFact], reference: str, grammatical_role: str | None = None) -> SemanticFact | None:
+    """Bind a conversational reference to the strongest available semantic fact.
+
+    Binding is evidence-only: it never fabricates a canonical form and, when a
+    requested grammatical role is present, prefers facts carrying that role.
+    """
+    reference = (reference or "").strip()
+    candidates = list(facts)
+    if not reference or not candidates:
+        return None
+
+    exact = [fact for fact in candidates if fact.surface == reference]
+    role_matches = [fact for fact in exact if grammatical_role and fact.grammatical_role == grammatical_role]
+    if role_matches:
+        return role_matches[-1]
+    if exact:
+        return exact[-1]
+
+    # A reference is allowed to bind to a canonical form only when explicitly supplied.
+    canonical_matches = [fact for fact in candidates if fact.canonical == reference or fact.melimi == reference]
+    role_matches = [fact for fact in canonical_matches if grammatical_role and fact.grammatical_role == grammatical_role]
+    if role_matches:
+        return role_matches[-1]
+    return canonical_matches[-1] if canonical_matches else None
+
+
 def semantic_context(facts: tuple[SemanticFact, ...]) -> dict[str, Any]:
     """Return JSON-safe semantic memory; candidates/guesses are intentionally excluded."""
     return {"facts": [asdict(fact) for fact in facts]}
