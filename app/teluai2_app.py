@@ -90,7 +90,15 @@ def _build_prompt(message: str, history: list[dict], user_id: int, response_leng
     representation = represent_language(message, vocabulary)
     language_context = representation_context(message, vocabulary)
     generation_contract = build_generation_contract(representation)
-    conversation_context = understanding_context(message, build_state(history))
+    conversation_context = understanding_context(
+        message,
+        build_state(history),
+        {
+            "normalized": representation.message,
+            "sentence_force": representation.decision,
+            "question_type": representation.translation_intent,
+        },
+    )
     decision = choose_output_variety(message)
     length = {"short": "సంక్షిప్తంగా సమాధానం ఇవ్వు.", "long": "అవసరమైనప్పుడు వివరంగా సమాధానం ఇవ్వు."}.get(response_length, "సహజమైన సాధారణ పరిమాణంలో సమాధానం ఇవ్వు.")
     output_instruction = {
