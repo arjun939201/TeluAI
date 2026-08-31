@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "capabilities": [
+    {"id": "foundation", "status": "complete"},
+    {"id": "language-brain", "status": "complete"},
+    {"id": "melimi", "status": "complete"},
+    {"id": "conversation-intelligence", "status": "complete"},
+    {"id": "learning-system", "status": "complete"},
+    {"id": "response-intelligence", "status": "complete"},
+    {"id": "quality-evaluation", "status": "active"},
+    {"id": "performance", "status": "pending"},
+    {"id": "security", "status": "pending"},
+    {"id": "ux", "status": "pending"},
+    {"id": "production", "status": "pending"},
+    {"id": "release", "status": "pending"}
+  ]
+}
