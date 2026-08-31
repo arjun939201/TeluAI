@@ -3,6 +3,7 @@
 from app.conversation.state import ConversationState, Turn, from_history
 from app.conversation.understanding import infer_intent, build_context
 from app.conversation.planner import plan_response, plan_response_details
+from app.conversation.semantic import SemanticFact, facts_from_representation, merge_facts, retrieve_facts, semantic_context
 
 TurnState = ConversationState
 
@@ -44,4 +45,5 @@ __all__ = [
     "ConversationState", "TurnState", "Turn", "from_history", "infer_intent",
     "build_context", "build_state", "understanding_context",
     "plan_response", "plan_response_details",
+    "SemanticFact", "facts_from_representation", "merge_facts", "retrieve_facts", "semantic_context",
 ]
