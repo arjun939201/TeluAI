@@ -1,8 +1,8 @@
-"""Small, evidence-backed semantic carry-over state for conversation turns."""
+"""Evidence-backed semantic carry-over state for conversation turns."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Iterable
 
 
 @dataclass(frozen=True)
@@ -34,6 +34,32 @@ def facts_from_representation(representation: dict[str, Any]) -> tuple[SemanticF
             confidence=item.get("confidence", "unknown"),
         ))
     return tuple(facts)
+
+
+def merge_facts(existing: Iterable[SemanticFact], new: Iterable[SemanticFact], limit: int = 32) -> tuple[SemanticFact, ...]:
+    """Merge semantic facts deterministically, keeping the newest evidence for a surface/canonical pair."""
+    merged: dict[tuple[str, str | None, str | None], SemanticFact] = {}
+    for fact in list(existing) + list(new):
+        if not fact.authoritative:
+            continue
+        key = (fact.surface, fact.canonical, fact.melimi)
+        merged[key] = fact
+    return tuple(list(merged.values())[-limit:])
+
+
+def retrieve_facts(facts: Iterable[SemanticFact], surface: str | None = None, canonical: str | None = None) -> tuple[SemanticFact, ...]:
+    """Retrieve relevant persisted meaning without inventing or rewriting facts."""
+    requested_surface = (surface or "").strip()
+    requested_canonical = (canonical or "").strip()
+    if not requested_surface and not requested_canonical:
+        return tuple()
+    matches = []
+    for fact in facts:
+        if requested_surface and fact.surface == requested_surface:
+            matches.append(fact)
+        elif requested_canonical and (fact.canonical == requested_canonical or fact.melimi == requested_canonical):
+            matches.append(fact)
+    return tuple(matches)
 
 
 def semantic_context(facts: tuple[SemanticFact, ...]) -> dict[str, Any]:
