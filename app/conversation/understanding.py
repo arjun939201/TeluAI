@@ -28,7 +28,6 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
     normalized = normalize_roman_telugu(text)
     normalized_key = _key(normalized)
 
-    # Contextual clarification is intentionally checked before generic "what".
     if normalized_key in {"ఏంటి", "ఏమిటి", "ఏం", "ఏమి"} or key in {"enti", "emiti", "em"}:
         if state.open_question:
             return {
@@ -78,6 +77,7 @@ def infer_intent(text: str, state: ConversationState) -> Dict:
 def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
     result = infer_intent(text, state)
     return "\n".join([
+        "CONVERSATION UNDERSTANDING:",
         "INTERNAL CONTEXTUAL UNDERSTANDING — NOT USER-FACING:",
         f"- user input: {text.strip()}",
         f"- normalized hint: {linguistic.get('normalized', '')}",
@@ -86,7 +86,7 @@ def build_context(text: str, state: ConversationState, linguistic: Dict) -> str:
         f"- contextual intent: {result['intent']}",
         f"- confidence: {result['confidence']}",
         f"- interpretation: {result['meaning']}",
-        f"- previous assistant: {state.last_assistant() or '(none)'}",
+        f"- previous assistant: {state.last_assistant or '(none)'}",
         f"- open question: {state.open_question or '(none)' }",
         "",
         "INTERNAL CONVERSATION RULES:",
