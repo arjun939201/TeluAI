@@ -44,13 +44,25 @@ def classify_failure(evidence: FailureEvidence) -> FailureKind:
 
 
 def classify_repeat(previous: FailureEvidence | None, current: FailureEvidence) -> FailureKind | None:
-    """Return FLAKY only when the same SHA/test evidence has conflicting outcomes."""
+    """Return FLAKY only when the same SHA/job/failed steps have conflicting outcomes."""
     if not previous or previous.head_sha != current.head_sha:
         return None
-    if previous.job_name != current.job_name:
-        return None
-    if previous.failed_steps != current.failed_steps:
+    if previous.job_name != current.job_name or previous.failed_steps != current.failed_steps:
         return None
     if {previous.conclusion, current.conclusion} != {"success", "failure"}:
         return None
     return FailureKind.FLAKY
+
+
+def classify_failure_action(kind: FailureKind) -> str:
+    """Map evidence class to a bounded controller action."""
+    return {
+        FailureKind.TEST: "repair",
+        FailureKind.BUILD: "repair",
+        FailureKind.DEPENDENCY: "repair",
+        FailureKind.WORKFLOW: "repair_workflow",
+        FailureKind.PROVIDER: "wait_provider",
+        FailureKind.INFRASTRUCTURE: "retry_ci",
+        FailureKind.FLAKY: "retry_ci",
+        FailureKind.UNKNOWN: "diagnose",
+    }[kind]
