@@ -13,7 +13,7 @@ def build_state(history):
 
 
 def understanding_context(user_text, state, linguistic=None):
-    """Build conversational context and response planning evidence."""
+    """Build contextual understanding and structured response-planning evidence."""
     if linguistic is None:
         linguistic = {
             "normalized": user_text,
@@ -23,9 +23,7 @@ def understanding_context(user_text, state, linguistic=None):
 
     context = build_context(user_text, state, linguistic)
     understanding = infer_intent(user_text, state)
-    semantic = {
-        "dominant_signal": linguistic.get("question_type", "statement"),
-    }
+    semantic = {"dominant_signal": linguistic.get("question_type", "statement")}
     plan = plan_response_details(understanding, semantic, state)
     return "\n".join([
         context,
@@ -43,14 +41,7 @@ def understanding_context(user_text, state, linguistic=None):
 
 
 __all__ = [
-    "ConversationState",
-    "TurnState",
-    "Turn",
-    "from_history",
-    "infer_intent",
-    "build_context",
-    "build_state",
-    "understanding_context",
-    "plan_response",
-    "plan_response_details",
+    "ConversationState", "TurnState", "Turn", "from_history", "infer_intent",
+    "build_context", "build_state", "understanding_context",
+    "plan_response", "plan_response_details",
 ]
