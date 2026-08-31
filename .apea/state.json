@@ -1,9 +1,16 @@
 {
-  "schema_version": 1,
-  "last_green_sha": null,
-  "current_capability": null,
-  "capability_status": "unknown",
-  "last_action": null,
-  "attempt": 0,
-  "history": []
+  "schema_version": 2,
+  "last_green_sha": "5631710454f891488f24591c16bdee40ec569ee0",
+  "current_capability": "quality-evaluation",
+  "capability_status": "active",
+  "last_action": "green-advance",
+  "attempt": 1,
+  "history": [
+    {
+      "sha": "5631710454f891488f24591c16bdee40ec569ee0",
+      "capability": "quality-evaluation",
+      "status": "active",
+      "action": "green-advance"
+    }
+  ]
 }
