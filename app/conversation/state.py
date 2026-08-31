@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import re
+
+from app.conversation.semantic import SemanticFact, merge_facts, semantic_context
 
 
 @dataclass
@@ -17,10 +19,14 @@ class ConversationState:
     last_assistant_intent: str = ""
     tone: str = "casual"
     recent: List[Turn] = field(default_factory=list)
+    semantic_facts: Tuple[SemanticFact, ...] = field(default_factory=tuple)
 
     def add(self, role: str, content: str, limit: int = 10):
         self.recent.append(Turn(role, content))
         self.recent = self.recent[-limit:]
+
+    def add_semantic_facts(self, facts: List[SemanticFact] | Tuple[SemanticFact, ...]) -> None:
+        self.semantic_facts = merge_facts(self.semantic_facts, facts)
 
     @property
     def last_assistant(self) -> str:
@@ -49,12 +55,14 @@ class ConversationState:
         return ""
 
     def context_text(self) -> str:
+        semantic = semantic_context(self.semantic_facts)
         return "\n".join([
             "CONVERSATION STATE:",
             f"- topic: {self.topic or '(not established)'}",
             f"- open question: {self.open_question or '(none)'}",
             f"- last user intent: {self.last_user_intent or '(unknown)'}",
             f"- tone: {self.tone}",
+            f"- semantic facts: {semantic['facts']}",
         ])
 
 
