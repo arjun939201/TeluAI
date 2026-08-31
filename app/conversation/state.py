@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 import re
 
-from app.conversation.semantic import SemanticFact, merge_facts, semantic_context
+from app.conversation.semantic import SemanticFact, facts_from_representation, merge_facts, semantic_context
 
 
 @dataclass
@@ -73,6 +73,18 @@ def from_history(history: List[Dict]) -> ConversationState:
             continue
         if item.get("role") in {"user", "assistant"} and isinstance(item.get("content"), str):
             state.add(item["role"], item["content"].strip())
+
+    # Reconstruct semantic memory from prior user turns through TEX-L's
+    # evidence-first representation. Invalid enrichment never breaks chat.
+    from app.texl_representation import representation_context
+    for turn in state.recent:
+        if turn.role != "user":
+            continue
+        try:
+            representation = representation_context(turn.content)
+            state.add_semantic_facts(facts_from_representation(representation))
+        except Exception:
+            continue
 
     state.topic = state.last_substantive_user
 
