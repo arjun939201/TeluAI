@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows: ["TeluAI CI"]
     types: [completed]
+  schedule:
+    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -27,6 +29,7 @@ jobs:
   engineer:
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
       (github.event.workflow_run.name == 'TeluAI CI' &&
        (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'apea-g/')) &&
        (github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'success'))
