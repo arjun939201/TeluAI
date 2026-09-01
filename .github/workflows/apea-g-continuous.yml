@@ -55,4 +55,7 @@ jobs:
           APEA_MAX_STEPS: ${{ inputs.max_steps || '12' }}
           APEA_MAX_REPAIRS: ${{ inputs.max_repairs || '4' }}
           APEA_MERGE: ${{ inputs.merge || 'false' }}
-        run: python scripts/apea_g_loop.py
+          PYTHONUNBUFFERED: "1"
+          APEA_HTTP_USER_AGENT: "TeluAI-APEA-G/1.0"
+        run: >-
+          python -c "import os,runpy,urllib.request; O=urllib.request.Request; UA=os.environ['APEA_HTTP_USER_AGENT']; urllib.request.Request=lambda url,data=None,headers=None,origin_req_host=None,unverifiable=False,method=None: O(url,data=data,headers={**(headers or {}),'User-Agent':UA,'Accept':'application/json'},origin_req_host=origin_req_host,unverifiable=unverifiable,method=method); runpy.run_path('scripts/apea_g_loop.py',run_name='__main__')"
