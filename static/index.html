@@ -18,10 +18,9 @@
 <div class="composer-wrap"><form id="composer" class="composer"><textarea id="input" rows="1" maxlength="12000" placeholder="తెలుగులో సందేశం రాయండి…" aria-label="సందేశం"></textarea><button id="send" class="send" type="submit" aria-label="పంపండి">↑</button></form><div class="hint">Enter — పంపండి · Shift+Enter — కొత్త పంక్తి</div></div>
 </main></div>
 <div id="auth" class="modal hidden"><div class="card"><h2>TeluAIకి స్వాగతం</h2><p>మీ సంభాషణలు మరియు వ్యక్తిగత తెలుగు భాషా జ్ఞాపకం మీ ఖాతాకు అనుసంధానించబడతాయి.</p><div id="authError" style="color:#e98b8b;min-height:20px"></div>
-<form id="guestForm"><label>పేరు<input id="guestUsername" minlength="3" maxlength="80" required autocomplete="username"></label><label>పాస్‌వర్డ్<input id="guestPassword" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></label><button class="primary">అతిథిగా కొనసాగండి</button></form>
-<form id="loginForm" class="hidden"><label>పేరు లేదా ఇమెయిల్<input id="loginIdentifier" required autocomplete="username"></label><label>పాస్‌వర్డ్<input id="loginPassword" type="password" required autocomplete="current-password"></label><button class="primary">ప్రవేశించండి</button></form>
+<form id="loginForm"><label>పేరు లేదా ఇమెయిల్<input id="loginIdentifier" required autocomplete="username"></label><label>పాస్‌వర్డ్<input id="loginPassword" type="password" required autocomplete="current-password"></label><button class="primary">ప్రవేశించండి</button></form>
 <form id="registerForm" class="hidden"><label>పేరు<input id="registerUsername" minlength="3" maxlength="80" required></label><label>ఇమెయిల్<input id="registerEmail" type="email" required></label><label>పాస్‌వర్డ్<input id="registerPassword" type="password" minlength="8" required></label><button class="primary">ఖాతా సృష్టించండి</button></form>
-<button id="guestSwitch" class="link" type="button">అతిథి</button> · <button id="loginSwitch" class="link" type="button">లాగిన్</button> · <button id="registerSwitch" class="link" type="button">నమోదు</button>
+<button id="loginSwitch" class="link" type="button">లాగిన్</button> · <button id="registerSwitch" class="link" type="button">నమోదు</button>
 </div></div>
 <script src="/static/teluai2.js" defer></script>
 </body></html>

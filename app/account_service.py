@@ -1,22 +1,8 @@
 """Account operations that sit between HTTP handlers and the database layer."""
 from __future__ import annotations
 
-import uuid
 from sqlalchemy import select
 from app import database as db
-
-
-def create_guest_user(username: str, password: str):
-    username = username.strip()
-    if not username:
-        raise ValueError("Username is required.")
-    user = db.create_user(username, f"guest+{uuid.uuid4().hex}@guest.teluai.local", password)
-    with db.SessionLocal() as session:
-        row = session.get(db.User, user.id)
-        row.role = "guest"
-        session.commit()
-        session.refresh(row)
-        return row
 
 
 def update_credentials(user_id: int, current_password: str, username: str | None = None, new_password: str | None = None):

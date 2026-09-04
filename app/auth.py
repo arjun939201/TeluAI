@@ -5,8 +5,8 @@ COOKIE_NAME = "teluai_session"
 
 def current_user(teluai_session: str | None = Cookie(default=None)):
     user = user_from_session(teluai_session)
-    if not user or not getattr(user, "is_active", True):
-        raise HTTPException(status_code=401, detail="Start Guest mode or login with your username and password.")
+    if not user or not getattr(user, "is_active", True) or str(getattr(user, "role", "user") or "user").lower() == "guest":
+        raise HTTPException(status_code=401, detail="Please log in or register to continue.")
     return user
 
 def require_admin(user=Depends(current_user)):
