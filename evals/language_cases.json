@@ -20,6 +20,6 @@
   {"id":"morphology-case-locative-01","source":"నదిలో","roots":{"నది":"ఏరు"},"expected":"ఏరులో"},
   {"id":"morphology-case-instrumental-01","source":"నదితో","roots":{"నది":"ఏరు"},"expected":"ఏరుతో"},
   {"id":"unsupported-01","source":"అజ్ఞాతపదం","roots":{"నది":"ఏరు"},"check_unsupported_preservation":true},
-  {"id":"authority-master-01","query":"విషయం","knowledge_version":3,"expected_sufficient":true,"expected_evidence_ids":["knowledge/1:word"],"entries":[{"source":"knowledge/1:word","kind":"vocabulary","status":"MASTER","version":3,"entry":{"standard":"విషయం","melimi":"ఎడాటం"}}]},
+  {"id":"authority-master-01","query":"విషయం","knowledge_version":3,"expected_sufficient":true,"expected_evidence_ids":["language_space:knowledge/1:word"],"entries":[{"source":"knowledge/1:word","kind":"vocabulary","status":"MASTER","version":3,"entry":{"standard":"విషయం","melimi":"ఎడాటం"}}]},
   {"id":"authority-approved-01","query":"విషయం","knowledge_version":3,"expected_sufficient":false,"entries":[{"source":"candidate","kind":"vocabulary","status":"APPROVED","version":3,"entry":{"standard":"విషయం","melimi":"ఊహాపలుకు"}}]}
 ]
