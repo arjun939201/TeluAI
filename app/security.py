@@ -3,11 +3,48 @@ from __future__ import annotations
 import hashlib
 import time
 from collections import defaultdict, deque
+from threading import Lock
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
 
 from app.config import settings
+
+
+class SlidingWindowLimiter:
+    def __init__(self):
+        self._events = defaultdict(deque)
+        self._lock = Lock()
+
+    def check(self, key, limit, window_seconds):
+        now = time.monotonic()
+        cutoff = now - window_seconds
+
+        with self._lock:
+            events = self._events[key]
+            while events and events[0] <= cutoff:
+                events.popleft()
+
+            if len(events) >= limit:
+                return False, max(1, int(events[0] + window_seconds - now + 0.999))
+
+            events.append(now)
+            if len(self._events) > 10000:
+                self._prune_locked(cutoff)
+
+        return True, 0
+
+    def _prune_locked(self, cutoff):
+        for key in list(self._events):
+            events = self._events[key]
+            while events and events[0] <= cutoff:
+                events.popleft()
+            if not events:
+                self._events.pop(key, None)
+
+
+RATE_LIMITER = SlidingWindowLimiter()
 
 
 def client_identifier(request: Request):
@@ -45,21 +82,38 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if settings.testing:
             return await call_next(request)
-        now = time.monotonic()
-        key_base = client_identifier(request)
-        for prefix, limit, window in self.RULES:
-            if request.url.path == prefix:
-                key = (prefix, key_base)
-                bucket = self._buckets[key]
-                while bucket and now - bucket[0] >= window:
-                    bucket.popleft()
-                if len(bucket) >= limit:
-                    from starlette.responses import JSONResponse
-                    return JSONResponse({"detail": "Too many requests. Please try again later."}, status_code=429)
-                bucket.append(now)
-                break
+
+        path = request.url.path
+        rule = next((x for x in self.RULES if path == x[0] or path.startswith(x[0] + "/")), None)
+        if rule:
+            route, limit, window = rule
+            allowed, retry = RATE_LIMITER.check(f"{route}:{client_identifier(request)}", limit, window)
+            if not allowed:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many requests. Please try again shortly."},
+                    headers={"Retry-After": str(retry)},
+                )
         return await call_next(request)
 
-    def __init__(self, app):
-        super().__init__(app)
-        self._buckets = defaultdict(deque)
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self' data:; "
+            "connect-src 'self' https://teluai.onrender.com https://teluai.github.io; "
+            "frame-ancestors 'self' https://teluai.github.io; "
+            "base-uri 'self'; form-action 'self'; object-src 'none'",
+        )
+        if request.app.state.secure_transport:
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
