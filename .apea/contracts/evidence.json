@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "name": "apea-g-evidence-contract",
+  "failure_kinds": [
+    "test",
+    "contract_mismatch",
+    "fixture_mismatch",
+    "product_regression",
+    "build",
+    "dependency",
+    "workflow",
+    "provider",
+    "infrastructure",
+    "flaky",
+    "unknown"
+  ],
+  "repair_policy": {
+    "high": ["contract_mismatch", "fixture_mismatch", "build", "dependency"],
+    "medium": ["test", "product_regression", "workflow"],
+    "low": ["provider", "infrastructure", "flaky", "unknown"]
+  },
+  "invariants": [
+    "Never weaken tests or CI to obtain GREEN",
+    "Never expose or persist secrets in evidence records",
+    "Never advance a step without verified GREEN",
+    "Never exceed the configured repair budget",
+    "Never treat a provider or infrastructure outage as a product defect"
+  ]
+}
