@@ -14,16 +14,10 @@ def test_chat_learns_user_suggestion_and_reuses_it(monkeypatch):
 
     monkeypatch.setattr("app.teluai2_app.call_groq_detailed", fake_groq)
 
-    suffix = uuid4().hex[:12]
-    username = "teluai2_" + suffix
-    email = "teluai2_" + suffix + "@example.com"
+    username = "teluai2_" + uuid4().hex[:12]
     with TestClient(app) as client:
-        auth = client.post("/auth/register", json={"username": username, "email": email, "password": "strong-pass-123"})
+        auth = client.post("/auth/guest", json={"username": username, "password": "strong-pass-123"})
         assert auth.status_code == 200, auth.text
-        assert auth.json()["role"] != "guest"
-
-        guest = client.post("/auth/guest", json={"username": "should_not_exist", "password": "strong-pass-123"})
-        assert guest.status_code == 404
 
         taught = client.post("/chat", json={"message": "సంతోషం = అలరిక"})
         assert taught.status_code == 200, taught.text

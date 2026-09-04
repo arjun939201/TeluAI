@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.account_service import update_credentials
+from app.account_service import create_guest_user, update_credentials
 from app.auth import COOKIE_NAME, current_user
 from app.config import settings
 from app.database import (
@@ -141,7 +141,14 @@ def ready():
 
 @app.get("/auth/me")
 def me(user=Depends(current_user)):
-    return {"authenticated": True, "id": user.id, "username": user.username, "email": user.email, "role": user.role}
+    return {"authenticated": True, "id": user.id, "username": user.username, "email": None if user.role == "guest" else user.email, "role": user.role}
+
+@app.post("/auth/guest")
+def guest(payload: dict, response: Response):
+    try: user = create_guest_user(str(payload.get("username", "")).strip(), str(payload.get("password", "")))
+    except ValueError as exc: raise HTTPException(400, str(exc)) from exc
+    _set_cookie(response, create_session(user.id, settings.session_days)); audit_log(user.id, "auth.guest_register", "user", str(user.id))
+    return {"authenticated": True, "id": user.id, "username": user.username, "role": user.role}
 
 @app.post("/auth/register")
 def register(payload: dict, response: Response):

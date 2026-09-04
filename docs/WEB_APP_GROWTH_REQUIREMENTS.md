@@ -4,7 +4,8 @@ This is the production-growth checklist for the current PostgreSQL-backed TeluAI
 
 ## 1. Product foundation
 
-- [x] Account-based usage with required sign-in.
+- [x] Guest-first usage without mandatory email login.
+- [x] Username/password guest accounts.
 - [x] Email registration and login.
 - [x] Profile and credential management.
 - [x] Password recovery by verification code.
@@ -50,7 +51,7 @@ This is the production-growth checklist for the current PostgreSQL-backed TeluAI
 - [x] Password reset session/token flow.
 - [ ] Replace email-only owner bootstrap with a one-time secret/bootstrap token.
 - [ ] Remove automatic owner promotion during every application startup.
-- [ ] Rate limiting for login, registration, password reset, and chat.
+- [ ] Rate limiting for login, guest creation, password reset, and chat.
 - [ ] CSRF protection for state-changing browser requests if cross-site access is ever enabled.
 - [ ] Security headers (CSP, HSTS, frame policy, referrer policy, content type policy).
 - [ ] Session revocation UI and active-session visibility.
@@ -85,7 +86,7 @@ This is the production-growth checklist for the current PostgreSQL-backed TeluAI
 ## 7. Frontend / UX
 
 - [x] Responsive desktop/mobile UI.
-- [x] Account menu.
+- [x] Guest/profile account menu.
 - [x] Settings with theme, text size, density, response length, and memory controls.
 - [x] Mobile navigation drawer.
 - [x] Conversation history modal.
@@ -130,7 +131,7 @@ This is the production-growth checklist for the current PostgreSQL-backed TeluAI
 - [x] Automated pytest suite.
 - [ ] Fresh green CI run on the current `main` after architecture changes.
 - [ ] API integration tests against PostgreSQL.
-- [ ] Browser/E2E tests for login → chat → history → profile → settings.
+- [ ] Browser/E2E tests for guest → chat → history → profile → settings.
 - [ ] Admin authorization regression tests.
 - [ ] Language-space direct-entry regression tests.
 - [ ] Render production smoke test.
@@ -154,7 +155,7 @@ A release should not be called production-ready until all of these are green:
 3. frontend JavaScript syntax check
 4. full pytest suite
 5. API integration tests
-6. login/register → chat → history → profile → settings smoke flow
+6. guest/login/profile/history/settings smoke flow
 7. admin authorization smoke flow
 8. `/word` direct-entry retrieval test
 9. `/content` direct-entry retrieval test
@@ -177,3 +178,12 @@ A release should not be called production-ready until all of these are green:
 - PostgreSQL integration/E2E tests.
 - Rate limiting and security headers.
 - Better Language Space search/provenance/versioning.
+- Streaming/retry/fallback AI behavior.
+- Mobile accessibility and async-state polish.
+
+### P2 — scale and maturity
+- Background jobs.
+- Observability dashboards/alerts.
+- Backups and tested recovery.
+- Dependency/security automation.
+- Advanced linguistic regression and naturalness evaluation.

@@ -73,6 +73,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     RULES = (
         ("/auth/login", 10, 60),
         ("/auth/register", 6, 300),
+        ("/auth/guest", 6, 300),
         ("/auth/forgot-password", 5, 300),
         ("/auth/verify-reset-code", 10, 300),
         ("/auth/reset-password", 6, 300),
