@@ -68,7 +68,7 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: python -m scripts.apea_g_plan
       - name: Execute approved plan continuously
-        if: github.event_name == 'workflow_dispatch' && inputs.approve_plan == true
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.approve_plan == true)
         run: python -m scripts.apea_g_full
       - name: Hold for one-time plan approval
         if: github.event_name == 'push'
@@ -76,9 +76,12 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
+          state = json.loads(Path('.apea/continuous-state.json').read_text(encoding='utf-8'))
           plan = json.loads(Path('.apea/continuous-plan.json').read_text(encoding='utf-8'))
-          if plan.get('approval_required'):
+          if state.get('plan_approved') is True:
+              print('PLAN_APPROVED: continuing autonomous execution.')
+          elif plan.get('approval_required'):
               print(f"PLAN_READY: {len(plan.get('capabilities', []))} capabilities are persisted and awaiting the one-time approval checkpoint.")
           else:
-              print("No approval checkpoint is required.")
+              print('No approval checkpoint is required.')
           PY
