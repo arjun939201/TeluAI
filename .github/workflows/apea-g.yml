@@ -1,9 +1,6 @@
 name: APEA-G Autonomous Engineering Agent
 
 on:
-  workflow_run:
-    workflows: ["TeluAI CI"]
-    types: [completed]
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
@@ -22,31 +19,26 @@ permissions:
   actions: read
 
 concurrency:
-  group: apea-g-${{ github.event.workflow_run.head_branch || github.ref }}
+  group: apea-g-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   engineer:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      (github.event.workflow_run.name == 'TeluAI CI' &&
-       (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'apea-g/')) &&
-       (github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'success'))
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout exact tested revision
+      - name: Checkout current revision
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 20
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
-      - name: Run APEA-G continuous controller
+      - name: Run APEA-G controller
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || secrets.GROQ_TOKEN || secrets.GROKTOKEN }}
           GROQ_TOKEN: ${{ secrets.GROQ_TOKEN || secrets.GROQ_API_KEY || secrets.GROKTOKEN }}
