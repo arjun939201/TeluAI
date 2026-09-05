@@ -1,6 +1,7 @@
 """Autonomous APEA-G entrypoint with resilient provider and CI/PR fallbacks."""
 from __future__ import annotations
 import os
+import subprocess
 import time
 import urllib.error
 
@@ -11,6 +12,7 @@ from scripts import apea_g_loop as core
 _ORIGINAL_ENSURE_PR = core.ensure_pr
 _ORIGINAL_PROVIDER = full.provider
 _ORIGINAL_TOKEN = core.token
+_ORIGINAL_APPLY_PATCH = core.apply_patch
 _ORIGINAL_INSTALL_GUARDS = full.install_runtime_guards
 MAX_PROVIDER_RETRIES = 4
 
@@ -53,6 +55,20 @@ def resilient_provider(instruction: str):
             time.sleep(delay)
 
 
+def safe_apply_patch(patch: str) -> None:
+    """Apply a preflight-approved patch while normalizing harmless whitespace errors."""
+    result = subprocess.run(
+        ["git", "apply", "--whitespace=fix", "-"],
+        cwd=core.ROOT,
+        text=True,
+        input=patch,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "git apply failed").strip()
+        raise RuntimeError(detail[:1200])
+
+
 def dispatch_ci(branch: str):
     """Trigger CI explicitly with the available workflow-dispatch credential."""
     return ci_observer.dispatch_ci(branch)
@@ -60,8 +76,6 @@ def dispatch_ci(branch: str):
 
 def wait_ci(branch: str, after: float):
     """Correlate CI to the exact commit produced by the current step."""
-    import subprocess
-
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ci_observer.ROOT, text=True).strip()
     run = ci_observer.wait_for_commit(branch, head, after)
     print(f"APEA-G CI observed: commit={head[:12]} run={run.get('id')} conclusion={run.get('conclusion')}")
@@ -71,6 +85,7 @@ def wait_ci(branch: str, after: float):
 def install_runtime_guards():
     """Install full-run guards without replacing the CI observer lifecycle hooks."""
     _ORIGINAL_INSTALL_GUARDS()
+    core.apply_patch = safe_apply_patch
     core.dispatch_ci = dispatch_ci
     core.wait_ci = wait_ci
     core.ensure_pr = safe_ensure_pr
@@ -81,6 +96,7 @@ core.token = api_token
 core.ensure_pr = safe_ensure_pr
 core.dispatch_ci = dispatch_ci
 core.wait_ci = wait_ci
+core.apply_patch = safe_apply_patch
 full.provider = resilient_provider
 full.install_runtime_guards = install_runtime_guards
 
