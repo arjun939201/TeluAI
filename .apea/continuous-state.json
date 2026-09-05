@@ -4,5 +4,6 @@
   "history": [],
   "status": "bootstrap",
   "branch": "apea-g/continuous-boot",
-  "branch_initialized": true
+  "branch_initialized": true,
+  "plan_approved": false
 }
