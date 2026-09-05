@@ -31,6 +31,17 @@ TeluAI తెలుగు సంభాషణ
 - AI స్వయంగా ఊహించిన పదాన్ని అధికారిక భాషా జ్ఞానంగా సేవ్ చేయదు.
 - మేలిమి తెలుగు పరిశోధన/ల్యాబ్ ఇంటర్‌ఫేస్ ప్రస్తుతం ఉత్పత్తిలో భాగం కాదు; అది తరువాతి దశకు వదిలివేయబడింది.
 
+## Quality evaluation
+
+The quality-evaluation layer uses a stable Pydantic contract in `quality_evaluation/schema.py`. Each evaluation reports four normalized metrics on a `0..1` scale:
+
+- **Relevance** — how directly the response addresses the request.
+- **Coherence** — clarity, consistency, and logical flow.
+- **Factual accuracy** — correctness of claims when factual assessment is applicable.
+- **Toxicity** — harmful, abusive, or unsafe language signals; higher scores represent better quality after the metric is normalized.
+
+The API contract also carries an overall normalized score and an evaluator version. Unknown fields are rejected so schema drift is caught early by tests and CI.
+
 ## Runtime
 
 `app.server:app` మాత్రమే ప్రస్తుత canonical production entrypoint.
