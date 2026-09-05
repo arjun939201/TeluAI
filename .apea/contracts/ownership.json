@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "name": "apea-g-ownership-contract",
+  "areas": {
+    "language": {"paths": ["app/language/", "app/retrieval/", "app/normalization/", "evals/"], "tests": ["tests/test_eval_contract.py", "tests/test_language*", "tests/test_retrieval*"]},
+    "melimi": {"paths": ["app/melimi/", "data/melimi/", "melimi/"], "tests": ["tests/test_melimi*"]},
+    "conversation": {"paths": ["app/conversation", "app/teluai2_app.py"], "tests": ["tests/test_conversation*"]},
+    "security": {"paths": ["app/auth", "app/account_service.py", "app/security", "static/"], "tests": ["tests/test_auth*", "tests/test_security*"]},
+    "production": {"paths": ["render.yaml", "app/server.py", ".github/workflows/"], "tests": ["tests/test_production*"]}
+  }
+}
