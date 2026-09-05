@@ -1,5 +1,6 @@
-"""Autonomous APEA-G entrypoint with resilient provider and PR fallbacks."""
+"""Autonomous APEA-G entrypoint with resilient provider and CI/PR fallbacks."""
 from __future__ import annotations
+import os
 import time
 import urllib.error
 
@@ -9,7 +10,13 @@ from scripts import apea_g_loop as core
 
 _ORIGINAL_ENSURE_PR = core.ensure_pr
 _ORIGINAL_PROVIDER = full.provider
+_ORIGINAL_TOKEN = core.token
 MAX_PROVIDER_RETRIES = 4
+
+
+def api_token() -> str:
+    """Prefer the dedicated automation credential for write/API lifecycle operations."""
+    return os.environ.get("APEA_GITHUB_TOKEN") or _ORIGINAL_TOKEN()
 
 
 def safe_ensure_pr(branch: str):
@@ -60,6 +67,7 @@ def wait_ci(branch: str, after: float):
     return run
 
 
+core.token = api_token
 core.ensure_pr = safe_ensure_pr
 core.dispatch_ci = dispatch_ci
 core.wait_ci = wait_ci
