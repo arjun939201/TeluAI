@@ -6,18 +6,13 @@ on:
       - "apea-g/continuous-*"
   workflow_dispatch:
     inputs:
-      branch:
-        description: Autonomous branch to continue
-        required: false
-        default: "apea-g/continuous-boot"
-        type: string
       approve_plan:
-        description: Approve the persisted plan once and start autonomous execution
+        description: Approve the persisted complete plan once and run it continuously
         required: false
         default: false
         type: boolean
       max_steps:
-        description: Maximum roadmap steps for this autonomous run
+        description: Maximum steps per capability
         required: false
         default: "12"
         type: string
@@ -63,45 +58,34 @@ jobs:
   continuous-engineer:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event.workflow_run.head_branch != '' && startsWith(github.event.workflow_run.head_branch, 'apea-g/continuous-'))
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 360
     steps:
       - name: Checkout autonomous branch
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
-          fetch-depth: 50
-
+          fetch-depth: 100
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
-
-      - name: Apply one-time plan approval
+      - name: Build or load complete plan
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: python -m scripts.apea_g_plan
+      - name: Execute approved plan continuously
         if: github.event_name == 'workflow_dispatch' && inputs.approve_plan == true
+        run: python -m scripts.apea_g_full
+      - name: Resume autonomous plan after CI
+        if: github.event_name == 'workflow_run'
+        run: python -m scripts.apea_g_full
+      - name: Hold for one-time plan approval
+        if: github.event_name == 'push'
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          state_path = Path('.apea/continuous-state.json')
-          plan_path = Path('.apea/continuous-plan.json')
-          if not state_path.exists() or not plan_path.exists():
-              raise SystemExit('No persisted APEA-G plan exists yet; run the autonomous branch once to generate it.')
-          state = json.loads(state_path.read_text(encoding='utf-8'))
-          plan = json.loads(plan_path.read_text(encoding='utf-8'))
-          if not plan.get('steps'):
-              raise SystemExit('Cannot approve an empty APEA-G plan')
-          capability = plan.get('capability')
-          state['plan_approved'] = True
-          state['approved_plan_capability'] = capability
-          state['status'] = 'executing'
-          plan['status'] = 'approved'
-          plan['approval_required'] = False
-          state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-          plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-          print(f'Approved persisted APEA-G plan: {capability}')
+          plan = json.loads(Path('.apea/continuous-plan.json').read_text(encoding='utf-8'))
+          if plan.get('approval_required'):
+              print(f"PLAN_READY: {len(plan.get('capabilities', []))} capabilities are persisted and awaiting the one-time approval checkpoint.")
+          else:
+              print("No approval checkpoint is required.")
           PY
-
-      - name: Resume or start continuous autonomous developer
-        env:
-          APEA_MODE: ${{ github.event_name == 'workflow_run' && 'resume' || 'start' }}
-        run: >-
-          python -c "import os,runpy,urllib.request; O=urllib.request.Request; UA=os.environ['APEA_HTTP_USER_AGENT']; urllib.request.Request=lambda url,data=None,headers=None,origin_req_host=None,unverifiable=False,method=None: O(url,data=data,headers={**(headers or {}),'User-Agent':UA,'Accept':'application/json'},origin_req_host=origin_req_host,unverifiable=unverifiable,method=method); runpy.run_path('scripts/apea_g_async.py',run_name='__main__')"
