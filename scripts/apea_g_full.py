@@ -116,9 +116,15 @@ def patch_from_files(files: object) -> str:
             continue
         old_lines = old.splitlines(keepends=True)
         new_lines = new.splitlines(keepends=True)
-        chunks.extend(difflib.unified_diff(old_lines, new_lines, fromfile=f"a/{path}", tofile=f"b/{path}", lineterm=""))
-        if chunks and chunks[-1] and not chunks[-1].endswith("\n"):
-            chunks[-1] += "\n"
+        chunks.extend(
+            difflib.unified_diff(
+                old_lines,
+                new_lines,
+                fromfile=f"a/{path}",
+                tofile=f"b/{path}",
+                lineterm="\n",
+            )
+        )
     if not chunks:
         raise ValueError("file edits contain no changes")
     return "".join(chunks)
