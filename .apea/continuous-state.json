@@ -2,7 +2,7 @@
   "completed": [],
   "completed_capabilities": [],
   "history": [],
-  "status": "bootstrap",
+  "status": "plan_generation_requested",
   "branch": "apea-g/continuous-boot",
   "branch_initialized": true,
   "plan_approved": false,
