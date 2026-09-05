@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "name": "apea-g-ownership-contract",
+  "protected_paths": [
+    ".github/workflows/apea-g.yml",
+    ".github/workflows/apea-g-continuous.yml",
+    "scripts/apea_g.py",
+    "scripts/apea_g_loop.py",
+    ".env",
+    "credentials/**",
+    "secrets/**"
+  ],
+  "high_risk_subsystems": [
+    "authentication",
+    "database",
+    "provider",
+    "production-boundary"
+  ],
+  "subsystems": [
+    {
+      "id": "authentication",
+      "paths": ["app/account_service.py", "app/auth*.py", "tests/test_auth*.py"],
+      "tests": ["tests/test_auth.py", "tests/test_account_service.py"]
+    },
+    {
+      "id": "database",
+      "paths": ["app/database.py", "app/*model*.py", "migrations/**", "tests/test_database*.py"],
+      "tests": ["tests/test_database.py"]
+    },
+    {
+      "id": "language-brain",
+      "paths": ["app/language*.py", "app/normaliz*.py", "app/retrieval/**", "tests/test_language*.py"],
+      "tests": ["tests/test_language.py", "tests/test_eval_contract.py"]
+    },
+    {
+      "id": "melimi",
+      "paths": ["app/melimi/**", "data/melimi/**", "tests/test_melimi*.py"],
+      "tests": ["tests/test_melimi.py", "tests/test_eval_contract.py"]
+    },
+    {
+      "id": "conversation",
+      "paths": ["app/conversation*.py", "app/context*.py", "tests/test_conversation*.py"],
+      "tests": ["tests/test_conversation.py"]
+    },
+    {
+      "id": "evaluation",
+      "paths": ["app/eval.py", "evals/**", "tests/test_eval*.py"],
+      "tests": ["tests/test_eval_contract.py"]
+    },
+    {
+      "id": "provider",
+      "paths": ["app/*provider*.py", "app/groq*.py", "tests/test_provider*.py"],
+      "tests": ["tests/test_provider.py"]
+    },
+    {
+      "id": "production-boundary",
+      "paths": ["app/server.py", "app/teluai2_app.py", "render.yaml", "Dockerfile", "requirements.txt"],
+      "tests": ["tests/test_production.py"]
+    },
+    {
+      "id": "frontend",
+      "paths": ["static/**", "tests/test_frontend*.py"],
+      "tests": ["tests/test_frontend.py"]
+    },
+    {
+      "id": "api",
+      "paths": ["app/teluai2_app.py", "tests/test_api*.py"],
+      "tests": ["tests/test_api.py"]
+    },
+    {
+      "id": "apea-g",
+      "paths": ["scripts/apea_g_ci.py", "scripts/apea_g_preflight.py", ".apea/contracts/**", "tests/test_apea_g*.py"],
+      "tests": ["tests/test_apea_g_ci.py", "tests/test_apea_g_preflight.py"]
+    }
+  ]
+}
