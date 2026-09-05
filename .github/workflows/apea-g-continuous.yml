@@ -18,6 +18,9 @@ on:
         required: false
         default: false
         type: boolean
+  workflow_run:
+    workflows: ["TeluAI CI"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -29,33 +32,37 @@ concurrency:
   group: apea-g-continuous
   cancel-in-progress: false
 
+env:
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || secrets.GROQ_TOKEN }}
+  GROQ_TOKEN: ${{ secrets.GROQ_TOKEN || secrets.GROQ_API_KEY }}
+  GROQ_MODEL: ${{ vars.APEA_G_MODEL || 'openai/gpt-oss-120b' }}
+  GROQ_URL: ${{ vars.GROQ_URL || 'https://api.groq.com/openai/v1/chat/completions' }}
+  GITHUB_TOKEN: ${{ github.token }}
+  GITHUB_REPOSITORY: ${{ github.repository }}
+  APEA_MAX_STEPS: ${{ inputs.max_steps || '12' }}
+  APEA_MAX_REPAIRS: ${{ inputs.max_repairs || '4' }}
+  APEA_MERGE: ${{ inputs.merge || 'false' }}
+  PYTHONUNBUFFERED: "1"
+  APEA_HTTP_USER_AGENT: "TeluAI-APEA-G/1.0"
+
 jobs:
   continuous-engineer:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.head_branch != '' && startsWith(github.event.workflow_run.head_branch, 'apea-g/continuous-'))
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 30
     steps:
-      - name: Checkout main
+      - name: Checkout autonomous branch
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || 'main' }}
           fetch-depth: 50
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
-      - name: Run continuous autonomous engineering loop
+      - name: Resume or start event-driven autonomous loop
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || secrets.GROQ_TOKEN }}
-          GROQ_TOKEN: ${{ secrets.GROQ_TOKEN || secrets.GROQ_API_KEY }}
-          GROQ_MODEL: ${{ vars.APEA_G_MODEL || 'openai/gpt-oss-120b' }}
-          GROQ_URL: ${{ vars.GROQ_URL || 'https://api.groq.com/openai/v1/chat/completions' }}
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          APEA_MAX_STEPS: ${{ inputs.max_steps || '12' }}
-          APEA_MAX_REPAIRS: ${{ inputs.max_repairs || '4' }}
-          APEA_MERGE: ${{ inputs.merge || 'false' }}
-          PYTHONUNBUFFERED: "1"
-          APEA_HTTP_USER_AGENT: "TeluAI-APEA-G/1.0"
+          APEA_MODE: ${{ github.event_name == 'workflow_run' && 'resume' || 'start' }}
         run: >-
-          python -c "import os,runpy,urllib.request; O=urllib.request.Request; UA=os.environ['APEA_HTTP_USER_AGENT']; urllib.request.Request=lambda url,data=None,headers=None,origin_req_host=None,unverifiable=False,method=None: O(url,data=data,headers={**(headers or {}),'User-Agent':UA,'Accept':'application/json'},origin_req_host=origin_req_host,unverifiable=unverifiable,method=method); runpy.run_path('scripts/apea_g_loop.py',run_name='__main__')"
+          python -c "import os,runpy,urllib.request; O=urllib.request.Request; UA=os.environ['APEA_HTTP_USER_AGENT']; urllib.request.Request=lambda url,data=None,headers=None,origin_req_host=None,unverifiable=False,method=None: O(url,data=data,headers={**(headers or {}),'User-Agent':UA,'Accept':'application/json'},origin_req_host=origin_req_host,unverifiable=unverifiable,method=method); runpy.run_path('scripts/apea_g_async.py',run_name='__main__')"
