@@ -43,6 +43,7 @@ env:
   GROQ_MODEL: ${{ vars.APEA_G_MODEL || 'openai/gpt-oss-120b' }}
   GROQ_URL: ${{ vars.GROQ_URL || 'https://api.groq.com/openai/v1/chat/completions' }}
   GITHUB_TOKEN: ${{ github.token }}
+  APEA_GITHUB_TOKEN: ${{ secrets.APEA_GITHUB_TOKEN }}
   GITHUB_REPOSITORY: ${{ github.repository }}
   APEA_MAX_STEPS: ${{ inputs.max_steps || '12' }}
   APEA_MAX_REPAIRS: ${{ inputs.max_repairs || '4' }}
