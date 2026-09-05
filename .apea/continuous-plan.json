@@ -1,0 +1,476 @@
+{
+  "schema_version": 1,
+  "status": "awaiting_approval",
+  "approval_required": true,
+  "generated_from": ".apea/roadmap.json",
+  "capabilities": [
+    {
+      "capability": "quality-evaluation",
+      "goal": "Implement the unfinished 'quality-evaluation' capability in the TeluAI roadmap, delivering a functional module that can assess the quality of generated AI outputs, expose a clean API, and integrate with existing CI pipelines.",
+      "steps": [
+        {
+          "id": "step-1",
+          "title": "Repository audit for quality‑evaluation artifacts",
+          "objective": "Locate existing placeholders, tests, and documentation related to the quality‑evaluation feature; identify missing files, entry points, and CI expectations.",
+          "verification": "A concise audit report (markdown) listing all discovered files (e.g., `quality_evaluation/__init__.py`, test suites under `tests/quality_evaluation/`, CI config snippets) and gaps such as missing implementation modules or failing tests."
+        },
+        {
+          "id": "step-2",
+          "title": "Define quality metrics and evaluation schema",
+          "objective": "Specify the concrete metrics (e.g., relevance, coherence, factual accuracy, toxicity) and the JSON schema that the evaluation API will return.",
+          "verification": "A `quality_evaluation/schema.py` file containing a Pydantic model (or equivalent) plus a README section documenting each metric, approved by a code review."
+        },
+        {
+          "id": "step-3",
+          "title": "Create core evaluation engine skeleton",
+          "objective": "Implement a `QualityEvaluator` class with stub methods for each metric, wired to the schema defined in step‑2.",
+          "verification": "The class compiles without errors, and unit tests that import the class and assert the presence of expected methods pass."
+        },
+        {
+          "id": "step-4",
+          "title": "Integrate existing model inference hooks",
+          "objective": "Connect the evaluator to TeluAI’s existing generation pipeline so that raw model outputs can be passed to the evaluator automatically.",
+          "verification": "A functional integration test that runs a short generation job, feeds the output to `QualityEvaluator.evaluate()`, and asserts a non‑empty result dictionary."
+        },
+        {
+          "id": "step-5",
+          "title": "Implement metric algorithms",
+          "objective": "Fill in the stub methods with concrete implementations: semantic similarity (using embeddings), language model‑based coherence scoring, factual check via external knowledge base mock, and toxicity detection via a lightweight classifier.",
+          "verification": "Each metric method returns a float in the range [0,1]; a dedicated test suite validates boundary conditions and typical inputs."
+        },
+        {
+          "id": "step-6",
+          "title": "Expose public API endpoint",
+          "objective": "Add a FastAPI (or existing framework) route `POST /quality-evaluation` that accepts generated text and returns the evaluation JSON.",
+          "verification": "Manual curl request returns a 200 response with a JSON payload matching the schema; an automated integration test asserts HTTP status and schema compliance."
+        },
+        {
+          "id": "step-7",
+          "title": "Add comprehensive unit and integration tests",
+          "objective": "Write tests covering: schema validation, each metric’s logic, the `QualityEvaluator` workflow, and the HTTP endpoint.",
+          "verification": "All new tests pass locally and are detected by the CI test runner with ≥90% coverage for the new module."
+        },
+        {
+          "id": "step-8",
+          "title": "Update CI configuration",
+          "objective": "Ensure the CI pipeline runs the new tests, lints the added code, and fails on any regression.",
+          "verification": "CI logs show execution of the new test suite; the pipeline status is green only when all quality‑evaluation tests pass."
+        },
+        {
+          "id": "step-9",
+          "title": "Documentation and usage examples",
+          "objective": "Create `docs/quality_evaluation.md` with installation notes, API usage examples, and explanation of each metric.",
+          "verification": "Documentation builds without warnings and the examples run successfully in a sandboxed environment."
+        },
+        {
+          "id": "step-10",
+          "title": "Performance benchmarking",
+          "objective": "Measure latency and resource usage of the evaluation pipeline on typical payload sizes; set acceptable thresholds.",
+          "verification": "A benchmark script outputs average latency < 200 ms per evaluation and memory usage < 150 MiB; results are recorded in the repository."
+        },
+        {
+          "id": "step-11",
+          "title": "Security and safety review",
+          "objective": "Confirm that the evaluation code does not introduce external network calls or unsafe deserialization; run static analysis tools.",
+          "verification": "Static analysis reports (e.g., Bandit, MyPy) show zero high‑severity findings; a peer review sign‑off is recorded."
+        },
+        {
+          "id": "step-12",
+          "title": "Release candidate tagging and rollout plan",
+          "objective": "Tag the repository with `vX.Y.Z-quality-evaluation` and draft a rollout plan that includes feature flag toggles for production deployment.",
+          "verification": "Git tag exists, release notes list the new capability, and a deployment script demonstrates toggling the feature on/off without errors."
+        }
+      ]
+    },
+    {
+      "capability": "performance",
+      "goal": "Implement a bounded performance monitoring and optimization capability for TeluAI as defined in the roadmap.",
+      "steps": [
+        {
+          "id": "S1",
+          "title": "Repository Assessment",
+          "objective": "Search the codebase for any existing performance-related modules, tests, or documentation to avoid duplication and identify integration points.",
+          "verification": "A report listing found files (if any) and confirming none implement the required performance capability."
+        },
+        {
+          "id": "S2",
+          "title": "Define Performance Metrics",
+          "objective": "Select a minimal, bounded set of metrics (e.g., latency, throughput, memory usage) that align with TeluAI's current services.",
+          "verification": "A markdown file `docs/performance_metrics.md` enumerating the chosen metrics with measurement units and thresholds."
+        },
+        {
+          "id": "S3",
+          "title": "Create Metrics Collector Interface",
+          "objective": "Add a new abstract class `PerformanceCollector` with methods `record_latency`, `record_throughput`, and `record_memory` in `teluai/performance/collector.py`.",
+          "verification": "Static analysis (e.g., `flake8`) passes and unit tests verify the interface raises `NotImplementedError` for each method."
+        },
+        {
+          "id": "S4",
+          "title": "Implement Simple In‑Memory Collector",
+          "objective": "Provide a concrete implementation `InMemoryPerformanceCollector` that stores recent metric samples in a thread‑safe list.",
+          "verification": "Unit test `test_in_memory_collector.py` confirms that metric values are recorded and can be retrieved."
+        },
+        {
+          "id": "S5",
+          "title": "Integrate Collector into Core Pipeline",
+          "objective": "Instrument the main request handling flow (e.g., `teluai/core/handler.py`) to instantiate the collector and call its methods around critical sections.",
+          "verification": "Integration test runs a sample request and asserts that the collector contains at least one latency entry."
+        },
+        {
+          "id": "S6",
+          "title": "Add Configurable Sampling Window",
+          "objective": "Introduce a configuration option `performance.sample_window_seconds` (default 60) to limit how long metrics are retained.",
+          "verification": "Configuration file `config/default.yaml` includes the new option and collector respects it (tested via unit test)."
+        },
+        {
+          "id": "S7",
+          "title": "Expose Metrics via HTTP Endpoint",
+          "objective": "Create a new route `/metrics/performance` that returns the aggregated metrics in JSON format.",
+          "verification": "API test calls the endpoint and validates JSON schema matches `docs/performance_metrics.md`."
+        },
+        {
+          "id": "S8",
+          "title": "Add CI Tests for Performance Capability",
+          "objective": "Write CI‑compatible tests covering collector behavior, integration, and endpoint response.",
+          "verification": "CI pipeline shows all new tests passing on the default branch."
+        },
+        {
+          "id": "S9",
+          "title": "Documentation Update",
+          "objective": "Update the project README and `docs/architecture.md` with a section describing the performance capability, usage, and configuration.",
+          "verification": "Documentation builds without warnings and includes the new section."
+        },
+        {
+          "id": "S10",
+          "title": "Performance Benchmark Script",
+          "objective": "Add a lightweight script `scripts/benchmark_performance.py` that generates synthetic load and prints collected metrics.",
+          "verification": "Running the script prints a JSON summary and exits with status 0."
+        },
+        {
+          "id": "S11",
+          "title": "Safety Review",
+          "objective": "Conduct a code review focusing on thread safety, resource leakage, and bounded memory usage.",
+          "verification": "Review checklist signed off by at least two senior engineers."
+        },
+        {
+          "id": "S12",
+          "title": "Release Preparation",
+          "objective": "Tag a new release `vX.Y.Z-performance` and update the changelog with the added capability.",
+          "verification": "Git tag exists, changelog entry present, and CI publishes the release artifact."
+        }
+      ]
+    },
+    {
+      "capability": "security",
+      "goal": "Implement a robust security subsystem for TeluAI that provides authentication, authorization, secret management, and audit logging, integrates with existing CI pipelines, and passes all repository tests.",
+      "steps": [
+        {
+          "id": 1,
+          "title": "Requirements & Threat Modeling",
+          "objective": "Gather functional and non‑functional security requirements from existing documentation and conduct a STRIDE threat model for the TeluAI codebase.",
+          "verification": "Documented requirements matrix and threat model diagram reviewed and approved by the security lead."
+        },
+        {
+          "id": 2,
+          "title": "Design Authentication Layer",
+          "objective": "Design a pluggable authentication interface supporting JWT, OAuth2, and API‑key mechanisms, with clear contracts for token issuance and validation.",
+          "verification": "Design document with UML class diagram and interface specifications; peer‑review sign‑off."
+        },
+        {
+          "id": 3,
+          "title": "Implement Authentication Service",
+          "objective": "Add a new `auth` package implementing the designed interfaces, including token generation, verification, and refresh logic.",
+          "verification": "Unit tests covering 100 % of public methods, CI pipeline shows all auth tests passing."
+        },
+        {
+          "id": 4,
+          "title": "Design Authorization (RBAC) Model",
+          "objective": "Define role‑based access control schema, permission hierarchy, and policy evaluation algorithm compatible with existing request handling.",
+          "verification": "Policy schema JSON schema and evaluation flowchart approved by architecture review."
+        },
+        {
+          "id": 5,
+          "title": "Implement Authorization Middleware",
+          "objective": "Create middleware that extracts user identity from the authentication layer, checks required permissions against the RBAC model, and rejects unauthorized requests.",
+          "verification": "Integration tests exercising allowed and denied scenarios; middleware coverage ≥ 90 %."
+        },
+        {
+          "id": 6,
+          "title": "Secure Secret Management",
+          "objective": "Integrate with a secret vault (e.g., HashiCorp Vault or AWS Secrets Manager) using a thin abstraction layer, ensuring no secrets are hard‑coded or checked into repo.",
+          "verification": "Static analysis (e.g., truffleHog) reports zero hard‑coded secrets; functional tests retrieve secrets via the abstraction."
+        },
+        {
+          "id": 7,
+          "title": "Audit Logging Framework",
+          "objective": "Introduce a structured audit logger that records authentication attempts, permission checks, and privileged actions with tamper‑evident metadata.",
+          "verification": "Log format conforms to JSON schema; log ingestion test validates that entries are written and can be queried."
+        },
+        {
+          "id": 8,
+          "title": "CI/CD Security Gates",
+          "objective": "Add CI jobs that run static security analysis (bandit, gosec, etc.), secret scanning, and dependency vulnerability checks before merge.",
+          "verification": "CI pipeline shows all security jobs passing; any new vulnerability fails the pipeline."
+        },
+        {
+          "id": 9,
+          "title": "End‑to‑End Security Tests",
+          "objective": "Write integration tests that simulate full request flow: authentication → authorization → action, verifying correct enforcement and audit entries.",
+          "verification": "Test suite runs in CI with 100 % pass rate; coverage report shows ≥ 80 % of security‑related code exercised."
+        },
+        {
+          "id": 10,
+          "title": "Documentation & Developer Guide",
+          "objective": "Produce markdown docs describing how to configure auth providers, define roles, manage secrets, and interpret audit logs.",
+          "verification": "Docs build without errors; a sample project can be set up following the guide and passes all security tests."
+        },
+        {
+          "id": 11,
+          "title": "Performance & Load Testing",
+          "objective": "Benchmark authentication and authorization latency under realistic load; ensure overhead stays below 5 ms per request.",
+          "verification": "Load test report with metrics and thresholds met; CI includes a performance gate."
+        },
+        {
+          "id": 12,
+          "title": "Release & Post‑Release Monitoring",
+          "objective": "Tag a new release, deploy to staging, and configure monitoring alerts for auth failures, unusual permission denials, and vault access errors.",
+          "verification": "Monitoring dashboards show expected metrics; alert test triggers and resolves correctly."
+        }
+      ]
+    },
+    {
+      "capability": "ux",
+      "goal": "Deliver a complete, production‑ready UX capability for TeluAI that aligns with the roadmap, meets accessibility standards, integrates with existing backend services, and is fully covered by automated tests and documentation.",
+      "steps": [
+        {
+          "id": "UX-01",
+          "title": "Gather and Formalize UX Requirements",
+          "objective": "Collect stakeholder input, user stories, and functional specifications for the UX feature; create a concise requirements document.",
+          "verification": "Approved requirements document stored in `docs/ux/requirements.md` and signed off by product owner."
+        },
+        {
+          "id": "UX-02",
+          "title": "Create Wireframes and Interaction Flow",
+          "objective": "Design low‑fidelity wireframes and a user‑flow diagram that illustrate all screens, navigation paths, and key interactions.",
+          "verification": "Wireframes and flow diagram committed to `design/ux/` and reviewed in a design‑review meeting (recorded minutes attached)."
+        },
+        {
+          "id": "UX-03",
+          "title": "Define Component Library and Style Guide",
+          "objective": "Establish a reusable component library (e.g., buttons, forms, modals) and a CSS/SCSS style guide consistent with TeluAI branding.",
+          "verification": "Component library code in `src/ui/components/` with accompanying `README.md`; style guide published in `docs/ux/style-guide.md`."
+        },
+        {
+          "id": "UX-04",
+          "title": "Implement Core Layout and Navigation",
+          "objective": "Build the main layout (header, sidebar, content area) and routing logic using the chosen front‑end framework (React/Vue/etc.).",
+          "verification": "Layout renders correctly in local dev; navigation routes pass end‑to‑end smoke tests (`npm run test:e2e`)."
+        },
+        {
+          "id": "UX-05",
+          "title": "Integrate UI with Existing Backend APIs",
+          "objective": "Connect UI components to TeluAI backend services (authentication, data fetching, state management) using typed API clients.",
+          "verification": "All API calls succeed in a staging environment; integration tests in `tests/integration/ux/` report 100% pass."
+        },
+        {
+          "id": "UX-06",
+          "title": "Add Accessibility (a11y) Compliance",
+          "objective": "Ensure all UI elements meet WCAG 2.1 AA criteria (keyboard navigation, ARIA labels, color contrast).",
+          "verification": "Automated a11y audit (`npm run lint:a11y`) yields zero violations; manual checklist signed off."
+        },
+        {
+          "id": "UX-07",
+          "title": "Write Unit and Component Tests",
+          "objective": "Create comprehensive Jest/Testing‑Library tests for each UI component covering rendering, props handling, and edge cases.",
+          "verification": "Test coverage report shows ≥ 90% line coverage for `src/ui/`; CI pipeline passes all test jobs."
+        },
+        {
+          "id": "UX-08",
+          "title": "Conduct Usability Testing with Real Users",
+          "objective": "Run moderated usability sessions with a representative user group; capture feedback on flow, clarity, and satisfaction.",
+          "verification": "Usability test report stored in `reports/ux/usability.md` with actionable findings logged."
+        },
+        {
+          "id": "UX-09",
+          "title": "Iterate and Refine Based on Feedback",
+          "objective": "Address high‑priority usability issues, polish interactions, and resolve any bugs uncovered during testing.",
+          "verification": "Updated components pass regression tests; change log documented in `CHANGELOG.md`."
+        },
+        {
+          "id": "UX-10",
+          "title": "Document Usage and Contribution Guidelines",
+          "objective": "Write developer documentation for component usage, theming, and contribution process; include code examples.",
+          "verification": "Documentation built into the site (`npm run docs:build`) and deployed to `docs.teluai.com/ux`."
+        },
+        {
+          "id": "UX-11",
+          "title": "Integrate UX Tests into CI/CD Pipeline",
+          "objective": "Add linting, a11y checks, unit, integration, and e2e tests for the UX code to the existing GitHub Actions workflow.",
+          "verification": "CI workflow shows all UX jobs passing on every push to `main`; badge updated in README."
+        },
+        {
+          "id": "UX-12",
+          "title": "Release UX Capability to Production",
+          "objective": "Perform a staged rollout of the new UX feature, monitor metrics, and ensure rollback procedures are in place.",
+          "verification": "Feature flag enabled for 10 % of traffic; no critical errors logged; final release note posted in `RELEASES.md`."
+        }
+      ]
+    },
+    {
+      "capability": "production",
+      "goal": "Implement the \"production\" capability for TeluAI, enabling safe, repeatable, and observable deployment of AI services to live environments.",
+      "steps": [
+        {
+          "id": "step-1",
+          "title": "Assess current repository state",
+          "objective": "Identify existing CI/CD pipelines, configuration files, deployment scripts, and any production‑related code or documentation.",
+          "verification": "A concise report listing all relevant files (e.g., .github/workflows, Dockerfiles, helm charts, Terraform modules) and gaps relative to a production‑ready workflow."
+        },
+        {
+          "id": "step-2",
+          "title": "Define production environment specifications",
+          "objective": "Document required infrastructure (cloud provider, regions, networking, storage), runtime constraints (CPU/GPU, memory), security posture (IAM roles, secrets handling), and observability requirements (logging, metrics, tracing).",
+          "verification": "A markdown specification file (e.g., docs/production_spec.md) reviewed and approved by the architecture lead."
+        },
+        {
+          "id": "step-3",
+          "title": "Create immutable infrastructure templates",
+          "objective": "Develop IaC (Terraform or CloudFormation) modules that provision the production environment consistently, including VPC, subnets, load balancers, and managed AI services.",
+          "verification": "IaC code passes `terraform fmt`, `terraform validate`, and a plan execution shows no unintended changes."
+        },
+        {
+          "id": "step-4",
+          "title": "Containerize the application for production",
+          "objective": "Write a production‑grade Dockerfile with multi‑stage builds, non‑root user, minimal base image, and health‑check definitions.",
+          "verification": "Docker image builds successfully in CI, passes `docker scan` for vulnerabilities, and runs health checks locally."
+        },
+        {
+          "id": "step-5",
+          "title": "Implement CI pipeline enhancements",
+          "objective": "Extend existing CI workflows to include linting, unit tests, integration tests, security scans, and image publishing to a private registry on merge to main.",
+          "verification": "GitHub Actions (or equivalent) run automatically on PRs, all jobs succeed, and a versioned image is pushed to the registry."
+        },
+        {
+          "id": "step-6",
+          "title": "Add automated deployment to staging",
+          "objective": "Configure a CD stage that deploys the built image to a staging environment using Helm/Kustomize, with automatic rollback on failure.",
+          "verification": "A successful deployment to staging is observable via `kubectl get pods` and health endpoints return 200."
+        },
+        {
+          "id": "step-7",
+          "title": "Integrate secrets management",
+          "objective": "Replace any hard‑coded credentials with references to a secrets manager (e.g., HashiCorp Vault, AWS Secrets Manager) and ensure CI/CD can retrieve them securely.",
+          "verification": "Application starts in staging without exposing secrets; audit logs show secret access only by authorized service accounts."
+        },
+        {
+          "id": "step-8",
+          "title": "Establish observability stack",
+          "objective": "Deploy logging (e.g., Loki), metrics (Prometheus), and tracing (Jaeger) components and instrument the application to emit structured logs and OpenTelemetry traces.",
+          "verification": "Sample logs and metrics appear in the observability UI; traces can be followed end‑to‑end for a test request."
+        },
+        {
+          "id": "step-9",
+          "title": "Implement production deployment workflow",
+          "objective": "Add a gated CD job that promotes the staging release to production after manual approval, runs smoke tests, and records the release version.",
+          "verification": "A release tag triggers the production deployment; post‑deployment smoke tests pass and the version is recorded in a changelog."
+        },
+        {
+          "id": "step-10",
+          "title": "Configure automated rollback and disaster recovery",
+          "objective": "Define health‑check thresholds that trigger automatic rollback to the previous stable version and document backup/restore procedures for data stores.",
+          "verification": "Simulated failure causes the pipeline to rollback; backup scripts run without error and can restore a test dataset."
+        },
+        {
+          "id": "step-11",
+          "title": "Perform security and compliance audit",
+          "objective": "Run a full security scan (SAST, DAST, container scanning) and verify compliance with internal policies (e.g., GDPR, SOC2).",
+          "verification": "All audit tools report no critical findings; compliance checklist is signed off by the security team."
+        },
+        {
+          "id": "step-12",
+          "title": "Document runbooks and handoff",
+          "objective": "Create operational runbooks covering deployment, monitoring, incident response, and scaling procedures; train the operations team.",
+          "verification": "Runbooks are stored in the repository (docs/runbooks/), reviewed by ops, and a sign‑off meeting is recorded."
+        }
+      ]
+    },
+    {
+      "capability": "release",
+      "goal": "Implement the 'release' capability in the TeluAI project, enabling automated version tagging, artifact packaging, and deployment to the configured release target while ensuring all tests pass and CI validates the release process.",
+      "steps": [
+        {
+          "id": "step1",
+          "title": "Gather requirements and define release workflow",
+          "objective": "Document the exact release steps (version bump, changelog generation, artifact build, upload, and notification) and identify required configuration files and environment variables.",
+          "verification": "A markdown specification file (RELEASE_SPEC.md) is added and reviewed, and CI includes a lint check that validates its presence and format."
+        },
+        {
+          "id": "step2",
+          "title": "Add version management utilities",
+          "objective": "Implement a CLI command (e.g., `teluai version bump`) that updates the project version in pyproject.toml and generates a git tag.",
+          "verification": "Unit tests verify that the version is correctly incremented and that a git tag is created; CI runs these tests and reports success."
+        },
+        {
+          "id": "step3",
+          "title": "Generate changelog automatically",
+          "objective": "Integrate a tool (e.g., towncrier or conventional‑commits parser) to produce a changelog from merged PRs since the last tag.",
+          "verification": "Running `teluai changelog` produces a markdown file matching expected format; a CI job checks that the file is non‑empty for a new release."
+        },
+        {
+          "id": "step4",
+          "title": "Create artifact build pipeline",
+          "objective": "Configure a build script that packages the library (wheel and sdist) and runs any required post‑processing (e.g., signing).",
+          "verification": "The script produces .whl and .tar.gz files; CI includes a job that confirms the artifacts exist and pass `twine check`."
+        },
+        {
+          "id": "step5",
+          "title": "Implement release upload step",
+          "objective": "Add a CI job that uploads the built artifacts to the configured repository (e.g., PyPI or an internal artifact store) using stored credentials.",
+          "verification": "CI job succeeds in a dry‑run mode; a subsequent job verifies that the uploaded package metadata matches the version tag."
+        },
+        {
+          "id": "step6",
+          "title": "Add release notification",
+          "objective": "Send a release announcement (e.g., Slack webhook or email) containing version, changelog, and artifact links after a successful upload.",
+          "verification": "A mock webhook endpoint receives the expected payload in CI; a test asserts the payload structure."
+        },
+        {
+          "id": "step7",
+          "title": "Integrate release command into CI pipeline",
+          "objective": "Create a protected CI workflow (e.g., `release.yml`) that triggers on a manual dispatch or a specific git tag pattern.",
+          "verification": "The workflow appears in the repository's CI UI, can be manually triggered, and respects branch protection rules."
+        },
+        {
+          "id": "step8",
+          "title": "Add safety checks and roll‑back procedure",
+          "objective": "Implement pre‑release validation (test suite, lint, security scan) and a script to revert the tag and delete faulty artifacts if needed.",
+          "verification": "CI fails the release job when any pre‑release check fails; a test confirms that the rollback script removes the tag and artifacts."
+        },
+        {
+          "id": "step9",
+          "title": "Document usage and troubleshooting",
+          "objective": "Write user documentation (README section and CLI help) describing how to invoke the release process and common failure modes.",
+          "verification": "Documentation builds without warnings; CI includes a link‑check job that validates all internal links."
+        },
+        {
+          "id": "step10",
+          "title": "Secure secret handling",
+          "objective": "Store all release credentials (PyPI token, webhook URL) in the CI secret store and ensure they are only accessed by the release job.",
+          "verification": "CI job logs do not expose secret values; a secret‑leak test scans logs for patterns and passes."
+        },
+        {
+          "id": "step11",
+          "title": "Run end‑to‑end release dry run",
+          "objective": "Execute the full release workflow in a sandbox environment using test credentials to verify the entire path.",
+          "verification": "All steps complete without errors; a CI artifact records the dry‑run log and is reviewed manually."
+        },
+        {
+          "id": "step12",
+          "title": "Enable production release trigger",
+          "objective": "Remove the dry‑run flag, enable the real credentials, and open the release workflow for production use.",
+          "verification": "A successful production release creates a new version tag, uploads artifacts to the real repository, and posts a notification; CI marks the release job as passed."
+        }
+      ]
+    }
+  ]
+}

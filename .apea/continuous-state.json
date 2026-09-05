@@ -2,9 +2,17 @@
   "completed": [],
   "completed_capabilities": [],
   "history": [],
-  "status": "plan_generation_requested",
+  "status": "awaiting_plan_approval",
   "branch": "apea-g/continuous-boot",
   "branch_initialized": true,
   "plan_approved": false,
-  "session": "full-plan-continuous"
+  "session": "full-plan-continuous",
+  "plan_capabilities": [
+    "quality-evaluation",
+    "performance",
+    "security",
+    "ux",
+    "production",
+    "release"
+  ]
 }
