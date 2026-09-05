@@ -2,10 +2,10 @@
   "completed": [],
   "completed_capabilities": [],
   "history": [],
-  "status": "awaiting_plan_approval",
+  "status": "approved",
   "branch": "apea-g/continuous-boot",
   "branch_initialized": true,
-  "plan_approved": false,
+  "plan_approved": true,
   "session": "full-plan-continuous",
   "plan_capabilities": [
     "quality-evaluation",
@@ -14,5 +14,6 @@
     "ux",
     "production",
     "release"
-  ]
+  ],
+  "approval_source": "user-go"
 }
