@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 import urllib.error
 
+from scripts import apea_g_ci_observer as ci_observer
 from scripts import apea_g_full as full
 from scripts import apea_g_loop as core
 
@@ -44,7 +45,24 @@ def resilient_provider(instruction: str):
             time.sleep(delay)
 
 
+def dispatch_ci(branch: str):
+    """Trigger CI explicitly with the dedicated APEA-G credential."""
+    return ci_observer.dispatch_ci(branch)
+
+
+def wait_ci(branch: str, after: float):
+    """Correlate CI to the exact commit produced by the current step."""
+    import subprocess
+
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ci_observer.ROOT, text=True).strip()
+    run = ci_observer.wait_for_commit(branch, head, after)
+    print(f"APEA-G CI observed: commit={head[:12]} run={run.get('id')} conclusion={run.get('conclusion')}")
+    return run
+
+
 core.ensure_pr = safe_ensure_pr
+core.dispatch_ci = dispatch_ci
+core.wait_ci = wait_ci
 full.provider = resilient_provider
 
 if __name__ == "__main__":
