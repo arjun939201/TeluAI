@@ -49,8 +49,15 @@ def install_runtime_guards() -> None:
         for attempt in range(1, MAX_PATCH_RETRIES + 1):
             prompt = instruction
             if last_error:
-                prompt += f"\nPREVIOUS OUTPUT WAS REJECTED: {last_error}\nReturn a corrected unified diff with recognized repository file paths."
-            result = original_provider(prompt)
+                prompt += f"\nPREVIOUS OUTPUT WAS REJECTED: {last_error}\nReturn exactly one JSON object only. Do not append commentary, Markdown, multiple JSON objects, or any text after the JSON object. For implementation, return a corrected unified diff with recognized repository file paths."
+            try:
+                result = original_provider(prompt)
+            except (json.JSONDecodeError, ValueError) as exc:
+                last_error = f"invalid provider JSON: {exc}"
+                if attempt < MAX_PATCH_RETRIES:
+                    print(f"APEA-G provider output rejected; retry {attempt + 1}/{MAX_PATCH_RETRIES}: {last_error}")
+                    continue
+                raise RuntimeError(f"APEA-G provider output failed after {MAX_PATCH_RETRIES} attempts: {last_error}") from exc
             patch = result.get("patch") if isinstance(result, dict) else None
             if isinstance(patch, str) and patch.strip():
                 report = core.preflight(patch)
