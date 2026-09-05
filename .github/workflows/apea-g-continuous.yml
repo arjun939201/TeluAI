@@ -1,6 +1,9 @@
 name: APEA-G Continuous Engineering
 
 on:
+  push:
+    branches:
+      - "apea-g/continuous-*"
   workflow_dispatch:
     inputs:
       branch:
@@ -39,7 +42,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: apea-g-continuous-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || inputs.branch }}
+  group: apea-g-continuous-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -58,14 +61,14 @@ env:
 
 jobs:
   continuous-engineer:
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.head_branch != '' && startsWith(github.event.workflow_run.head_branch, 'apea-g/continuous-'))
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event.workflow_run.head_branch != '' && startsWith(github.event.workflow_run.head_branch, 'apea-g/continuous-'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout autonomous branch
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || inputs.branch }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
           fetch-depth: 50
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -80,6 +83,8 @@ jobs:
           from pathlib import Path
           state_path = Path('.apea/continuous-state.json')
           plan_path = Path('.apea/continuous-plan.json')
+          if not state_path.exists() or not plan_path.exists():
+              raise SystemExit('No persisted APEA-G plan exists yet; run the autonomous branch once to generate it.')
           state = json.loads(state_path.read_text(encoding='utf-8'))
           plan = json.loads(plan_path.read_text(encoding='utf-8'))
           if not plan.get('steps'):
