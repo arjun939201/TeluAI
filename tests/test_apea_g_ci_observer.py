@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from scripts import apea_g_ci_observer as observer
 
 
@@ -28,10 +26,35 @@ def test_wait_for_commit_correlates_exact_head_sha(monkeypatch):
     assert len(calls) == 1
 
 
-def test_dispatch_requires_dedicated_automation_token(monkeypatch):
-    monkeypatch.delenv("APEA_GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.delenv("GH_TOKEN", raising=False)
+def test_dispatch_prefers_dedicated_token(monkeypatch):
+    captured = {}
 
-    with pytest.raises(RuntimeError, match="APEA_GITHUB_TOKEN is required"):
-        observer.dispatch_ci("apea-g/continuous-boot")
+    def fake_request(path, method="GET", body=None, for_dispatch=False):
+        captured.update(path=path, method=method, body=body, for_dispatch=for_dispatch)
+        return {}
+
+    monkeypatch.setenv("APEA_GITHUB_TOKEN", "dedicated")
+    monkeypatch.setenv("GITHUB_TOKEN", "default")
+    monkeypatch.setattr(observer, "_request", fake_request)
+
+    observer.dispatch_ci("apea-g/continuous-boot")
+
+    assert captured["for_dispatch"] is True
+    assert captured["body"] == {"ref": "apea-g/continuous-boot"}
+
+
+def test_dispatch_falls_back_to_github_token(monkeypatch):
+    captured = {}
+
+    def fake_request(path, method="GET", body=None, for_dispatch=False):
+        captured["for_dispatch"] = for_dispatch
+        return {}
+
+    monkeypatch.delenv("APEA_GITHUB_TOKEN", raising=False)
+    monkeypatch.setenv("GITHUB_TOKEN", "default")
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.setattr(observer, "_request", fake_request)
+
+    observer.dispatch_ci("apea-g/continuous-boot")
+
+    assert captured["for_dispatch"] is True
