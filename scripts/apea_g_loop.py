@@ -10,6 +10,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from scripts.apea_g_preflight import preflight
+
 ROOT = Path(__file__).resolve().parents[1]
 REPO = os.environ.get("GITHUB_REPOSITORY", "arjun939201/TeluAI")
 API = "https://api.github.com"
@@ -145,20 +147,9 @@ def validate_local():
 
 
 def apply_patch(patch):
-    if not patch or len(patch) > 16000:
-        raise ValueError("missing or oversized patch")
-    protected = (
-        ".github/workflows/apea-g.yml",
-        ".github/workflows/apea-g-continuous.yml",
-        "scripts/apea_g.py",
-        "scripts/apea_g_loop.py",
-        ".env",
-        "credentials",
-        "secrets",
-        "id_rsa",
-    )
-    if any(path in patch for path in protected):
-        raise ValueError("patch targets protected control/secrets path")
+    report = preflight(patch)
+    if not report.ok:
+        raise RuntimeError("APEA-G preflight blocked patch: " + "; ".join(report.violations))
     check = subprocess.run(
         ["git", "apply", "--check", "-"], cwd=ROOT, text=True, input=patch, capture_output=True
     )
