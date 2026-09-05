@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "name": "apea-g-learning-contract",
+  "principles": [
+    "Experience is evidence, not authority",
+    "Safety policy cannot be learned away",
+    "Never weaken tests or CI to improve strategy scores",
+    "Never persist secrets or raw provider credentials",
+    "Repeated failures reduce strategy preference",
+    "Successful strategies require verification before promotion"
+  ],
+  "confidence": {
+    "minimum_for_preferred_strategy": 0.6,
+    "minimum_successes_for_trust": 2,
+    "max_experience_records": 500
+  }
+}
