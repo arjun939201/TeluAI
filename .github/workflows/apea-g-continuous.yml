@@ -3,6 +3,16 @@ name: APEA-G Continuous Engineering
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: Autonomous branch to continue
+        required: false
+        default: "apea-g/continuous-boot"
+        type: string
+      approve_plan:
+        description: Approve the persisted plan once and start autonomous execution
+        required: false
+        default: false
+        type: boolean
       max_steps:
         description: Maximum roadmap steps for this autonomous run
         required: false
@@ -29,7 +39,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: apea-g-continuous
+  group: apea-g-continuous-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || inputs.branch }}
   cancel-in-progress: false
 
 env:
@@ -42,6 +52,7 @@ env:
   APEA_MAX_STEPS: ${{ inputs.max_steps || '12' }}
   APEA_MAX_REPAIRS: ${{ inputs.max_repairs || '4' }}
   APEA_MERGE: ${{ inputs.merge || 'false' }}
+  APEA_PLAN_APPROVED: ${{ inputs.approve_plan || 'false' }}
   PYTHONUNBUFFERED: "1"
   APEA_HTTP_USER_AGENT: "TeluAI-APEA-G/1.0"
 
@@ -54,14 +65,37 @@ jobs:
       - name: Checkout autonomous branch
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || 'main' }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || inputs.branch }}
           fetch-depth: 50
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
-      - name: Resume or start event-driven autonomous loop
+      - name: Apply one-time plan approval
+        if: github.event_name == 'workflow_dispatch' && inputs.approve_plan == true
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          state_path = Path('.apea/continuous-state.json')
+          plan_path = Path('.apea/continuous-plan.json')
+          state = json.loads(state_path.read_text(encoding='utf-8'))
+          plan = json.loads(plan_path.read_text(encoding='utf-8'))
+          if not plan.get('steps'):
+              raise SystemExit('Cannot approve an empty APEA-G plan')
+          capability = plan.get('capability')
+          state['plan_approved'] = True
+          state['approved_plan_capability'] = capability
+          state['status'] = 'executing'
+          plan['status'] = 'approved'
+          plan['approval_required'] = False
+          state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          plan_path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(f'Approved persisted APEA-G plan: {capability}')
+          PY
+
+      - name: Resume or start continuous autonomous developer
         env:
           APEA_MODE: ${{ github.event_name == 'workflow_run' && 'resume' || 'start' }}
         run: >-
