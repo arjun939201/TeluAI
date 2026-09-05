@@ -2,12 +2,15 @@
 from __future__ import annotations
 import json
 import subprocess
+import time
+import urllib.error
 from pathlib import Path
 from scripts import apea_g_loop as core
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN_PATH = ROOT / ".apea/continuous-plan.json"
 STATE_PATH = ROOT / ".apea/continuous-state.json"
+PLAN_STATUSES = {"generating", "awaiting_approval", "approved", "executing", "complete"}
 
 
 def save(path: Path, value: object) -> None:
@@ -37,21 +40,49 @@ def persist_plan(branch: str) -> str:
     return core.sh("git", "rev-parse", "HEAD")
 
 
+def generate_capability_plan(cid: str):
+    """Retry provider rate limits without treating them as product failures."""
+    delays = (5, 15, 30)
+    for attempt, delay in enumerate((*delays, None), start=1):
+        try:
+            return core.make_capability_plan(cid)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 429 or delay is None:
+                raise
+            print(f"APEA-G provider rate-limited while planning {cid}; retry {attempt} in {delay}s")
+            time.sleep(delay)
+
+
 def main() -> int:
     existing = load(PLAN_PATH)
     if existing and existing.get("status") in {"awaiting_approval", "approved", "executing", "complete"}:
         print(json.dumps({"status": "EXISTING_PLAN", "capabilities": len(existing.get("capabilities", []))}))
         return 0
+
     state = load(STATE_PATH) or {"completed_capabilities": [], "completed": [], "history": []}
     completed = set(state.get("completed_capabilities", []))
-    capabilities = []
+    capabilities = list((existing or {}).get("capabilities", []))
+    planned = {str(item.get("capability")) for item in capabilities}
+    if existing and existing.get("status") == "generating":
+        print(json.dumps({"status": "RESUMING_PLAN", "capabilities": len(capabilities)}))
+    else:
+        save(PLAN_PATH, {"schema_version": 1, "status": "generating", "approval_required": True,
+                         "generated_from": ".apea/roadmap.json", "capabilities": capabilities})
+
     for item in core.roadmap().get("capabilities", []):
         cid = str(item.get("id"))
-        if cid in completed or item.get("status") in {"complete", "cancelled"}:
+        if cid in completed or item.get("status") in {"complete", "cancelled"} or cid in planned:
             continue
-        plan = core.make_capability_plan(cid)
-        capabilities.append({"capability": cid, "goal": plan.get("goal"), "steps": plan.get("steps", [])[:core.MAX_STEPS]})
-    full = {"schema_version": 1, "status": "awaiting_approval" if capabilities else "complete", "approval_required": bool(capabilities), "generated_from": ".apea/roadmap.json", "capabilities": capabilities}
+        plan = generate_capability_plan(cid)
+        capabilities.append({"capability": cid, "goal": plan.get("goal"),
+                             "steps": plan.get("steps", [])[:core.MAX_STEPS]})
+        planned.add(cid)
+        save(PLAN_PATH, {"schema_version": 1, "status": "generating", "approval_required": True,
+                         "generated_from": ".apea/roadmap.json", "capabilities": capabilities})
+
+    full = {"schema_version": 1, "status": "awaiting_approval" if capabilities else "complete",
+            "approval_required": bool(capabilities), "generated_from": ".apea/roadmap.json",
+            "capabilities": capabilities}
     save(PLAN_PATH, full)
     state["status"] = "awaiting_plan_approval" if capabilities else "complete"
     state["plan_approved"] = False
