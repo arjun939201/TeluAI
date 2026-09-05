@@ -11,6 +11,7 @@ from scripts import apea_g_loop as core
 _ORIGINAL_ENSURE_PR = core.ensure_pr
 _ORIGINAL_PROVIDER = full.provider
 _ORIGINAL_TOKEN = core.token
+_ORIGINAL_INSTALL_GUARDS = full.install_runtime_guards
 MAX_PROVIDER_RETRIES = 4
 
 
@@ -53,7 +54,7 @@ def resilient_provider(instruction: str):
 
 
 def dispatch_ci(branch: str):
-    """Trigger CI explicitly with the dedicated APEA-G credential."""
+    """Trigger CI explicitly with the available workflow-dispatch credential."""
     return ci_observer.dispatch_ci(branch)
 
 
@@ -67,11 +68,21 @@ def wait_ci(branch: str, after: float):
     return run
 
 
+def install_runtime_guards():
+    """Install full-run guards without replacing the CI observer lifecycle hooks."""
+    _ORIGINAL_INSTALL_GUARDS()
+    core.dispatch_ci = dispatch_ci
+    core.wait_ci = wait_ci
+    core.ensure_pr = safe_ensure_pr
+    core.token = api_token
+
+
 core.token = api_token
 core.ensure_pr = safe_ensure_pr
 core.dispatch_ci = dispatch_ci
 core.wait_ci = wait_ci
 full.provider = resilient_provider
+full.install_runtime_guards = install_runtime_guards
 
 if __name__ == "__main__":
     raise SystemExit(full.main())
