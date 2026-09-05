@@ -90,9 +90,9 @@ def normalize_patch(patch: object) -> str:
 
 
 def validate_patch_application(patch: str) -> None:
-    """Require Git itself to accept the patch before handing it to the executor."""
+    """Require Git itself to accept the exact patch before handing it to the executor."""
     check = subprocess.run(
-        ["git", "apply", "--check", "--recount", "-"],
+        ["git", "apply", "--check", "-"],
         cwd=ROOT,
         input=patch,
         text=True,
