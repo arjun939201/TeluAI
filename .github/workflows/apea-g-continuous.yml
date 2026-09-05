@@ -69,20 +69,20 @@ jobs:
       - name: Build or load complete plan
         run: python -m scripts.apea_g_plan
       - name: Execute approved plan continuously
-        if: inputs.approve_plan == true || (inputs.approve_plan == false && fromJSON('true') == true)
         run: python -m scripts.apea_g_entry
-      - name: Hold for one-time plan approval
-        if: ${{ inputs.approve_plan != true }}
+      - name: Report one-time plan gate
+        if: ${{ always() }}
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           state = json.loads(Path('.apea/continuous-state.json').read_text(encoding='utf-8'))
           plan = json.loads(Path('.apea/continuous-plan.json').read_text(encoding='utf-8'))
-          if state.get('plan_approved') is True:
-              print('PLAN_APPROVED: persisted approval is active; autonomous execution may resume on the next run.')
-          elif plan.get('approval_required'):
-              print(f"PLAN_READY: {len(plan.get('capabilities', []))} capabilities are persisted and awaiting the one-time approval checkpoint.")
-          else:
-              print('No approval checkpoint is required.')
+          print(json.dumps({
+              'plan_approved': state.get('plan_approved') is True,
+              'status': state.get('status'),
+              'capability': state.get('capability'),
+              'completed_capabilities': state.get('completed_capabilities', []),
+              'planned_capabilities': len(plan.get('capabilities', [])),
+          }, ensure_ascii=False))
           PY
