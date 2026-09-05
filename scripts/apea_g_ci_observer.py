@@ -16,14 +16,6 @@ POLL_LIMIT = 80
 
 
 def _token(for_dispatch: bool = False) -> str:
-    if for_dispatch:
-        value = os.environ.get("APEA_GITHUB_TOKEN")
-        if not value:
-            raise RuntimeError(
-                "APEA_GITHUB_TOKEN is required to trigger GitHub Actions from APEA-G; "
-                "GITHUB_TOKEN cannot safely be used as the workflow trigger credential"
-            )
-        return value
     value = os.environ.get("APEA_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if not value:
         raise RuntimeError("A GitHub API token is required")
@@ -50,7 +42,7 @@ def _request(path: str, method: str = "GET", body=None, for_dispatch: bool = Fal
 
 
 def dispatch_ci(branch: str) -> None:
-    """Explicitly trigger CI with a non-GITHUB_TOKEN credential."""
+    """Dispatch CI; workflow_dispatch is explicitly allowed for GITHUB_TOKEN."""
     _request("actions/workflows/ci.yml/dispatches", "POST", {"ref": branch}, for_dispatch=True)
 
 
