@@ -1,19 +1,17 @@
 {
-  "completed": [],
+  "completed": ["step-1", "step-2"],
   "completed_capabilities": [],
-  "history": [],
+  "history": [
+    {"capability": "quality-evaluation", "step": "step-1", "status": "GREEN", "commit": "3887f5bb5b0ce55455bdbd3bccaf43840f094e04"},
+    {"capability": "quality-evaluation", "step": "step-2", "status": "GREEN", "commit": "0c0f1372955c802adedb36d636b5f7e37472febd"}
+  ],
   "status": "executing",
   "branch": "apea-g/continuous-boot",
   "branch_initialized": true,
   "plan_approved": true,
   "session": "full-plan-continuous",
-  "plan_capabilities": [
-    "quality-evaluation",
-    "performance",
-    "security",
-    "ux",
-    "production",
-    "release"
-  ],
+  "capability": "quality-evaluation",
+  "current_step": "step-3",
+  "plan_capabilities": ["quality-evaluation", "performance", "security", "ux", "production", "release"],
   "approval_source": "user-go"
 }
