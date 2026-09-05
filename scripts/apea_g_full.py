@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import os
+import time
 from pathlib import Path
 from scripts import apea_g_loop as core
 
@@ -36,8 +37,15 @@ def main() -> int:
         state.setdefault("completed_capabilities", []).append(capability)
         state["completed_capabilities"] = list(dict.fromkeys(state["completed_capabilities"]))
         state["completed"] = []; state["status"] = "advancing"; save(STATE_PATH, state)
+        core.sh("git", "add", "--", ".")
+        if core.sh("git", "diff", "--cached", "--quiet") != "":
+            core.sh("git", "config", "user.name", "APEA-G")
+            core.sh("git", "config", "user.email", "apea-g@users.noreply.github.com")
+            core.sh("git", "commit", "-m", f"chore: persist APEA-G {capability} progress", check=True)
+            core.sh("git", "push", "-u", "origin", f"HEAD:{branch}", check=True)
     state["status"] = "complete"; save(STATE_PATH, state)
-    if core.sh("git", "status", "--porcelain"): core.push(branch, "chore: persist APEA-G completion state")
+    if core.sh("git", "status", "--porcelain"):
+        core.push(branch, "chore: persist APEA-G completion state")
     print(json.dumps({"status": "COMPLETE", "capabilities": state.get("completed_capabilities", [])})); return 0
 
 if __name__ == "__main__": raise SystemExit(main())

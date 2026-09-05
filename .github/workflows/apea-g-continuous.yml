@@ -26,9 +26,6 @@ on:
         required: false
         default: false
         type: boolean
-  workflow_run:
-    workflows: ["TeluAI CI"]
-    types: [completed]
 
 permissions:
   contents: write
@@ -37,7 +34,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: apea-g-continuous-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
+  group: apea-g-continuous-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -56,14 +53,13 @@ env:
 
 jobs:
   continuous-engineer:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event.workflow_run.head_branch != '' && startsWith(github.event.workflow_run.head_branch, 'apea-g/continuous-'))
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       - name: Checkout autonomous branch
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 100
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -73,9 +69,6 @@ jobs:
         run: python -m scripts.apea_g_plan
       - name: Execute approved plan continuously
         if: github.event_name == 'workflow_dispatch' && inputs.approve_plan == true
-        run: python -m scripts.apea_g_full
-      - name: Resume autonomous plan after CI
-        if: github.event_name == 'workflow_run'
         run: python -m scripts.apea_g_full
       - name: Hold for one-time plan approval
         if: github.event_name == 'push'
