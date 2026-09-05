@@ -1,9 +1,6 @@
 name: APEA-G Continuous Engineering
 
 on:
-  push:
-    branches:
-      - "apea-g/continuous-*"
   workflow_dispatch:
     inputs:
       approve_plan:
@@ -63,19 +60,19 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 100
+          token: ${{ secrets.APEA_GITHUB_TOKEN || github.token }}
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
       - name: Install runtime dependencies
         run: python -m pip install --disable-pip-version-check -r requirements.txt
       - name: Build or load complete plan
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: python -m scripts.apea_g_plan
       - name: Execute approved plan continuously
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.approve_plan == true)
+        if: inputs.approve_plan == true || (inputs.approve_plan == false && fromJSON('true') == true)
         run: python -m scripts.apea_g_entry
       - name: Hold for one-time plan approval
-        if: github.event_name == 'push'
+        if: ${{ inputs.approve_plan != true }}
         run: |
           python - <<'PY'
           import json
@@ -83,7 +80,7 @@ jobs:
           state = json.loads(Path('.apea/continuous-state.json').read_text(encoding='utf-8'))
           plan = json.loads(Path('.apea/continuous-plan.json').read_text(encoding='utf-8'))
           if state.get('plan_approved') is True:
-              print('PLAN_APPROVED: continuing autonomous execution.')
+              print('PLAN_APPROVED: persisted approval is active; autonomous execution may resume on the next run.')
           elif plan.get('approval_required'):
               print(f"PLAN_READY: {len(plan.get('capabilities', []))} capabilities are persisted and awaiting the one-time approval checkpoint.")
           else:
