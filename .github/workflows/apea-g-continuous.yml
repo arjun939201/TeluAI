@@ -49,6 +49,7 @@ env:
   APEA_MERGE: ${{ inputs.merge || 'false' }}
   APEA_PLAN_APPROVED: ${{ inputs.approve_plan || 'false' }}
   PYTHONUNBUFFERED: "1"
+  PYTHONPATH: "."
   APEA_HTTP_USER_AGENT: "TeluAI-APEA-G/1.0"
 
 jobs:
