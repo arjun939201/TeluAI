@@ -13,6 +13,7 @@ import apea_g_loop  # noqa: E402
 
 
 MAX_PROVIDER_RETRIES = 2
+_ORIGINAL_PROVIDER = apea_g_loop.provider
 
 
 def resilient_provider(instruction: str):
@@ -20,7 +21,7 @@ def resilient_provider(instruction: str):
     last_error = None
     for _ in range(MAX_PROVIDER_RETRIES + 1):
         try:
-            return apea_g_loop.provider(instruction)
+            return _ORIGINAL_PROVIDER(instruction)
         except json.JSONDecodeError as exc:
             last_error = exc
     raise RuntimeError("LLM returned malformed JSON after bounded retries") from last_error
