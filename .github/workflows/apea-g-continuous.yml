@@ -1,10 +1,18 @@
 name: APEA-G Continuous Engineering
 
 on:
+  push:
+    branches:
+      - "apea-g/continuous-*"
   workflow_dispatch:
     inputs:
+      approve_plan:
+        description: Approve the persisted complete plan once and run it continuously
+        required: false
+        default: false
+        type: boolean
       max_steps:
-        description: Maximum roadmap steps for this autonomous run
+        description: Maximum steps per capability
         required: false
         default: "12"
         type: string
@@ -29,7 +37,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: apea-g-continuous-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  group: apea-g-continuous-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -42,27 +50,47 @@ env:
   APEA_MAX_STEPS: ${{ inputs.max_steps || '12' }}
   APEA_MAX_REPAIRS: ${{ inputs.max_repairs || '4' }}
   APEA_MERGE: ${{ inputs.merge || 'false' }}
+  APEA_PLAN_APPROVED: ${{ inputs.approve_plan || 'false' }}
   PYTHONUNBUFFERED: "1"
   APEA_HTTP_USER_AGENT: "TeluAI-APEA-G/1.0"
 
 jobs:
   continuous-engineer:
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.head_branch != '' && startsWith(github.event.workflow_run.head_branch, 'apea-g/continuous-'))
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event.workflow_run.head_branch != '' && startsWith(github.event.workflow_run.head_branch, 'apea-g/continuous-'))
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 360
     steps:
       - name: Checkout autonomous branch
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || 'main' }}
-          fetch-depth: 50
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
+          fetch-depth: 100
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
-      - name: Resume or start event-driven autonomous loop
-        env:
-          APEA_MODE: ${{ github.event_name == 'workflow_run' && 'resume' || 'start' }}
-        run: >-
-          python -c "import os,runpy,urllib.request; O=urllib.request.Request; UA=os.environ['APEA_HTTP_USER_AGENT']; urllib.request.Request=lambda url,data=None,headers=None,origin_req_host=None,unverifiable=False,method=None: O(url,data=data,headers={**(headers or {}),'User-Agent':UA,'Accept':'application/json'},origin_req_host=origin_req_host,unverifiable=unverifiable,method=method); runpy.run_path('scripts/apea_g_async.py',run_name='__main__')"
+      - name: Build or load complete plan
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: python -m scripts.apea_g_plan
+
+      - name: Execute approved plan continuously
+        if: github.event_name == 'workflow_dispatch' && inputs.approve_plan == true
+        run: python -m scripts.apea_g_full
+
+      - name: Resume autonomous plan after CI
+        if: github.event_name == 'workflow_run'
+        run: python -m scripts.apea_g_full
+
+      - name: Hold for one-time plan approval
+        if: github.event_name == 'push'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          plan = json.loads(Path('.apea/continuous-plan.json').read_text(encoding='utf-8'))
+          if plan.get('approval_required'):
+              print(f"PLAN_READY: {len(plan.get('capabilities', []))} capabilities are persisted and awaiting the one-time approval checkpoint.")
+          else:
+              print("No approval checkpoint is required.")
+          PY
