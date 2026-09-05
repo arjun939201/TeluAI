@@ -1,6 +1,9 @@
 name: APEA-G Continuous Engineering
 
 on:
+  push:
+    paths:
+      - '.apea/apea-g-session.trigger'
   workflow_dispatch:
     inputs:
       approve_plan:
