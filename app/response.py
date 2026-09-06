@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 from app.melimi.firewall import deterministic_repair
-from app.melimi.response_quality import clean_chat_formatting, repair_confirmed_melimi_terms
+from app.response_quality import clean_chat_formatting, repair_confirmed_melimi_terms
 from app.texl_translation_intent import TranslationMode, classify_translation_intent
 
 _INTERNAL_MARKERS = (
