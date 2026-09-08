@@ -67,14 +67,20 @@ def _review_root_candidate(
         payload = json.loads(candidate.payload_json or "{}")
         if approve:
             try:
-                return publish_root_candidate(
+                result = publish_root_candidate(
                     db,
                     candidate,
                     payload,
                     reviewer_id=reviewer_id,
                     reviewer_note=reviewer_note,
                 )
+                db.commit()
+                return result
             except PublicationConflict as exc:
+                db.rollback()
+                candidate = db.get(LearningCandidate, candidate_id)
+                if candidate is None:
+                    return None
                 candidate.status = "CONFLICT"
                 candidate.reviewed_at = now()
                 candidate.reviewer_user_id = reviewer_id
