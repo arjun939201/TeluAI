@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
-
 import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import app.learning.service as learning_service
 from app.database import Base, KnowledgeVersion, LearningCandidate, MelimiRoot
@@ -12,7 +11,11 @@ from app.database import Base, KnowledgeVersion, LearningCandidate, MelimiRoot
 
 @pytest.fixture
 def isolated_learning_db(monkeypatch):
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     monkeypatch.setattr(learning_service, "SessionLocal", Session)
