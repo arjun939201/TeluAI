@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 
-from app.melimi.registry import standard_to_melimi
+from app.melimi.registry import lexical_inventory
 
 _STAR_BULLET = re.compile(r"(?m)^\s*\*\s+")
 _STAR_EMPHASIS = re.compile(r"(?<!\*)\*([^*\n]+)\*(?!\*)")
@@ -19,8 +19,9 @@ def clean_chat_formatting(text: str) -> str:
 
 def repair_confirmed_melimi_terms(text: str) -> str:
     value = str(text or "")
+    mapping = lexical_inventory().get("standard_to_melimi", {})
     for source in ("ఇతర", "ఉపయోగించడం"):
-        preferred = standard_to_melimi(source)
+        preferred = str(mapping.get(source, "")).strip()
         if not preferred:
             continue
         value = re.sub(
