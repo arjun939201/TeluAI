@@ -19,8 +19,23 @@ def isolated_learning_db(monkeypatch):
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     monkeypatch.setattr(learning_service, "SessionLocal", Session)
+    monkeypatch.setattr(learning_service, "add_learning_candidate", lambda user_id, kind, source, payload: _add_candidate(Session, user_id, kind, source, payload))
     yield Session
     engine.dispose()
+
+
+def _add_candidate(Session, user_id, knowledge_type, source_text, payload):
+    with Session() as db:
+        row = LearningCandidate(
+            user_id=user_id,
+            knowledge_type=knowledge_type,
+            source_text=source_text,
+            payload_json=__import__("json").dumps(payload, ensure_ascii=False),
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return row.id
 
 
 def test_submission_stays_pending_and_does_not_publish(isolated_learning_db):
